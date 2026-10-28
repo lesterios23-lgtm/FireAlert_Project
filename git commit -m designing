@@ -1,0 +1,3169 @@
+[1mdiff --git a/FireAlert_Backend/bootstrap/app.php b/FireAlert_Backend/bootstrap/app.php[m
+[1mindex 1085719..5304386 100644[m
+[1m--- a/FireAlert_Backend/bootstrap/app.php[m
+[1m+++ b/FireAlert_Backend/bootstrap/app.php[m
+[36m@@ -8,6 +8,7 @@[m
+ return Application::configure(basePath: dirname(__DIR__))[m
+     ->withRouting([m
+         web: __DIR__.'/../routes/web.php',[m
+[32m+[m[32m        api: __DIR__.'/../routes/api.php',[m
+         commands: __DIR__.'/../routes/console.php',[m
+         health: '/up',[m
+     )[m
+[1mdiff --git a/FireAlert_Backend/composer.json b/FireAlert_Backend/composer.json[m
+[1mindex 401b9aa..b53079b 100644[m
+[1m--- a/FireAlert_Backend/composer.json[m
+[1m+++ b/FireAlert_Backend/composer.json[m
+[36m@@ -11,6 +11,7 @@[m
+     "require": {[m
+         "php": "^8.3",[m
+         "laravel/framework": "^13.17",[m
+[32m+[m[32m        "laravel/sanctum": "^4.0",[m
+         "laravel/tinker": "^3.0"[m
+     },[m
+     "require-dev": {[m
+[36m@@ -89,4 +90,4 @@[m
+     },[m
+     "minimum-stability": "stable",[m
+     "prefer-stable": true[m
+[31m-}[m
+\ No newline at end of file[m
+[32m+[m[32m}[m
+[1mdiff --git a/FireAlert_Backend/composer.lock b/FireAlert_Backend/composer.lock[m
+[1mindex 2123393..4b43420 100644[m
+[1m--- a/FireAlert_Backend/composer.lock[m
+[1m+++ b/FireAlert_Backend/composer.lock[m
+[36m@@ -4,7 +4,7 @@[m
+         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",[m
+         "This file is @generated automatically"[m
+     ],[m
+[31m-    "content-hash": "b955dcb1fbb6f3fe2cd0d55388d3ae7d",[m
+[32m+[m[32m    "content-hash": "c596fb5b5a3ecc7bc9220faa1ddd4c99",[m
+     "packages": [[m
+         {[m
+             "name": "brick/math",[m
+[36m@@ -217,23 +217,23 @@[m
+         },[m
+         {[m
+             "name": "doctrine/inflector",[m
+[31m-            "version": "2.1.0",[m
+[32m+[m[32m            "version": "2.1.1",[m
+             "source": {[m
+                 "type": "git",[m
+                 "url": "https://github.com/doctrine/inflector.git",[m
+[31m-                "reference": "6d6c96277ea252fc1304627204c3d5e6e15faa3b"[m
+[32m+[m[32m                "reference": "46351b6812b7b6d52b82c3efa5dfb786a198ec88"[m
+             },[m
+             "dist": {[m
+                 "type": "zip",[m
+[31m-                "url": "https://api.github.com/repos/doctrine/inflector/zipball/6d6c96277ea252fc1304627204c3d5e6e15faa3b",[m
+[31m-                "reference": "6d6c96277ea252fc1304627204c3d5e6e15faa3b",[m
+[32m+[m[32m                "url": "https://api.github.com/repos/doctrine/inflector/zipball/46351b6812b7b6d52b82c3efa5dfb786a198ec88",[m
+[32m+[m[32m                "reference": "46351b6812b7b6d52b82c3efa5dfb786a198ec88",[m
+                 "shasum": ""[m
+             },[m
+             "require": {[m
+                 "php": "^7.2 || ^8.0"[m
+             },[m
+             "require-dev": {[m
+[31m-                "doctrine/coding-standard": "^12.0 || ^13.0",[m
+[32m+[m[32m                "doctrine/coding-standard": "^12.0 || ^14.0",[m
+                 "phpstan/phpstan": "^1.12 || ^2.0",[m
+                 "phpstan/phpstan-phpunit": "^1.4 || ^2.0",[m
+                 "phpstan/phpstan-strict-rules": "^1.6 || ^2.0",[m
+[36m@@ -287,7 +287,7 @@[m
+             ],[m
+             "support": {[m
+                 "issues": "https://github.com/doctrine/inflector/issues",[m
+[31m-                "source": "https://github.com/doctrine/inflector/tree/2.1.0"[m
+[32m+[m[32m                "source": "https://github.com/doctrine/inflector/tree/2.1.1"[m
+             },[m
+             "funding": [[m
+                 {[m
+[36m@@ -303,7 +303,7 @@[m
+                     "type": "tidelift"[m
+                 }[m
+             ],[m
+[31m-            "time": "2025-08-10T19:31:58+00:00"[m
+[32m+[m[32m            "time": "2026-10-26T08:14:14+00:00"[m
+         },[m
+         {[m
+             "name": "doctrine/lexer",[m
+[36m@@ -646,16 +646,16 @@[m
+         },[m
+         {[m
+             "name": "guzzlehttp/guzzle",[m
+[31m-            "version": "8.3.0",[m
+[32m+[m[32m            "version": "8.3.1",[m
+             "source": {[m
+                 "type": "git",[m
+                 "url": "https://github.com/guzzle/guzzle.git",[m
+[31m-                "reference": "b920e5fcaf81d761b8fabe600ca90999beaefdb7"[m
+[32m+[m[32m                "reference": "7d9b1f430bb65ac664e120af227bf9a795ad6333"[m
+             },[m
+             "dist": {[m
+                 "type": "zip",[m
+[31m-                "url": "https://api.github.com/repos/guzzle/guzzle/zipball/b920e5fcaf81d761b8fabe600ca90999beaefdb7",[m
+[31m-                "reference": "b920e5fcaf81d761b8fabe600ca90999beaefdb7",[m
+[32m+[m[32m                "url": "https://api.github.com/repos/guzzle/guzzle/zipball/7d9b1f430bb65ac664e120af227bf9a795ad6333",[m
+[32m+[m[32m                "reference": "7d9b1f430bb65ac664e120af227bf9a795ad6333",[m
+                 "shasum": ""[m
+             },[m
+             "require": {[m
+[36m@@ -752,7 +752,7 @@[m
+             ],[m
+             "support": {[m
+                 "issues": "https://github.com/guzzle/guzzle/issues",[m
+[31m-                "source": "https://github.com/guzzle/guzzle/tree/8.3.0"[m
+[32m+[m[32m                "source": "https://github.com/guzzle/guzzle/tree/8.3.1"[m
+             },[m
+             "funding": [[m
+                 {[m
+[36m@@ -768,7 +768,7 @@[m
+                     "type": "tidelift"[m
+                 }[m
+             ],[m
+[31m-            "time": "2026-10-18T13:38:43+00:00"[m
+[32m+[m[32m            "time": "2026-10-25T21:35:34+00:00"[m
+         },[m
+         {[m
+             "name": "guzzlehttp/promises",[m
+[36m@@ -1061,16 +1061,16 @@[m
+         },[m
+         {[m
+             "name": "laravel/framework",[m
+[31m-            "version": "v13.38.0",[m
+[32m+[m[32m            "version": "v13.39.0",[m
+             "source": {[m
+                 "type": "git",[m
+                 "url": "https://github.com/laravel/framework.git",[m
+[31m-                "reference": "c42f9abd4a3d2f9a3cd6be109255ddce8092ceb8"[m
+[32m+[m[32m                "reference": "d52c3b3129e4c8e213c97cdc68f94b0b7d27f181"[m
+             },[m
+             "dist": {[m
+                 "type": "zip",[m
+[31m-                "url": "https://api.github.com/repos/laravel/framework/zipball/c42f9abd4a3d2f9a3cd6be109255ddce8092ceb8",[m
+[31m-                "reference": "c42f9abd4a3d2f9a3cd6be109255ddce8092ceb8",[m
+[32m+[m[32m                "url": "https://api.github.com/repos/laravel/framework/zipball/d52c3b3129e4c8e213c97cdc68f94b0b7d27f181",[m
+[32m+[m[32m                "reference": "d52c3b3129e4c8e213c97cdc68f94b0b7d27f181",[m
+                 "shasum": ""[m
+             },[m
+             "require": {[m
+[36m@@ -1288,7 +1288,7 @@[m
+                 "issues": "https://github.com/laravel/framework/issues",[m
+                 "source": "https://github.com/laravel/framework"[m
+             },[m
+[31m-            "time": "2026-10-20T10:45:58+00:00"[m
+[32m+[m[32m            "time": "2026-10-27T14:04:39+00:00"[m
+         },[m
+         {[m
+             "name": "laravel/prompts",[m
+[36m@@ -1348,6 +1348,69 @@[m
+             },[m
+             "time": "2026-10-09T14:45:13+00:00"[m
+         },[m
+[32m+[m[32m        {[m
+[32m+[m[32m            "name": "laravel/sanctum",[m
+[32m+[m[32m            "version": "v4.3.3",[m
+[32m+[m[32m            "source": {[m
+[32m+[m[32m                "type": "git",[m
+[32m+[m[32m                "url": "https://github.com/laravel/sanctum.git",[m
+[32m+[m[32m                "reference": "fee27a573d1a013af3721d86153a65e0b11927e6"[m
+[32m+[m[32m            },[m
+[32m+[m[32m            "dist": {[m
+[32m+[m[32m                "type": "zip",[m
+[32m+[m[32m                "url": "https://api.github.com/repos/laravel/sanctum/zipball/fee27a573d1a013af3721d86153a65e0b11927e6",[m
+[32m+[m[32m                "reference": "fee27a573d1a013af3721d86153a65e0b11927e6",[m
+[32m+[m[32m                "shasum": ""[m
+[32m+[m[32m            },[m
+[32m+[m[32m            "require": {[m
+[32m+[m[32m                "ext-json": "*",[m
+[32m+[m[32m                "illuminate/console": "^11.0|^12.0|^13.0",[m
+[32m+[m[32m                "illuminate/contracts": "^11.0|^12.0|^13.0",[m
+[32m+[m[32m                "illuminate/database": "^11.0|^12.0|^13.0",[m
+[32m+[m[32m                "illuminate/support": "^11.0|^12.0|^13.0",[m
+[32m+[m[32m                "php": "^8.2",[m
+[32m+[m[32m                "symfony/console": "^7.0|^8.0"[m
+[32m+[m[32m            },[m
+[32m+[m[32m            "require-dev": {[m
+[32m+[m[32m                "mockery/mockery": "^1.6",[m
+[32m+[m[32m                "orchestra/testbench": "^9.15|^10.8|^11.0",[m
+[32m+[m[32m                "phpstan/phpstan": "^1.10"[m
+[32m+[m[32m            },[m
+[32m+[m[32m            "type": "library",[m
+[32m+[m[32m            "extra": {[m
+[32m+[m[32m                "laravel": {[m
+[32m+[m[32m                    "providers": [[m
+[32m+[m[32m                        "Laravel\\Sanctum\\SanctumServiceProvider"[m
+[32m+[m[32m                    ][m
+[32m+[m[32m                }[m
+[32m+[m[32m            },[m
+[32m+[m[32m            "autoload": {[m
+[32m+[m[32m                "psr-4": {[m
+[32m+[m[32m                    "Laravel\\Sanctum\\": "src/"[m
+[32m+[m[32m                }[m
+[32m+[m[32m            },[m
+[32m+[m[32m            "notification-url": "https://packagist.org/downloads/",[m
+[32m+[m[32m            "license": [[m
+[32m+[m[32m                "MIT"[m
+[32m+[m[32m            ],[m
+[32m+[m[32m            "authors": [[m
+[32m+[m[32m                {[m
+[32m+[m[32m                    "name": "Taylor Otwell",[m
+[32m+[m[32m                    "email": "taylor@laravel.com"[m
+[32m+[m[32m                }[m
+[32m+[m[32m            ],[m
+[32m+[m[32m            "description": "Laravel Sanctum provides a featherweight authentication system for SPAs and simple APIs.",[m
+[32m+[m[32m            "keywords": [[m
+[32m+[m[32m                "auth",[m
+[32m+[m[32m                "laravel",[m
+[32m+[m[32m                "sanctum"[m
+[32m+[m[32m            ],[m
+[32m+[m[32m            "support": {[m
+[32m+[m[32m                "issues": "https://github.com/laravel/sanctum/issues",[m
+[32m+[m[32m                "source": "https://github.com/laravel/sanctum"[m
+[32m+[m[32m            },[m
+[32m+[m[32m            "time": "2026-06-23T18:26:55+00:00"[m
+[32m+[m[32m        },[m
+         {[m
+             "name": "laravel/serializable-closure",[m
+             "version": "v2.1.0",[m
+[36m@@ -1857,21 +1920,21 @@[m
+         },[m
+         {[m
+             "name": "league/uri",[m
+[31m-            "version": "7.9.0",[m
+[32m+[m[32m            "version": "7.9.1",[m
+             "source": {[m
+                 "type": "git",[m
+                 "url": "https://github.com/thephpleague/uri.git",[m
+[31m-                "reference": "fcc872a3d872aa13f935e0cd1887b9abb06da07f"[m
+[32m+[m[32m                "reference": "40403f5c3141457a61f7f1aba6706e8fa4a0ece5"[m
+             },[m
+             "dist": {[m
+                 "type": "zip",[m
+[31m-                "url": "https://api.github.com/repos/thephpleague/uri/zipball/fcc872a3d872aa13f935e0cd1887b9abb06da07f",[m
+[31m-                "reference": "fcc872a3d872aa13f935e0cd1887b9abb06da07f",[m
+[32m+[m[32m                "url": "https://api.github.com/repos/thephpleague/uri/zipball/40403f5c3141457a61f7f1aba6706e8fa4a0ece5",[m
+[32m+[m[32m                "reference": "40403f5c3141457a61f7f1aba6706e8fa4a0ece5",[m
+                 "shasum": ""[m
+             },[m
+             "require": {[m
+                 "ext-mbstring": "*",[m
+[31m-                "league/uri-interfaces": "^7.9.0",[m
+[32m+[m[32m                "league/uri-interfaces": "^7.9.1",[m
+                 "php": "^8.1",[m
+                 "psr/http-factory": "^1"[m
+             },[m
+[36m@@ -1944,7 +2007,7 @@[m
+                 "docs": "https://uri.thephpleague.com",[m
+                 "forum": "https://thephpleague.slack.com",[m
+                 "issues": "https://github.com/thephpleague/uri-src/issues",[m
+[31m-                "source": "https://github.com/thephpleague/uri/tree/7.9.0"[m
+[32m+[m[32m                "source": "https://github.com/thephpleague/uri/tree/7.9.1"[m
+             },[m
+             "funding": [[m
+                 {[m
+[36m@@ -1952,20 +2015,20 @@[m
+                     "type": "github"[m
+                 }[m
+             ],[m
+[31m-            "time": "2026-10-16T15:19:33+00:00"[m
+[32m+[m[32m            "time": "2026-10-27T07:14:23+00:00"[m
+         },[m
+         {[m
+             "name": "league/uri-interfaces",[m
+[31m-            "version": "7.9.0",[m
+[32m+[m[32m            "version": "7.9.1",[m
+             "source": {[m
+                 "type": "git",[m
+                 "url": "https://github.com/thephpleague/uri-interfaces.git",[m
+[31m-                "reference": "eb5f6d24e6a4fe0a8e9c78ded4eb1dfff1404f58"[m
+[32m+[m[32m                "reference": "994300a79e17f179112dc259f8df0c4de982f736"[m
+             },[m
+             "dist": {[m
+                 "type": "zip",[m
+[31m-                "url": "https://api.github.com/repos/thephpleague/uri-interfaces/zipball/eb5f6d24e6a4fe0a8e9c78ded4eb1dfff1404f58",[m
+[31m-                "reference": "eb5f6d24e6a4fe0a8e9c78ded4eb1dfff1404f58",[m
+[32m+[m[32m                "url": "https://api.github.com/repos/thephpleague/uri-interfaces/zipball/994300a79e17f179112dc259f8df0c4de982f736",[m
+[32m+[m[32m                "reference": "994300a79e17f179112dc259f8df0c4de982f736",[m
+                 "shasum": ""[m
+             },[m
+             "require": {[m
+[36m@@ -2028,7 +2091,7 @@[m
+                 "docs": "https://uri.thephpleague.com",[m
+                 "forum": "https://thephpleague.slack.com",[m
+                 "issues": "https://github.com/thephpleague/uri-src/issues",[m
+[31m-                "source": "https://github.com/thephpleague/uri-interfaces/tree/7.9.0"[m
+[32m+[m[32m                "source": "https://github.com/thephpleague/uri-interfaces/tree/7.9.1"[m
+             },[m
+             "funding": [[m
+                 {[m
+[36m@@ -2036,7 +2099,7 @@[m
+                     "type": "github"[m
+                 }[m
+             ],[m
+[31m-            "time": "2026-10-16T15:19:33+00:00"[m
+[32m+[m[32m            "time": "2026-10-27T07:14:23+00:00"[m
+         },[m
+         {[m
+             "name": "monolog/monolog",[m
+[36m@@ -2145,16 +2208,16 @@[m
+         },[m
+         {[m
+             "name": "nesbot/carbon",[m
+[31m-            "version": "3.15.0",[m
+[32m+[m[32m            "version": "3.15.1",[m
+             "source": {[m
+                 "type": "git",[m
+                 "url": "https://github.com/CarbonPHP/carbon.git",[m
+[31m-                "reference": "217d38553209bdb44e01590d9e9a2e4df8354cce"[m
+[32m+[m[32m                "reference": "ce0e5636fae7d1e99856eb70cae4c719a284aa08"[m
+             },[m
+             "dist": {[m
+                 "type": "zip",[m
+[31m-                "url": "https://api.github.com/repos/CarbonPHP/carbon/zipball/217d38553209bdb44e01590d9e9a2e4df8354cce",[m
+[31m-                "reference": "217d38553209bdb44e01590d9e9a2e4df8354cce",[m
+[32m+[m[32m                "url": "https://api.github.com/repos/CarbonPHP/carbon/zipball/ce0e5636fae7d1e99856eb70cae4c719a284aa08",[m
+[32m+[m[32m                "reference": "ce0e5636fae7d1e99856eb70cae4c719a284aa08",[m
+                 "shasum": ""[m
+             },[m
+             "require": {[m
+[36m@@ -2247,20 +2310,20 @@[m
+                     "type": "tidelift"[m
+                 }[m
+             ],[m
+[31m-            "time": "2026-10-18T18:27:53+00:00"[m
+[32m+[m[32m            "time": "2026-10-25T14:32:48+00:00"[m
+         },[m
+         {[m
+             "name": "nette/schema",[m
+[31m-            "version": "v1.3.7",[m
+[32m+[m[32m            "version": "v1.4.0",[m
+             "source": {[m
+                 "type": "git",[m
+                 "url": "https://github.com/nette/schema.git",[m
+[31m-                "reference": "c1162897273bf9499ca57924c4688a19d82c9310"[m
+[32m+[m[32m                "reference": "af9fa8a86bfca9b02b10346220db26e62ef942ec"[m
+             },[m
+             "dist": {[m
+                 "type": "zip",[m
+[31m-                "url": "https://api.github.com/repos/nette/schema/zipball/c1162897273bf9499ca57924c4688a19d82c9310",[m
+[31m-                "reference": "c1162897273bf9499ca57924c4688a19d82c9310",[m
+[32m+[m[32m                "url": "https://api.github.com/repos/nette/schema/zipball/af9fa8a86bfca9b02b10346220db26e62ef942ec",[m
+[32m+[m[32m                "reference": "af9fa8a86bfca9b02b10346220db26e62ef942ec",[m
+                 "shasum": ""[m
+             },[m
+             "require": {[m
+[36m@@ -2268,16 +2331,16 @@[m
+                 "php": "8.1 - 8.6"[m
+             },[m
+             "require-dev": {[m
+[31m-                "nette/phpstan-rules": "^1.0",[m
+[32m+[m[32m                "nette/phpstan-rules": "^1.0.7",[m
+                 "nette/tester": "^2.6",[m
+                 "phpstan/extension-installer": "^1.4@stable",[m
+[31m-                "phpstan/phpstan": "^2.1.39@stable",[m
+[32m+[m[32m                "phpstan/phpstan": "^2.3@stable",[m
+                 "tracy/tracy": "^2.8"[m
+             },[m
+             "type": "library",[m
+             "extra": {[m
+                 "branch-alias": {[m
+[31m-                    "dev-master": "1.3-dev"[m
+[32m+[m[32m                    "dev-master": "1.4-dev"[m
+                 }[m
+             },[m
+             "autoload": {[m
+[36m@@ -2298,23 +2361,23 @@[m
+                 {[m
+                     "name": "David Grudl",[m
+                     "homepage": "https://davidgrudl.com"[m
+[31m-                },[m
+[31m-                {[m
+[31m-                    "name": "Nette Community",[m
+[31m-                    "homepage": "https://nette.org/contributors"[m
+                 }[m
+             ],[m
+[31m-            "description": "📐 Nette Schema: validating data structures against a given Schema.",[m
+[31m-            "homepage": "https://nette.org",[m
+[32m+[m[32m            "description": "📐 Nette Schema: validates and normalizes data such as configuration or API input against a schema described in a few readable lines of PHP, with precise error messages.",[m
+[32m+[m[32m            "homepage": "https://doc.nette.org/schema",[m
+             "keywords": [[m
+[31m-                "config",[m
+[31m-                "nette"[m
+[32m+[m[32m                "configuration",[m
+[32m+[m[32m                "data validation",[m
+[32m+[m[32m                "nette",[m
+[32m+[m[32m                "normalization",[m
+[32m+[m[32m                "schema",[m
+[32m+[m[32m                "validation"[m
+             ],[m
+             "support": {[m
+                 "issues": "https://github.com/nette/schema/issues",[m
+[31m-                "source": "https://github.com/nette/schema/tree/v1.3.7"[m
+[32m+[m[32m                "source": "https://github.com/nette/schema/tree/v1.4.0"[m
+             },[m
+[31m-            "time": "2026-10-20T15:46:50+00:00"[m
+[32m+[m[32m            "time": "2026-10-22T02:12:50+00:00"[m
+         },[m
+         {[m
+             "name": "nette/utils",[m
+[36m@@ -4361,16 +4424,16 @@[m
+         },[m
+         {[m
+             "name": "symfony/polyfill-intl-grapheme",[m
+[31m-            "version": "v1.43.0",[m
+[32m+[m[32m            "version": "v1.43.3",[m
+             "source": {[m
+                 "type": "git",[m
+                 "url": "https://github.com/symfony/polyfill-intl-grapheme.git",[m
+[31m-                "reference": "5cac8f4db97208823aa353f59a01faad2da52c75"[m
+[32m+[m[32m                "reference": "5a8f33c87aeecffce24e721b5064fab05f4becf8"[m
+             },[m
+             "dist": {[m
+                 "type": "zip",[m
+[31m-                "url": "https://api.github.com/repos/symfony/polyfill-intl-grapheme/zipball/5cac8f4db97208823aa353f59a01faad2da52c75",[m
+[31m-                "reference": "5cac8f4db97208823aa353f59a01faad2da52c75",[m
+[32m+[m[32m                "url": "https://api.github.com/repos/symfony/polyfill-intl-grapheme/zipball/5a8f33c87aeecffce24e721b5064fab05f4becf8",[m
+[32m+[m[32m                "reference": "5a8f33c87aeecffce24e721b5064fab05f4becf8",[m
+                 "shasum": ""[m
+             },[m
+             "require": {[m
+[36m@@ -4419,7 +4482,7 @@[m
+                 "shim"[m
+             ],[m
+             "support": {[m
+[31m-                "source": "https://github.com/symfony/polyfill-intl-grapheme/tree/v1.43.0"[m
+[32m+[m[32m                "source": "https://github.com/symfony/polyfill-intl-grapheme/tree/v1.43.3"[m
+             },[m
+             "funding": [[m
+                 {[m
+[36m@@ -4439,7 +4502,7 @@[m
+                     "type": "tidelift"[m
+                 }[m
+             ],[m
+[31m-            "time": "2026-09-25T15:46:47+00:00"[m
+[32m+[m[32m            "time": "2026-10-15T09:18:53+00:00"[m
+         },[m
+         {[m
+             "name": "symfony/polyfill-intl-idn",[m
+[36m@@ -4615,16 +4678,16 @@[m
+         },[m
+         {[m
+             "name": "symfony/polyfill-mbstring",[m
+[31m-            "version": "v1.43.0",[m
+[32m+[m[32m            "version": "v1.43.3",[m
+             "source": {[m
+                 "type": "git",[m
+                 "url": "https://github.com/symfony/polyfill-mbstring.git",[m
+[31m-                "reference": "4d5d331bf731e0aedbc6b2f5e61135b7b7996a72"[m
+[32m+[m[32m                "reference": "122889ed24dc000165bcbfd77ec412f15cbdfc6a"[m
+             },[m
+             "dist": {[m
+                 "type": "zip",[m
+[31m-                "url": "https://api.github.com/repos/symfony/polyfill-mbstring/zipball/4d5d331bf731e0aedbc6b2f5e61135b7b7996a72",[m
+[31m-                "reference": "4d5d331bf731e0aedbc6b2f5e61135b7b7996a72",[m
+[32m+[m[32m                "url": "https://api.github.com/repos/symfony/polyfill-mbstring/zipball/122889ed24dc000165bcbfd77ec412f15cbdfc6a",[m
+[32m+[m[32m                "reference": "122889ed24dc000165bcbfd77ec412f15cbdfc6a",[m
+                 "shasum": ""[m
+             },[m
+             "require": {[m
+[36m@@ -4676,7 +4739,7 @@[m
+                 "shim"[m
+             ],[m
+             "support": {[m
+[31m-                "source": "https://github.com/symfony/polyfill-mbstring/tree/v1.43.0"[m
+[32m+[m[32m                "source": "https://github.com/symfony/polyfill-mbstring/tree/v1.43.3"[m
+             },[m
+             "funding": [[m
+                 {[m
+[36m@@ -4696,7 +4759,7 @@[m
+                     "type": "tidelift"[m
+                 }[m
+             ],[m
+[31m-            "time": "2026-09-24T15:19:04+00:00"[m
+[32m+[m[32m            "time": "2026-10-28T09:35:49+00:00"[m
+         },[m
+         {[m
+             "name": "symfony/polyfill-php80",[m
+[36m@@ -6080,16 +6143,16 @@[m
+         },[m
+         {[m
+             "name": "vlucas/phpdotenv",[m
+[31m-            "version": "v5.7.0",[m
+[32m+[m[32m            "version": "v5.8.0",[m
+             "source": {[m
+                 "type": "git",[m
+                 "url": "https://github.com/phpdotenv/phpdotenv.git",[m
+[31m-                "reference": "301c07936b16d88628b126b01d082ba153cf4c40"[m
+[32m+[m[32m                "reference": "96149103e62ac67e915f6d2ef59b72dee2e011e0"[m
+             },[m
+             "dist": {[m
+                 "type": "zip",[m
+[31m-                "url": "https://api.github.com/repos/phpdotenv/phpdotenv/zipball/301c07936b16d88628b126b01d082ba153cf4c40",[m
+[31m-                "reference": "301c07936b16d88628b126b01d082ba153cf4c40",[m
+[32m+[m[32m                "url": "https://api.github.com/repos/phpdotenv/phpdotenv/zipball/96149103e62ac67e915f6d2ef59b72dee2e011e0",[m
+[32m+[m[32m                "reference": "96149103e62ac67e915f6d2ef59b72dee2e011e0",[m
+                 "shasum": ""[m
+             },[m
+             "require": {[m
+[36m@@ -6116,7 +6179,7 @@[m
+                     "forward-command": false[m
+                 },[m
+                 "branch-alias": {[m
+[31m-                    "dev-master": "5.6-dev"[m
+[32m+[m[32m                    "dev-master": "5.8-dev"[m
+                 }[m
+             },[m
+             "autoload": {[m
+[36m@@ -6147,8 +6210,8 @@[m
+                 "environment"[m
+             ],[m
+             "support": {[m
+[31m-                "issues": "https://github.com/vlucas/phpdotenv/issues",[m
+[31m-                "source": "https://github.com/vlucas/phpdotenv/tree/v5.7.0"[m
+[32m+[m[32m                "issues": "https://github.com/phpdotenv/phpdotenv/issues",[m
+[32m+[m[32m                "source": "https://github.com/phpdotenv/phpdotenv/tree/v5.8.0"[m
+             },[m
+             "funding": [[m
+                 {[m
+[36m@@ -6160,7 +6223,7 @@[m
+                     "type": "tidelift"[m
+                 }[m
+             ],[m
+[31m-            "time": "2026-08-24T18:07:49+00:00"[m
+[32m+[m[32m            "time": "2026-10-25T16:26:19+00:00"[m
+         },[m
+         {[m
+             "name": "voku/portable-ascii",[m
+[1mdiff --git a/FireAlert_Backend/config/sanctum.php b/FireAlert_Backend/config/sanctum.php[m
+[1mnew file mode 100644[m
+[1mindex 0000000..cde73cf[m
+[1m--- /dev/null[m
+[1m+++ b/FireAlert_Backend/config/sanctum.php[m
+[36m@@ -0,0 +1,87 @@[m
+[32m+[m[32m<?php[m
+[32m+[m
+[32m+[m[32muse Illuminate\Cookie\Middleware\EncryptCookies;[m
+[32m+[m[32muse Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;[m
+[32m+[m[32muse Laravel\Sanctum\Http\Middleware\AuthenticateSession;[m
+[32m+[m[32muse Laravel\Sanctum\Sanctum;[m
+[32m+[m
+[32m+[m[32mreturn [[m
+[32m+[m
+[32m+[m[32m    /*[m
+[32m+[m[32m    |--------------------------------------------------------------------------[m
+[32m+[m[32m    | Stateful Domains[m
+[32m+[m[32m    |--------------------------------------------------------------------------[m
+[32m+[m[32m    |[m
+[32m+[m[32m    | Requests from the following domains / hosts will receive stateful API[m
+[32m+[m[32m    | authentication cookies. Typically, these should include your local[m
+[32m+[m[32m    | and production domains which access your API via a frontend SPA.[m
+[32m+[m[32m    |[m
+[32m+[m[32m    */[m
+[32m+[m
+[32m+[m[32m    'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', sprintf([m
+[32m+[m[32m        '%s%s',[m
+[32m+[m[32m        'localhost,localhost:3000,127.0.0.1,127.0.0.1:8000,::1',[m
+[32m+[m[32m        Sanctum::currentApplicationUrlWithPort(),[m
+[32m+[m[32m        // Sanctum::currentRequestHost(),[m
+[32m+[m[32m    ))),[m
+[32m+[m
+[32m+[m[32m    /*[m
+[32m+[m[32m    |--------------------------------------------------------------------------[m
+[32m+[m[32m    | Sanctum Guards[m
+[32m+[m[32m    |--------------------------------------------------------------------------[m
+[32m+[m[32m    |[m
+[32m+[m[32m    | This array contains the authentication guards that will be checked when[m
+[32m+[m[32m    | Sanctum is trying to authenticate a request. If none of these guards[m
+[32m+[m[32m    | are able to authenticate the request, Sanctum will use the bearer[m
+[32m+[m[32m    | token that's present on an incoming request for authentication.[m
+[32m+[m[32m    |[m
+[32m+[m[32m    */[m
+[32m+[m
+[32m+[m[32m    'guard' => ['web'],[m
+[32m+[m
+[32m+[m[32m    /*[m
+[32m+[m[32m    |--------------------------------------------------------------------------[m
+[32m+[m[32m    | Expiration Minutes[m
+[32m+[m[32m    |--------------------------------------------------------------------------[m
+[32m+[m[32m    |[m
+[32m+[m[32m    | This value controls the number of minutes until an issued token will be[m
+[32m+[m[32m    | considered expired. This will override any values set in the token's[m
+[32m+[m[32m    | "expires_at" attribute, but first-party sessions are not affected.[m
+[32m+[m[32m    |[m
+[32m+[m[32m    */[m
+[32m+[m
+[32m+[m[32m    'expiration' => null,[m
+[32m+[m
+[32m+[m[32m    /*[m
+[32m+[m[32m    |--------------------------------------------------------------------------[m
+[32m+[m[32m    | Token Prefix[m
+[32m+[m[32m    |--------------------------------------------------------------------------[m
+[32m+[m[32m    |[m
+[32m+[m[32m    | Sanctum can prefix new tokens in order to take advantage of numerous[m
+[32m+[m[32m    | security scanning initiatives maintained by open source platforms[m
+[32m+[m[32m    | that notify developers if they commit tokens into repositories.[m
+[32m+[m[32m    |[m
+[32m+[m[32m    | See: https://docs.github.com/en/code-security/secret-scanning/about-secret-scanning[m
+[32m+[m[32m    |[m
+[32m+[m[32m    */[m
+[32m+[m
+[32m+[m[32m    'token_prefix' => env('SANCTUM_TOKEN_PREFIX', ''),[m
+[32m+[m
+[32m+[m[32m    /*[m
+[32m+[m[32m    |--------------------------------------------------------------------------[m
+[32m+[m[32m    | Sanctum Middleware[m
+[32m+[m[32m    |--------------------------------------------------------------------------[m
+[32m+[m[32m    |[m
+[32m+[m[32m    | When authenticating your first-party SPA with Sanctum you may need to[m
+[32m+[m[32m    | customize some of the middleware Sanctum uses while processing the[m
+[32m+[m[32m    | request. You may change the middleware listed below as required.[m
+[32m+[m[32m    |[m
+[32m+[m[32m    */[m
+[32m+[m
+[32m+[m[32m    'middleware' => [[m
+[32m+[m[32m        'authenticate_session' => AuthenticateSession::class,[m
+[32m+[m[32m        'encrypt_cookies' => EncryptCookies::class,[m
+[32m+[m[32m        'validate_csrf_token' => ValidateCsrfToken::class,[m
+[32m+[m[32m    ],[m
+[32m+[m
+[32m+[m[32m];[m
+[1mdiff --git a/FireAlert_Backend/database/migrations/2026_10_28_145205_create_personal_access_tokens_table.php b/FireAlert_Backend/database/migrations/2026_10_28_145205_create_personal_access_tokens_table.php[m
+[1mnew file mode 100644[m
+[1mindex 0000000..40ff706[m
+[1m--- /dev/null[m
+[1m+++ b/FireAlert_Backend/database/migrations/2026_10_28_145205_create_personal_access_tokens_table.php[m
+[36m@@ -0,0 +1,33 @@[m
+[32m+[m[32m<?php[m
+[32m+[m
+[32m+[m[32muse Illuminate\Database\Migrations\Migration;[m
+[32m+[m[32muse Illuminate\Database\Schema\Blueprint;[m
+[32m+[m[32muse Illuminate\Support\Facades\Schema;[m
+[32m+[m
+[32m+[m[32mreturn new class extends Migration[m
+[32m+[m[32m{[m
+[32m+[m[32m    /**[m
+[32m+[m[32m     * Run the migrations.[m
+[32m+[m[32m     */[m
+[32m+[m[32m    public function up(): void[m
+[32m+[m[32m    {[m
+[32m+[m[32m        Schema::create('personal_access_tokens', function (Blueprint $table) {[m
+[32m+[m[32m            $table->id();[m
+[32m+[m[32m            $table->morphs('tokenable');[m
+[32m+[m[32m            $table->text('name');[m
+[32m+[m[32m            $table->string('token', 64)->unique();[m
+[32m+[m[32m            $table->text('abilities')->nullable();[m
+[32m+[m[32m            $table->timestamp('last_used_at')->nullable();[m
+[32m+[m[32m            $table->timestamp('expires_at')->nullable()->index();[m
+[32m+[m[32m            $table->timestamps();[m
+[32m+[m[32m        });[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    /**[m
+[32m+[m[32m     * Reverse the migrations.[m
+[32m+[m[32m     */[m
+[32m+[m[32m    public function down(): void[m
+[32m+[m[32m    {[m
+[32m+[m[32m        Schema::dropIfExists('personal_access_tokens');[m
+[32m+[m[32m    }[m
+[32m+[m[32m};[m
+[1mdiff --git a/FireAlert_Backend/routes/api.php b/FireAlert_Backend/routes/api.php[m
+[1mnew file mode 100644[m
+[1mindex 0000000..ccc387f[m
+[1m--- /dev/null[m
+[1m+++ b/FireAlert_Backend/routes/api.php[m
+[36m@@ -0,0 +1,8 @@[m
+[32m+[m[32m<?php[m
+[32m+[m
+[32m+[m[32muse Illuminate\Http\Request;[m
+[32m+[m[32muse Illuminate\Support\Facades\Route;[m
+[32m+[m
+[32m+[m[32mRoute::get('/user', function (Request $request) {[m
+[32m+[m[32m    return $request->user();[m
+[32m+[m[32m})->middleware('auth:sanctum');[m
+[1mdiff --git a/FireAlert_Frontend/README.md b/FireAlert_Frontend/README.md[m
+[1mindex 58beeac..67b51a0 100644[m
+[1m--- a/FireAlert_Frontend/README.md[m
+[1m+++ b/FireAlert_Frontend/README.md[m
+[36m@@ -1,70 +1,28 @@[m
+[31m-# Getting Started with Create React App[m
+[32m+[m[32m# FireAlert BFP Dashboard[m
+ [m
+[31m-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).[m
+[32m+[m[32mThis React application is a custom visual preview for the FireAlert BFP[m
+[32m+[m[32moperations dashboard. The interface uses an original field-operations console[m
+[32m+[m[32mdesign based on the FireAlert system requirements, rather than reproducing the[m
+[32m+[m[32msupplied screenshots. It uses clearly labeled fictional entries for layout and[m
+[32m+[m[32minteraction review.[m
+ [m
+[31m-## Available Scripts[m
+[32m+[m[32m## Run locally[m
+ [m
+[31m-In the project directory, you can run:[m
+[32m+[m[32m```powershell[m
+[32m+[m[32mnpm install[m
+[32m+[m[32mnpm start[m
+[32m+[m[32m```[m
+ [m
+[31m-### `npm start`[m
+[32m+[m[32mThe development server opens the dashboard at `http://localhost:3000`.[m
+ [m
+[31m-Runs the app in the development mode.\[m
+[31m-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.[m
+[32m+[m[32m## Preview limitations[m
+ [m
+[31m-The page will reload when you make changes.\[m
+[31m-You may also see any lint errors in the console.[m
+[32m+[m[32m- The interface is not connected to Laravel, MySQL, BFP accounts, or live reports.[m
+[32m+[m[32m- Login is disabled; the preview does not authenticate users.[m
+[32m+[m[32m- Local status edits are temporary and are not saved.[m
+[32m+[m[32m- The map is an illustrative placeholder, not Google Maps or live GPS.[m
+[32m+[m[32m- Routes, ETA values, dispatch, and validated predictions are not available.[m
+[32m+[m[32m- The sample entries are fictional and must not be used for operational decisions.[m
+ [m
+[31m-### `npm test`[m
+[31m-[m
+[31m-Launches the test runner in the interactive watch mode.\[m
+[31m-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.[m
+[31m-[m
+[31m-### `npm run build`[m
+[31m-[m
+[31m-Builds the app for production to the `build` folder.\[m
+[31m-It correctly bundles React in production mode and optimizes the build for the best performance.[m
+[31m-[m
+[31m-The build is minified and the filenames include the hashes.\[m
+[31m-Your app is ready to be deployed![m
+[31m-[m
+[31m-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.[m
+[31m-[m
+[31m-### `npm run eject`[m
+[31m-[m
+[31m-**Note: this is a one-way operation. Once you `eject`, you can't go back!**[m
+[31m-[m
+[31m-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.[m
+[31m-[m
+[31m-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.[m
+[31m-[m
+[31m-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.[m
+[31m-[m
+[31m-## Learn More[m
+[31m-[m
+[31m-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).[m
+[31m-[m
+[31m-To learn React, check out the [React documentation](https://reactjs.org/).[m
+[31m-[m
+[31m-### Code Splitting[m
+[31m-[m
+[31m-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)[m
+[31m-[m
+[31m-### Analyzing the Bundle Size[m
+[31m-[m
+[31m-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)[m
+[31m-[m
+[31m-### Making a Progressive Web App[m
+[31m-[m
+[31m-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)[m
+[31m-[m
+[31m-### Advanced Configuration[m
+[31m-[m
+[31m-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)[m
+[31m-[m
+[31m-### Deployment[m
+[31m-[m
+[31m-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)[m
+[31m-[m
+[31m-### `npm run build` fails to minify[m
+[31m-[m
+[31m-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)[m
+[32m+[m[32mWhen the Laravel API and approved Google Maps configuration are ready, connect the[m
+[32m+[m[32mscreens to tested API contracts instead of treating preview data as real records.[m
+[1mdiff --git a/FireAlert_Frontend/public/index.html b/FireAlert_Frontend/public/index.html[m
+[1mindex aa069f2..378f9c3 100644[m
+[1m--- a/FireAlert_Frontend/public/index.html[m
+[1m+++ b/FireAlert_Frontend/public/index.html[m
+[36m@@ -4,10 +4,10 @@[m
+     <meta charset="utf-8" />[m
+     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />[m
+     <meta name="viewport" content="width=device-width, initial-scale=1" />[m
+[31m-    <meta name="theme-color" content="#000000" />[m
+[32m+[m[32m    <meta name="theme-color" content="#172a40" />[m
+     <meta[m
+       name="description"[m
+[31m-      content="Web site created using create-react-app"[m
+[32m+[m[32m      content="FireAlert BFP dashboard interface preview"[m
+     />[m
+     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />[m
+     <!--[m
+[36m@@ -24,7 +24,7 @@[m
+       work correctly both with client-side routing and a non-root public URL.[m
+       Learn how to configure a non-root public URL by running `npm run build`.[m
+     -->[m
+[31m-    <title>React App</title>[m
+[32m+[m[32m    <title>FireAlert - Operations Preview</title>[m
+   </head>[m
+   <body>[m
+     <noscript>You need to enable JavaScript to run this app.</noscript>[m
+[1mdiff --git a/FireAlert_Frontend/src/App.css b/FireAlert_Frontend/src/App.css[m
+[1mindex 74b5e05..521168a 100644[m
+[1m--- a/FireAlert_Frontend/src/App.css[m
+[1m+++ b/FireAlert_Frontend/src/App.css[m
+[36m@@ -1,38 +1,1432 @@[m
+[31m-.App {[m
+[31m-  text-align: center;[m
+[32m+[m[32m.app-shell {[m
+[32m+[m[32m  display: grid;[m
+[32m+[m[32m  min-height: 100vh;[m
+[32m+[m[32m  grid-template-columns: 248px minmax(0, 1fr);[m
+[32m+[m[32m  grid-template-rows: auto minmax(0, 1fr) auto;[m
+[32m+[m[32m  background: var(--color-canvas);[m
+ }[m
+ [m
+[31m-.App-logo {[m
+[31m-  height: 40vmin;[m
+[31m-  pointer-events: none;[m
+[32m+[m[32m.demo-banner {[m
+[32m+[m[32m  display: flex;[m
+[32m+[m[32m  grid-column: 1 / -1;[m
+[32m+[m[32m  align-items: center;[m
+[32m+[m[32m  gap: 0.65rem;[m
+[32m+[m[32m  min-height: 38px;[m
+[32m+[m[32m  padding: 0.45rem 1rem;[m
+[32m+[m[32m  border-bottom: 1px solid #e6c6a9;[m
+[32m+[m[32m  background: #fff0e4;[m
+[32m+[m[32m  color: #72412d;[m
+[32m+[m[32m  font-size: 0.72rem;[m
+ }[m
+ [m
+[31m-@media (prefers-reduced-motion: no-preference) {[m
+[31m-  .App-logo {[m
+[31m-    animation: App-logo-spin infinite 20s linear;[m
+[31m-  }[m
+[32m+[m[32m.demo-banner strong {[m
+[32m+[m[32m  color: #a1482e;[m
+[32m+[m[32m  font-size: 0.68rem;[m
+[32m+[m[32m  letter-spacing: 0.075em;[m
+[32m+[m[32m  text-transform: uppercase;[m
+ }[m
+ [m
+[31m-.App-header {[m
+[31m-  background-color: #282c34;[m
+[31m-  min-height: 100vh;[m
+[32m+[m[32m.topbar {[m
+[32m+[m[32m  position: sticky;[m
+[32m+[m[32m  top: 0;[m
+[32m+[m[32m  display: flex;[m
+[32m+[m[32m  grid-column: 1;[m
+[32m+[m[32m  grid-row: 2 / 4;[m
+[32m+[m[32m  height: calc(100vh - 38px);[m
+[32m+[m[32m  min-height: 560px;[m
+[32m+[m[32m  flex-direction: column;[m
+[32m+[m[32m  align-items: stretch;[m
+[32m+[m[32m  gap: 1rem;[m
+[32m+[m[32m  padding: 1.15rem 0.9rem;[m
+[32m+[m[32m  background:[m
+[32m+[m[32m    radial-gradient(ellipse at 0% 100%, rgb(225 91 63 / 15%), transparent 42%),[m
+[32m+[m[32m    var(--color-night);[m
+[32m+[m[32m  color: #f7f5eb;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.brand {[m
+[32m+[m[32m  display: flex;[m
+[32m+[m[32m  align-items: center;[m
+[32m+[m[32m  gap: 0.72rem;[m
+[32m+[m[32m  padding: 0.35rem 0.4rem 1.15rem;[m
+[32m+[m[32m  border-bottom: 1px solid rgb(255 255 255 / 11%);[m
+[32m+[m[32m  color: inherit;[m
+[32m+[m[32m  text-decoration: none;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.brand-mark {[m
+[32m+[m[32m  display: grid;[m
+[32m+[m[32m  width: 40px;[m
+[32m+[m[32m  height: 40px;[m
+[32m+[m[32m  flex: 0 0 40px;[m
+[32m+[m[32m  place-items: center;[m
+[32m+[m[32m  border: 1px solid rgb(255 255 255 / 25%);[m
+[32m+[m[32m  border-radius: 12px 12px 12px 3px;[m
+[32m+[m[32m  background: var(--color-ember);[m
+[32m+[m[32m  box-shadow: 0 5px 16px rgb(225 91 63 / 22%);[m
+[32m+[m[32m  color: #fffaf3;[m
+[32m+[m[32m  font-size: 1.12rem;[m
+[32m+[m[32m  font-weight: 850;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.brand-name {[m
+   display: flex;[m
+   flex-direction: column;[m
+[32m+[m[32m  color: #fbf8ed;[m
+[32m+[m[32m  font-size: 1rem;[m
+[32m+[m[32m  font-weight: 760;[m
+[32m+[m[32m  letter-spacing: -0.035em;[m
+[32m+[m[32m  line-height: 1.1;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.brand-name small {[m
+[32m+[m[32m  margin-top: 0.3rem;[m
+[32m+[m[32m  color: #aebbb0;[m
+[32m+[m[32m  font-size: 0.55rem;[m
+[32m+[m[32m  font-weight: 650;[m
+[32m+[m[32m  letter-spacing: 0.085em;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.main-nav {[m
+[32m+[m[32m  display: flex;[m
+[32m+[m[32m  height: auto;[m
+[32m+[m[32m  flex-direction: column;[m
+[32m+[m[32m  align-items: stretch;[m
+[32m+[m[32m  gap: 0.3rem;[m
+[32m+[m[32m  padding-top: 0.25rem;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.nav-item {[m
+[32m+[m[32m  display: flex;[m
+[32m+[m[32m  min-height: 43px;[m
+[32m+[m[32m  align-items: center;[m
+[32m+[m[32m  gap: 0.72rem;[m
+[32m+[m[32m  padding: 0 0.62rem;[m
+[32m+[m[32m  border: 1px solid transparent;[m
+[32m+[m[32m  border-radius: 7px;[m
+[32m+[m[32m  background: transparent;[m
+[32m+[m[32m  color: #b6c1b9;[m
+[32m+[m[32m  cursor: pointer;[m
+[32m+[m[32m  font: inherit;[m
+[32m+[m[32m  font-size: 0.74rem;[m
+[32m+[m[32m  font-weight: 620;[m
+[32m+[m[32m  text-align: left;[m
+[32m+[m[32m  white-space: nowrap;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.nav-item:hover {[m
+[32m+[m[32m  background: rgb(255 255 255 / 6%);[m
+[32m+[m[32m  color: #fff;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.nav-item.is-active {[m
+[32m+[m[32m  border-color: rgb(225 91 63 / 28%);[m
+[32m+[m[32m  background: linear-gradient(90deg, rgb(225 91 63 / 17%), rgb(225 91 63 / 4%));[m
+[32m+[m[32m  color: #fff6ec;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.nav-icon {[m
+[32m+[m[32m  display: grid;[m
+[32m+[m[32m  width: 27px;[m
+[32m+[m[32m  height: 27px;[m
+[32m+[m[32m  flex: 0 0 27px;[m
+[32m+[m[32m  place-items: center;[m
+[32m+[m[32m  border: 1px solid rgb(255 255 255 / 15%);[m
+[32m+[m[32m  border-radius: 8px;[m
+[32m+[m[32m  background: rgb(255 255 255 / 4%);[m
+[32m+[m[32m  color: #d1d7cd;[m
+[32m+[m[32m  font-size: 0.5rem;[m
+[32m+[m[32m  font-weight: 850;[m
+[32m+[m[32m  letter-spacing: 0.02em;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.nav-item.is-active .nav-icon {[m
+[32m+[m[32m  border-color: rgb(225 91 63 / 58%);[m
+[32m+[m[32m  background: var(--color-ember);[m
+[32m+[m[32m  color: #fff;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.topbar-user {[m
+[32m+[m[32m  display: grid;[m
+[32m+[m[32m  grid-template-columns: 31px 1fr auto;[m
+[32m+[m[32m  align-items: center;[m
+[32m+[m[32m  gap: 0.55rem;[m
+[32m+[m[32m  margin-top: auto;[m
+[32m+[m[32m  padding: 0.75rem 0.3rem 0.15rem;[m
+[32m+[m[32m  border-top: 1px solid rgb(255 255 255 / 11%);[m
+[32m+[m[32m  color: #d6ddd4;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.user-initials {[m
+[32m+[m[32m  display: grid;[m
+[32m+[m[32m  width: 30px;[m
+[32m+[m[32m  height: 30px;[m
+[32m+[m[32m  place-items: center;[m
+[32m+[m[32m  border: 1px solid #65746a;[m
+[32m+[m[32m  border-radius: 50%;[m
+[32m+[m[32m  color: #f1e9d8;[m
+[32m+[m[32m  font-size: 0.51rem;[m
+[32m+[m[32m  font-weight: 800;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.user-caption {[m
+[32m+[m[32m  color: #aebbb0;[m
+[32m+[m[32m  font-size: 0.62rem;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.topbar-login {[m
+[32m+[m[32m  padding: 0.34rem 0.48rem;[m
+[32m+[m[32m  border: 1px solid #627168;[m
+[32m+[m[32m  border-radius: 5px;[m
+[32m+[m[32m  background: transparent;[m
+[32m+[m[32m  color: #f6f1e7;[m
+[32m+[m[32m  cursor: pointer;[m
+[32m+[m[32m  font: inherit;[m
+[32m+[m[32m  font-size: 0.6rem;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.topbar-login:hover {[m
+[32m+[m[32m  border-color: #e48767;[m
+[32m+[m[32m  background: rgb(225 91 63 / 13%);[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.main-content {[m
+[32m+[m[32m  width: min(100% - 3.5rem, 1500px);[m
+[32m+[m[32m  grid-column: 2;[m
+[32m+[m[32m  grid-row: 2;[m
+[32m+[m[32m  margin: 0 auto;[m
+[32m+[m[32m  padding: 2rem 0 2.4rem;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.page-heading {[m
+[32m+[m[32m  display: flex;[m
+[32m+[m[32m  align-items: flex-end;[m
+[32m+[m[32m  justify-content: space-between;[m
+[32m+[m[32m  gap: 1rem;[m
+[32m+[m[32m  margin-bottom: 1.35rem;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.page-heading h1 {[m
+[32m+[m[32m  margin: 0.22rem 0 0.35rem;[m
+[32m+[m[32m  color: var(--color-night);[m
+[32m+[m[32m  font-size: clamp(1.7rem, 3vw, 2.35rem);[m
+[32m+[m[32m  font-weight: 760;[m
+[32m+[m[32m  letter-spacing: -0.055em;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.eyebrow {[m
+[32m+[m[32m  margin: 0;[m
+[32m+[m[32m  color: #ac573c;[m
+[32m+[m[32m  font-size: 0.62rem;[m
+[32m+[m[32m  font-weight: 800;[m
+[32m+[m[32m  letter-spacing: 0.13em;[m
+[32m+[m[32m  text-transform: uppercase;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.page-subtitle {[m
+[32m+[m[32m  margin: 0;[m
+[32m+[m[32m  color: var(--color-muted);[m
+[32m+[m[32m  font-size: 0.82rem;[m
+[32m+[m[32m  line-height: 1.55;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.connection-state {[m
+[32m+[m[32m  display: inline-flex;[m
+[32m+[m[32m  align-items: center;[m
+[32m+[m[32m  gap: 0.45rem;[m
+[32m+[m[32m  padding: 0.46rem 0.7rem;[m
+[32m+[m[32m  border: 1px solid #ebc2ac;[m
+[32m+[m[32m  border-radius: 5px 14px 5px 14px;[m
+[32m+[m[32m  background: #fff4ea;[m
+[32m+[m[32m  color: #a24f34;[m
+[32m+[m[32m  font-size: 0.64rem;[m
+[32m+[m[32m  font-weight: 760;[m
+[32m+[m[32m  white-space: nowrap;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.connection-dot,[m
+[32m+[m[32m.status-dot {[m
+[32m+[m[32m  width: 7px;[m
+[32m+[m[32m  height: 7px;[m
+[32m+[m[32m  flex: 0 0 7px;[m
+[32m+[m[32m  border-radius: 50%;[m
+[32m+[m[32m  background: currentColor;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.summary-counts {[m
+[32m+[m[32m  display: grid;[m
+[32m+[m[32m  grid-template-columns: repeat(5, minmax(0, 1fr));[m
+[32m+[m[32m  gap: 0.6rem;[m
+[32m+[m[32m  margin-bottom: 1rem;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.summary-card {[m
+[32m+[m[32m  position: relative;[m
+[32m+[m[32m  display: grid;[m
+[32m+[m[32m  min-height: 79px;[m
+[32m+[m[32m  grid-template-columns: 1fr auto;[m
+[32m+[m[32m  align-items: center;[m
+[32m+[m[32m  gap: 0.3rem 0.7rem;[m
+[32m+[m[32m  overflow: hidden;[m
+[32m+[m[32m  padding: 0.8rem 0.9rem 0.82rem 1rem;[m
+[32m+[m[32m  border: 1px solid var(--color-border);[m
+[32m+[m[32m  border-radius: 4px 12px 4px 12px;[m
+[32m+[m[32m  background: var(--color-surface);[m
+[32m+[m[32m  box-shadow: 0 3px 9px rgb(37 45 38 / 3%);[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.summary-card::before {[m
+[32m+[m[32m  position: absolute;[m
+[32m+[m[32m  top: 0;[m
+[32m+[m[32m  bottom: 0;[m
+[32m+[m[32m  left: 0;[m
+[32m+[m[32m  width: 4px;[m
+[32m+[m[32m  background: var(--summary-color, #8b948b);[m
+[32m+[m[32m  content: '';[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.summary-card strong {[m
+[32m+[m[32m  grid-column: 2;[m
+[32m+[m[32m  grid-row: 1 / 3;[m
+[32m+[m[32m  color: var(--color-night);[m
+[32m+[m[32m  font-family: var(--font-mono);[m
+[32m+[m[32m  font-size: 1.42rem;[m
+[32m+[m[32m  font-weight: 700;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.summary-label {[m
+[32m+[m[32m  color: #5e6b62;[m
+[32m+[m[32m  font-size: 0.68rem;[m
+[32m+[m[32m  font-weight: 720;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.summary-indicator {[m
+[32m+[m[32m  width: 27px;[m
+[32m+[m[32m  height: 3px;[m
+[32m+[m[32m  grid-column: 1;[m
+[32m+[m[32m  grid-row: 2;[m
+[32m+[m[32m  border-radius: 5px;[m
+[32m+[m[32m  background: var(--summary-color, #8b948b);[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.summary-pending,[m
+[32m+[m[32m.indicator-pending {[m
+[32m+[m[32m  --summary-color: #d89c3d;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.summary-accepted,[m
+[32m+[m[32m.indicator-accepted {[m
+[32m+[m[32m  --summary-color: #528b9b;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.summary-rejected,[m
+[32m+[m[32m.indicator-rejected {[m
+[32m+[m[32m  --summary-color: #8c938f;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.summary-responding,[m
+[32m+[m[32m.indicator-responding {[m
+[32m+[m[32m  --summary-color: #df6349;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.summary-resolved,[m
+[32m+[m[32m.indicator-resolved {[m
+[32m+[m[32m  --summary-color: #598c68;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.command-grid {[m
+[32m+[m[32m  display: grid;[m
+[32m+[m[32m  grid-template-areas:[m
+[32m+[m[32m    "incident queue"[m
+[32m+[m[32m    "incident response";[m
+[32m+[m[32m  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.72fr);[m
+[32m+[m[32m  align-items: start;[m
+[32m+[m[32m  gap: 0.8rem;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.panel {[m
+[32m+[m[32m  border: 1px solid var(--color-border);[m
+[32m+[m[32m  border-radius: 5px 14px 5px 14px;[m
+[32m+[m[32m  background: var(--color-surface);[m
+[32m+[m[32m  box-shadow: 0 5px 18px rgb(37 45 38 / 4%);[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.alert-panel,[m
+[32m+[m[32m.incident-panel,[m
+[32m+[m[32m.dispatch-panel,[m
+[32m+[m[32m.table-panel,[m
+[32m+[m[32m.record-detail,[m
+[32m+[m[32m.map-page-panel,[m
+[32m+[m[32m.prediction-panel {[m
+[32m+[m[32m  padding: 1rem;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.alert-panel {[m
+[32m+[m[32m  grid-area: queue;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.incident-panel {[m
+[32m+[m[32m  grid-area: incident;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.dispatch-panel {[m
+[32m+[m[32m  grid-area: response;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.panel-heading {[m
+[32m+[m[32m  display: flex;[m
+[32m+[m[32m  align-items: flex-start;[m
+[32m+[m[32m  justify-content: space-between;[m
+[32m+[m[32m  gap: 0.75rem;[m
+[32m+[m[32m  margin-bottom: 0.8rem;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.panel-heading h2 {[m
+[32m+[m[32m  margin: 0;[m
+[32m+[m[32m  color: var(--color-night);[m
+[32m+[m[32m  font-size: 0.91rem;[m
+[32m+[m[32m  font-weight: 750;[m
+[32m+[m[32m  letter-spacing: -0.02em;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.panel-heading h3,[m
+[32m+[m[32m.description-block h3 {[m
+[32m+[m[32m  margin: 0;[m
+[32m+[m[32m  color: var(--color-night);[m
+[32m+[m[32m  font-size: 0.78rem;[m
+[32m+[m[32m  font-weight: 750;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.panel-heading p {[m
+[32m+[m[32m  margin: 0.22rem 0 0;[m
+[32m+[m[32m  color: var(--color-muted);[m
+[32m+[m[32m  font-size: 0.65rem;[m
+[32m+[m[32m  line-height: 1.45;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.icon-button {[m
+[32m+[m[32m  width: 29px;[m
+[32m+[m[32m  height: 29px;[m
+[32m+[m[32m  border: 1px solid #e2e4db;[m
+[32m+[m[32m  border-radius: 9px 4px 9px 4px;[m
+[32m+[m[32m  background: #f9f8f2;[m
+[32m+[m[32m  color: #54645a;[m
+[32m+[m[32m  cursor: pointer;[m
+[32m+[m[32m  font-size: 1rem;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.alert-list {[m
+[32m+[m[32m  display: grid;[m
+[32m+[m[32m  gap: 0.45rem;[m
+[32m+[m[32m  margin-bottom: 0.75rem;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.alert-item {[m
+[32m+[m[32m  display: grid;[m
+[32m+[m[32m  gap: 0.35rem;[m
+[32m+[m[32m  padding: 0.68rem;[m
+[32m+[m[32m  border: 1px solid #e4e6df;[m
+[32m+[m[32m  border-radius: 4px 10px 4px 10px;[m
+[32m+[m[32m  background: #fbfbf6;[m
+[32m+[m[32m  color: inherit;[m
+[32m+[m[32m  cursor: pointer;[m
+[32m+[m[32m  text-align: left;[m
+[32m+[m[32m  transition: border-color 120ms ease, transform 120ms ease, background 120ms ease;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.alert-item:hover {[m
+[32m+[m[32m  transform: translateX(2px);[m
+[32m+[m[32m  border-color: #d88a6b;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.alert-item.is-selected {[m
+[32m+[m[32m  border-color: #dc8c6f;[m
+[32m+[m[32m  background: #fff5ed;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.alert-item strong {[m
+[32m+[m[32m  color: #28372f;[m
+[32m+[m[32m  font-size: 0.72rem;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.alert-item-top {[m
+[32m+[m[32m  display: flex;[m
+[32m+[m[32m  align-items: center;[m
+[32m+[m[32m  justify-content: space-between;[m
+[32m+[m[32m  gap: 0.5rem;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.reference-code {[m
+[32m+[m[32m  color: #a54f36;[m
+[32m+[m[32m  font-family: var(--font-mono);[m
+[32m+[m[32m  font-size: 0.64rem;[m
+[32m+[m[32m  font-weight: 800;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.demo-time,[m
+[32m+[m[32m.alert-area {[m
+[32m+[m[32m  color: #828b80;[m
+[32m+[m[32m  font-size: 0.59rem;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.alert-area {[m
+[32m+[m[32m  margin-top: -0.2rem;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.status-badge {[m
+[32m+[m[32m  display: inline-flex;[m
+[32m+[m[32m  width: fit-content;[m
+[32m+[m[32m  align-items: center;[m
+[32m+[m[32m  gap: 0.33rem;[m
+[32m+[m[32m  padding: 0.28rem 0.46rem;[m
+[32m+[m[32m  border: 1px solid transparent;[m
+[32m+[m[32m  border-radius: 4px 9px 4px 9px;[m
+[32m+[m[32m  font-size: 0.59rem;[m
+[32m+[m[32m  font-weight: 760;[m
+[32m+[m[32m  line-height: 1;[m
+[32m+[m[32m  white-space: nowrap;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.status-pending {[m
+[32m+[m[32m  border-color: #eddcb9;[m
+[32m+[m[32m  background: #fff7e7;[m
+[32m+[m[32m  color: #94641e;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.status-accepted {[m
+[32m+[m[32m  border-color: #c9dfe2;[m
+[32m+[m[32m  background: #eef7f7;[m
+[32m+[m[32m  color: #366e79;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.status-rejected {[m
+[32m+[m[32m  border-color: #dadeD8;[m
+[32m+[m[32m  background: #f1f2ee;[m
+[32m+[m[32m  color: #66716a;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.status-responding {[m
+[32m+[m[32m  border-color: #efc8b7;[m
+[32m+[m[32m  background: #fff0e9;[m
+[32m+[m[32m  color: #a64b34;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.status-resolved {[m
+[32m+[m[32m  border-color: #c8ddc8;[m
+[32m+[m[32m  background: #eff7ee;[m
+[32m+[m[32m  color: #47764e;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.button {[m
+[32m+[m[32m  display: inline-flex;[m
+[32m+[m[32m  min-height: 37px;[m
+[32m+[m[32m  align-items: center;[m
+[32m+[m[32m  justify-content: center;[m
+[32m+[m[32m  gap: 0.4rem;[m
+[32m+[m[32m  padding: 0.52rem 0.8rem;[m
+[32m+[m[32m  border: 1px solid transparent;[m
+[32m+[m[32m  border-radius: 4px 10px 4px 10px;[m
+[32m+[m[32m  cursor: pointer;[m
+[32m+[m[32m  font: inherit;[m
+[32m+[m[32m  font-size: 0.7rem;[m
+[32m+[m[32m  font-weight: 750;[m
+[32m+[m[32m  transition: background 120ms ease, border-color 120ms ease;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.button-primary {[m
+[32m+[m[32m  background: var(--color-ember);[m
+[32m+[m[32m  color: #fff;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.button-primary:hover:not(:disabled) {[m
+[32m+[m[32m  background: #bd472f;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.button-secondary {[m
+[32m+[m[32m  border-color: #d9dfd6;[m
+[32m+[m[32m  background: #fffefa;[m
+[32m+[m[32m  color: #43564a;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.button-secondary:hover {[m
+[32m+[m[32m  border-color: #b6c2b6;[m
+[32m+[m[32m  background: #f7f8f1;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.button-full {[m
+[32m+[m[32m  width: 100%;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.button:disabled {[m
+[32m+[m[32m  cursor: not-allowed;[m
+[32m+[m[32m  opacity: 0.62;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.panel-footnote {[m
+[32m+[m[32m  margin: 0.68rem 0 0;[m
+[32m+[m[32m  color: #7d877d;[m
+[32m+[m[32m  font-size: 0.6rem;[m
+[32m+[m[32m  line-height: 1.5;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.incident-heading {[m
+   align-items: center;[m
+[32m+[m[32m  padding-bottom: 0.65rem;[m
+[32m+[m[32m  border-bottom: 1px solid #e8e9e1;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.incident-heading h2 {[m
+[32m+[m[32m  margin-top: 0.28rem;[m
+[32m+[m[32m  font-size: 1rem;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.coverage-field {[m
+[32m+[m[32m  position: relative;[m
+[32m+[m[32m  min-height: 330px;[m
+[32m+[m[32m  overflow: hidden;[m
+[32m+[m[32m  border: 1px solid #314640;[m
+[32m+[m[32m  border-radius: 4px 13px 4px 13px;[m
+[32m+[m[32m  background:[m
+[32m+[m[32m    radial-gradient(ellipse at 63% 45%, rgb(81 125 97 / 27%), transparent 50%),[m
+[32m+[m[32m    #1b2b27;[m
+[32m+[m[32m  isolation: isolate;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.field-grid {[m
+[32m+[m[32m  position: absolute;[m
+[32m+[m[32m  inset: 0;[m
+[32m+[m[32m  background-image:[m
+[32m+[m[32m    linear-gradient(rgb(211 229 207 / 8%) 1px, transparent 1px),[m
+[32m+[m[32m    linear-gradient(90deg, rgb(211 229 207 / 8%) 1px, transparent 1px);[m
+[32m+[m[32m  background-size: 30px 30px;[m
+[32m+[m[32m  mask-image: linear-gradient(135deg, transparent 5%, #000 45%, #000 92%, transparent);[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.field-cross {[m
+[32m+[m[32m  position: absolute;[m
+[32m+[m[32m  z-index: -1;[m
+[32m+[m[32m  background: rgb(226 238 218 / 19%);[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.field-cross-horizontal {[m
+[32m+[m[32m  top: 54%;[m
+[32m+[m[32m  left: 0;[m
+[32m+[m[32m  width: 100%;[m
+[32m+[m[32m  height: 1px;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.field-cross-vertical {[m
+[32m+[m[32m  top: 0;[m
+[32m+[m[32m  left: 47%;[m
+[32m+[m[32m  width: 1px;[m
+[32m+[m[32m  height: 100%;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.field-ring {[m
+[32m+[m[32m  position: absolute;[m
+[32m+[m[32m  top: 47%;[m
+[32m+[m[32m  left: 48%;[m
+[32m+[m[32m  border: 1px solid rgb(220 241 212 / 21%);[m
+[32m+[m[32m  border-radius: 50%;[m
+[32m+[m[32m  transform: translate(-50%, -50%);[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.field-ring-outer {[m
+[32m+[m[32m  width: min(69%, 280px);[m
+[32m+[m[32m  aspect-ratio: 1;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.field-ring-middle {[m
+[32m+[m[32m  width: min(47%, 190px);[m
+[32m+[m[32m  aspect-ratio: 1;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.field-ring-inner {[m
+[32m+[m[32m  width: min(24%, 98px);[m
+[32m+[m[32m  aspect-ratio: 1;[m
+[32m+[m[32m  border-color: rgb(229 168 75 / 58%);[m
+[32m+[m[32m  box-shadow: 0 0 26px rgb(229 168 75 / 12%);[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.field-sweep {[m
+[32m+[m[32m  position: absolute;[m
+[32m+[m[32m  top: 47%;[m
+[32m+[m[32m  left: 48%;[m
+[32m+[m[32m  width: 36%;[m
+[32m+[m[32m  height: 36%;[m
+[32m+[m[32m  border-top: 1px solid rgb(229 168 75 / 74%);[m
+[32m+[m[32m  background: conic-gradient(from 230deg, transparent 0deg, rgb(229 168 75 / 16%) 75deg, transparent 77deg);[m
+[32m+[m[32m  transform-origin: 0 0;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.field-node {[m
+[32m+[m[32m  position: absolute;[m
+[32m+[m[32m  z-index: 1;[m
+[32m+[m[32m  display: grid;[m
+[32m+[m[32m  width: 28px;[m
+[32m+[m[32m  height: 28px;[m
+[32m+[m[32m  place-items: center;[m
+[32m+[m[32m  border: 2px solid #f5f0df;[m
+[32m+[m[32m  border-radius: 50%;[m
+[32m+[m[32m  box-shadow: 0 0 0 5px rgb(255 255 255 / 7%), 0 4px 14px rgb(0 0 0 / 24%);[m
+[32m+[m[32m  color: #fff;[m
+[32m+[m[32m  font-family: var(--font-mono);[m
+[32m+[m[32m  font-size: 0.68rem;[m
+[32m+[m[32m  font-weight: 800;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.field-node-base {[m
+[32m+[m[32m  top: 59%;[m
+[32m+[m[32m  left: 35%;[m
+[32m+[m[32m  background: #4e8060;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.field-node-report {[m
+[32m+[m[32m  top: 26%;[m
+[32m+[m[32m  left: 69%;[m
+[32m+[m[32m  background: var(--color-ember);[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.field-label {[m
+[32m+[m[32m  position: absolute;[m
+[32m+[m[32m  z-index: 2;[m
+[32m+[m[32m  padding: 0.24rem 0.38rem;[m
+[32m+[m[32m  border: 1px solid rgb(232 237 218 / 18%);[m
+[32m+[m[32m  border-radius: 2px 6px 2px 6px;[m
+[32m+[m[32m  background: rgb(20 34 29 / 88%);[m
+[32m+[m[32m  color: #d9e2d2;[m
+[32m+[m[32m  font-family: var(--font-mono);[m
+[32m+[m[32m  font-size: 0.52rem;[m
+[32m+[m[32m  letter-spacing: 0.07em;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.field-label-base {[m
+[32m+[m[32m  top: 69%;[m
+[32m+[m[32m  left: 38%;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.field-label-zone {[m
+[32m+[m[32m  top: 18%;[m
+[32m+[m[32m  left: 55%;[m
+[32m+[m[32m  color: #f1bc72;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.field-coordinate {[m
+[32m+[m[32m  position: absolute;[m
+[32m+[m[32m  top: 0.7rem;[m
+[32m+[m[32m  left: 0.7rem;[m
+[32m+[m[32m  color: #93aa96;[m
+[32m+[m[32m  font-family: var(--font-mono);[m
+[32m+[m[32m  font-size: 0.54rem;[m
+[32m+[m[32m  letter-spacing: 0.11em;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.field-caption {[m
+[32m+[m[32m  position: absolute;[m
+[32m+[m[32m  right: 0.6rem;[m
+[32m+[m[32m  bottom: 0.55rem;[m
+[32m+[m[32m  padding: 0.28rem 0.4rem;[m
+[32m+[m[32m  border: 1px solid rgb(232 237 218 / 14%);[m
+[32m+[m[32m  border-radius: 3px;[m
+[32m+[m[32m  background: rgb(20 34 29 / 88%);[m
+[32m+[m[32m  color: #b5c2b1;[m
+[32m+[m[32m  font-size: 0.55rem;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.incident-meta-grid {[m
+[32m+[m[32m  display: grid;[m
+[32m+[m[32m  grid-template-columns: repeat(3, minmax(0, 1fr));[m
+[32m+[m[32m  gap: 0.55rem;[m
+[32m+[m[32m  margin: 0.75rem 0;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.incident-meta-grid > div {[m
+[32m+[m[32m  display: flex;[m
+[32m+[m[32m  min-height: 60px;[m
+[32m+[m[32m  flex-direction: column;[m
+   justify-content: center;[m
+[31m-  font-size: calc(10px + 2vmin);[m
+[31m-  color: white;[m
+[32m+[m[32m  gap: 0.24rem;[m
+[32m+[m[32m  padding: 0.52rem 0.62rem;[m
+[32m+[m[32m  border: 1px solid #e5e7df;[m
+[32m+[m[32m  border-radius: 3px 8px 3px 8px;[m
+[32m+[m[32m  background: #f8f8f2;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.incident-meta-grid span {[m
+[32m+[m[32m  color: #818a7e;[m
+[32m+[m[32m  font-size: 0.56rem;[m
+[32m+[m[32m  font-weight: 750;[m
+[32m+[m[32m  letter-spacing: 0.065em;[m
+[32m+[m[32m  text-transform: uppercase;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.incident-meta-grid strong {[m
+[32m+[m[32m  color: #3a4b41;[m
+[32m+[m[32m  font-size: 0.65rem;[m
+ }[m
+ [m
+[31m-.App-link {[m
+[31m-  color: #61dafb;[m
+[32m+[m[32m.description-block {[m
+[32m+[m[32m  padding: 0.15rem 0 0.8rem;[m
+ }[m
+ [m
+[31m-@keyframes App-logo-spin {[m
+[31m-  from {[m
+[31m-    transform: rotate(0deg);[m
+[32m+[m[32m.description-block p {[m
+[32m+[m[32m  margin: 0.36rem 0 0;[m
+[32m+[m[32m  color: #59665c;[m
+[32m+[m[32m  font-size: 0.71rem;[m
+[32m+[m[32m  line-height: 1.55;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.timeline-section {[m
+[32m+[m[32m  padding-top: 0.75rem;[m
+[32m+[m[32m  border-top: 1px solid #e8e9e1;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.timeline-section .panel-heading {[m
+[32m+[m[32m  margin-bottom: 0.55rem;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.timeline {[m
+[32m+[m[32m  display: grid;[m
+[32m+[m[32m  gap: 0;[m
+[32m+[m[32m  margin: 0;[m
+[32m+[m[32m  padding: 0;[m
+[32m+[m[32m  list-style: none;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.timeline li {[m
+[32m+[m[32m  position: relative;[m
+[32m+[m[32m  display: grid;[m
+[32m+[m[32m  min-height: 28px;[m
+[32m+[m[32m  grid-template-columns: 14px 1fr auto;[m
+[32m+[m[32m  align-items: center;[m
+[32m+[m[32m  gap: 0.48rem;[m
+[32m+[m[32m  color: #899188;[m
+[32m+[m[32m  font-size: 0.65rem;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.timeline li:not(:last-child)::after {[m
+[32m+[m[32m  position: absolute;[m
+[32m+[m[32m  top: 16px;[m
+[32m+[m[32m  bottom: -5px;[m
+[32m+[m[32m  left: 5px;[m
+[32m+[m[32m  width: 1px;[m
+[32m+[m[32m  background: #dce2d8;[m
+[32m+[m[32m  content: '';[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.timeline li.is-complete {[m
+[32m+[m[32m  color: #516158;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.timeline-marker {[m
+[32m+[m[32m  z-index: 1;[m
+[32m+[m[32m  width: 11px;[m
+[32m+[m[32m  height: 11px;[m
+[32m+[m[32m  border: 2px solid #d5dbd2;[m
+[32m+[m[32m  border-radius: 50%;[m
+[32m+[m[32m  background: var(--color-surface);[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.timeline li.is-complete .timeline-marker {[m
+[32m+[m[32m  border-color: #548764;[m
+[32m+[m[32m  background: #548764;[m
+[32m+[m[32m  box-shadow: inset 0 0 0 2px #fff;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.timeline-time {[m
+[32m+[m[32m  color: #929a90;[m
+[32m+[m[32m  font-family: var(--font-mono);[m
+[32m+[m[32m  font-size: 0.57rem;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.preview-notice {[m
+[32m+[m[32m  display: grid;[m
+[32m+[m[32m  gap: 0.25rem;[m
+[32m+[m[32m  margin-bottom: 0.8rem;[m
+[32m+[m[32m  padding: 0.65rem;[m
+[32m+[m[32m  border: 1px solid #d5dfd4;[m
+[32m+[m[32m  border-left: 3px solid #578b64;[m
+[32m+[m[32m  border-radius: 2px 8px 2px 8px;[m
+[32m+[m[32m  background: #f1f7ee;[m
+[32m+[m[32m  color: #456b4d;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.preview-notice strong {[m
+[32m+[m[32m  font-size: 0.68rem;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.preview-notice span {[m
+[32m+[m[32m  color: #617665;[m
+[32m+[m[32m  font-size: 0.61rem;[m
+[32m+[m[32m  line-height: 1.45;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.field-label {[m
+[32m+[m[32m  display: block;[m
+[32m+[m[32m  margin: 0.72rem 0 0.33rem;[m
+[32m+[m[32m  color: #536057;[m
+[32m+[m[32m  font-size: 0.64rem;[m
+[32m+[m[32m  font-weight: 750;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.text-input,[m
+[32m+[m[32m.table-filters select,[m
+[32m+[m[32m.search-field input {[m
+[32m+[m[32m  width: 100%;[m
+[32m+[m[32m  min-height: 37px;[m
+[32m+[m[32m  padding: 0.5rem 0.62rem;[m
+[32m+[m[32m  border: 1px solid #d9dfd7;[m
+[32m+[m[32m  border-radius: 3px 8px 3px 8px;[m
+[32m+[m[32m  background: #fffefa;[m
+[32m+[m[32m  color: #35473c;[m
+[32m+[m[32m  font: inherit;[m
+[32m+[m[32m  font-size: 0.68rem;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.text-input:focus,[m
+[32m+[m[32m.table-filters select:focus,[m
+[32m+[m[32m.search-field:focus-within,[m
+[32m+[m[32m.search-field input:focus {[m
+[32m+[m[32m  border-color: #7c9b81;[m
+[32m+[m[32m  outline: 2px solid rgb(83 135 98 / 15%);[m
+[32m+[m[32m  outline-offset: 1px;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.inline-notice {[m
+[32m+[m[32m  margin: 0.55rem 0 0;[m
+[32m+[m[32m  color: #8b5a15;[m
+[32m+[m[32m  font-size: 0.61rem;[m
+[32m+[m[32m  line-height: 1.45;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.later-phase-card {[m
+[32m+[m[32m  display: grid;[m
+[32m+[m[32m  gap: 0.25rem;[m
+[32m+[m[32m  margin-top: 0.65rem;[m
+[32m+[m[32m  padding: 0.62rem;[m
+[32m+[m[32m  border: 1px solid #ead8ba;[m
+[32m+[m[32m  border-radius: 3px 8px 3px 8px;[m
+[32m+[m[32m  background: #fff8eb;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.later-phase-card strong {[m
+[32m+[m[32m  color: #74532a;[m
+[32m+[m[32m  font-size: 0.64rem;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.later-phase-card p {[m
+[32m+[m[32m  margin: 0;[m
+[32m+[m[32m  color: #796e5a;[m
+[32m+[m[32m  font-size: 0.6rem;[m
+[32m+[m[32m  line-height: 1.48;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.muted-card {[m
+[32m+[m[32m  border-color: #dce3db;[m
+[32m+[m[32m  background: #f6f8f1;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.muted-card strong {[m
+[32m+[m[32m  color: #4d6152;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.muted-card p {[m
+[32m+[m[32m  color: #748075;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.table-panel {[m
+[32m+[m[32m  padding-bottom: 0.85rem;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.table-filters {[m
+[32m+[m[32m  display: grid;[m
+[32m+[m[32m  grid-template-columns: minmax(180px, 1fr) 170px;[m
+[32m+[m[32m  gap: 0.6rem;[m
+[32m+[m[32m  margin: 0.2rem 0 0.85rem;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.search-field {[m
+[32m+[m[32m  display: flex;[m
+[32m+[m[32m  min-width: 0;[m
+[32m+[m[32m  align-items: center;[m
+[32m+[m[32m  gap: 0.45rem;[m
+[32m+[m[32m  padding-left: 0.6rem;[m
+[32m+[m[32m  border: 1px solid #d9dfd7;[m
+[32m+[m[32m  border-radius: 3px 8px 3px 8px;[m
+[32m+[m[32m  background: #fffefa;[m
+[32m+[m[32m  color: #79867a;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.search-field input {[m
+[32m+[m[32m  min-width: 0;[m
+[32m+[m[32m  border: 0;[m
+[32m+[m[32m  outline: 0;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.table-scroll {[m
+[32m+[m[32m  width: 100%;[m
+[32m+[m[32m  overflow-x: auto;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mtable {[m
+[32m+[m[32m  width: 100%;[m
+[32m+[m[32m  border-collapse: collapse;[m
+[32m+[m[32m  text-align: left;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mth {[m
+[32m+[m[32m  padding: 0.6rem 0.52rem;[m
+[32m+[m[32m  border-top: 1px solid #e7e9e1;[m
+[32m+[m[32m  border-bottom: 1px solid #dfe4db;[m
+[32m+[m[32m  background: #f5f6ef;[m
+[32m+[m[32m  color: #79847a;[m
+[32m+[m[32m  font-size: 0.58rem;[m
+[32m+[m[32m  font-weight: 800;[m
+[32m+[m[32m  letter-spacing: 0.06em;[m
+[32m+[m[32m  text-transform: uppercase;[m
+[32m+[m[32m  white-space: nowrap;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mtd {[m
+[32m+[m[32m  padding: 0.65rem 0.52rem;[m
+[32m+[m[32m  border-bottom: 1px solid #eceee8;[m
+[32m+[m[32m  color: #59675d;[m
+[32m+[m[32m  font-size: 0.64rem;[m
+[32m+[m[32m  white-space: nowrap;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mtbody tr:hover {[m
+[32m+[m[32m  background: #fafaf4;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mtd strong {[m
+[32m+[m[32m  display: block;[m
+[32m+[m[32m  color: #33443a;[m
+[32m+[m[32m  font-size: 0.66rem;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.table-subtext {[m
+[32m+[m[32m  display: block;[m
+[32m+[m[32m  margin-top: 0.19rem;[m
+[32m+[m[32m  color: #899287;[m
+[32m+[m[32m  font-size: 0.56rem;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.table-open-button {[m
+[32m+[m[32m  padding: 0.32rem 0.52rem;[m
+[32m+[m[32m  border: 1px solid #d5ddd3;[m
+[32m+[m[32m  border-radius: 3px 8px 3px 8px;[m
+[32m+[m[32m  background: #fffefa;[m
+[32m+[m[32m  color: #42584a;[m
+[32m+[m[32m  cursor: pointer;[m
+[32m+[m[32m  font: inherit;[m
+[32m+[m[32m  font-size: 0.61rem;[m
+[32m+[m[32m  font-weight: 750;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.table-open-button:hover {[m
+[32m+[m[32m  border-color: #9baa9a;[m
+[32m+[m[32m  background: #f3f6ee;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.empty-table {[m
+[32m+[m[32m  padding: 1.4rem;[m
+[32m+[m[32m  color: #7d887d;[m
+[32m+[m[32m  text-align: center;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.record-layout {[m
+[32m+[m[32m  display: grid;[m
+[32m+[m[32m  grid-template-columns: minmax(0, 1fr) minmax(230px, 0.33fr);[m
+[32m+[m[32m  align-items: start;[m
+[32m+[m[32m  gap: 0.8rem;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.record-search {[m
+[32m+[m[32m  margin-bottom: 0.62rem;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.record-detail > p {[m
+[32m+[m[32m  color: #59675d;[m
+[32m+[m[32m  font-size: 0.7rem;[m
+[32m+[m[32m  line-height: 1.6;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.lock-mark {[m
+[32m+[m[32m  padding: 0.24rem 0.38rem;[m
+[32m+[m[32m  border: 1px solid #dce3db;[m
+[32m+[m[32m  border-radius: 3px 7px 3px 7px;[m
+[32m+[m[32m  color: #69786d;[m
+[32m+[m[32m  font-family: var(--font-mono);[m
+[32m+[m[32m  font-size: 0.53rem;[m
+[32m+[m[32m  font-weight: 800;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.phase-label {[m
+[32m+[m[32m  padding: 0.38rem 0.55rem;[m
+[32m+[m[32m  border: 1px solid #ead8ba;[m
+[32m+[m[32m  border-radius: 3px 8px 3px 8px;[m
+[32m+[m[32m  background: #fff8eb;[m
+[32m+[m[32m  color: #815d2b;[m
+[32m+[m[32m  font-size: 0.61rem;[m
+[32m+[m[32m  font-weight: 750;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.map-page-panel > .coverage-field {[m
+[32m+[m[32m  min-height: 440px;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.map-legend {[m
+[32m+[m[32m  display: flex;[m
+[32m+[m[32m  flex-wrap: wrap;[m
+[32m+[m[32m  gap: 1rem;[m
+[32m+[m[32m  padding: 0.8rem 0;[m
+[32m+[m[32m  color: #617065;[m
+[32m+[m[32m  font-size: 0.65rem;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.map-legend > span {[m
+[32m+[m[32m  display: inline-flex;[m
+[32m+[m[32m  align-items: center;[m
+[32m+[m[32m  gap: 0.4rem;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.legend-dot {[m
+[32m+[m[32m  width: 9px;[m
+[32m+[m[32m  height: 9px;[m
+[32m+[m[32m  border-radius: 50%;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.legend-incident {[m
+[32m+[m[32m  background: var(--color-ember);[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.legend-station {[m
+[32m+[m[32m  background: #548764;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.map-entry-list {[m
+[32m+[m[32m  border-top: 1px solid #e5e8df;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.map-entry {[m
+[32m+[m[32m  display: flex;[m
+[32m+[m[32m  align-items: center;[m
+[32m+[m[32m  gap: 0.65rem;[m
+[32m+[m[32m  padding: 0.72rem 0;[m
+[32m+[m[32m  border-bottom: 1px solid #eceee8;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.map-entry-icon {[m
+[32m+[m[32m  display: grid;[m
+[32m+[m[32m  width: 26px;[m
+[32m+[m[32m  height: 26px;[m
+[32m+[m[32m  flex: 0 0 26px;[m
+[32m+[m[32m  place-items: center;[m
+[32m+[m[32m  border-radius: 50%;[m
+[32m+[m[32m  background: #fff0e9;[m
+[32m+[m[32m  color: #a64b34;[m
+[32m+[m[32m  font-weight: 800;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.map-entry > span:nth-child(2) {[m
+[32m+[m[32m  display: grid;[m
+[32m+[m[32m  gap: 0.15rem;[m
+[32m+[m[32m  margin-right: auto;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.map-entry strong {[m
+[32m+[m[32m  color: #35473c;[m
+[32m+[m[32m  font-size: 0.68rem;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.map-entry small {[m
+[32m+[m[32m  color: #859084;[m
+[32m+[m[32m  font-size: 0.59rem;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.prediction-panel {[m
+[32m+[m[32m  max-width: 760px;[m
+[32m+[m[32m  margin: 2rem auto;[m
+[32m+[m[32m  padding: clamp(1.4rem, 5vw, 3rem);[m
+[32m+[m[32m  border-top: 3px solid var(--color-amber);[m
+[32m+[m[32m  text-align: center;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.prediction-icon {[m
+[32m+[m[32m  display: grid;[m
+[32m+[m[32m  width: 48px;[m
+[32m+[m[32m  height: 48px;[m
+[32m+[m[32m  margin: 0 auto 1rem;[m
+[32m+[m[32m  place-items: center;[m
+[32m+[m[32m  border: 1px solid #ead8ba;[m
+[32m+[m[32m  border-radius: 13px 50% 13px 50%;[m
+[32m+[m[32m  background: #fff8eb;[m
+[32m+[m[32m  color: #9a6a22;[m
+[32m+[m[32m  font-family: var(--font-mono);[m
+[32m+[m[32m  font-size: 1.15rem;[m
+[32m+[m[32m  font-weight: 800;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.prediction-panel h2 {[m
+[32m+[m[32m  margin: 0.55rem 0;[m
+[32m+[m[32m  color: var(--color-night);[m
+[32m+[m[32m  font-size: 1.15rem;[m
+[32m+[m[32m  letter-spacing: -0.025em;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.prediction-panel > p:not(.eyebrow) {[m
+[32m+[m[32m  max-width: 560px;[m
+[32m+[m[32m  margin: 0.55rem auto 0;[m
+[32m+[m[32m  color: #68756a;[m
+[32m+[m[32m  font-size: 0.78rem;[m
+[32m+[m[32m  line-height: 1.65;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.prediction-callout {[m
+[32m+[m[32m  display: grid;[m
+[32m+[m[32m  gap: 0.3rem;[m
+[32m+[m[32m  margin-top: 1.25rem;[m
+[32m+[m[32m  padding: 0.85rem;[m
+[32m+[m[32m  border: 1px solid #dce3db;[m
+[32m+[m[32m  border-radius: 3px 9px 3px 9px;[m
+[32m+[m[32m  background: #f7f8f1;[m
+[32m+[m[32m  color: #4e5e52;[m
+[32m+[m[32m  font-size: 0.68rem;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.prediction-callout span {[m
+[32m+[m[32m  color: #738075;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.login-page {[m
+[32m+[m[32m  display: grid;[m
+[32m+[m[32m  min-height: calc(100vh - 38px);[m
+[32m+[m[32m  grid-column: 1 / -1;[m
+[32m+[m[32m  place-items: center;[m
+[32m+[m[32m  padding: 2rem 1rem;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.login-panel {[m
+[32m+[m[32m  display: grid;[m
+[32m+[m[32m  width: min(100%, 410px);[m
+[32m+[m[32m  gap: 0.35rem;[m
+[32m+[m[32m  padding: 2rem;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.login-panel .brand-mark {[m
+[32m+[m[32m  margin-bottom: 0.55rem;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.login-panel h1 {[m
+[32m+[m[32m  margin: 0.15rem 0 0.25rem;[m
+[32m+[m[32m  color: var(--color-night);[m
+[32m+[m[32m  font-size: 1.45rem;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.login-panel .page-subtitle {[m
+[32m+[m[32m  margin-bottom: 0.6rem;[m
+[32m+[m[32m  line-height: 1.5;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.login-panel .panel-footnote {[m
+[32m+[m[32m  text-align: center;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.app-footer {[m
+[32m+[m[32m  display: flex;[m
+[32m+[m[32m  grid-column: 2;[m
+[32m+[m[32m  grid-row: 3;[m
+[32m+[m[32m  justify-content: space-between;[m
+[32m+[m[32m  gap: 1rem;[m
+[32m+[m[32m  padding: 0.75rem 1.75rem;[m
+[32m+[m[32m  border-top: 1px solid #dce1d8;[m
+[32m+[m[32m  color: #7d887e;[m
+[32m+[m[32m  font-size: 0.59rem;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m.visually-hidden {[m
+[32m+[m[32m  position: absolute;[m
+[32m+[m[32m  width: 1px;[m
+[32m+[m[32m  height: 1px;[m
+[32m+[m[32m  overflow: hidden;[m
+[32m+[m[32m  clip: rect(0, 0, 0, 0);[m
+[32m+[m[32m  white-space: nowrap;[m
+[32m+[m[32m  clip-path: inset(50%);[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m@media (max-width: 1180px) {[m
+[32m+[m[32m  .app-shell {[m
+[32m+[m[32m    grid-template-columns: 220px minmax(0, 1fr);[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  .main-content {[m
+[32m+[m[32m    width: min(100% - 2.25rem, 1120px);[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  .command-grid {[m
+[32m+[m[32m    grid-template-columns: minmax(0, 1fr);[m
+[32m+[m[32m    grid-template-areas:[m
+[32m+[m[32m      "incident"[m
+[32m+[m[32m      "queue"[m
+[32m+[m[32m      "response";[m
+[32m+[m[32m  }[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m@media (max-width: 820px) {[m
+[32m+[m[32m  .app-shell {[m
+[32m+[m[32m    grid-template-columns: minmax(0, 1fr);[m
+[32m+[m[32m    grid-template-rows: auto auto minmax(0, 1fr) auto;[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  .topbar {[m
+[32m+[m[32m    position: static;[m
+[32m+[m[32m    height: auto;[m
+[32m+[m[32m    min-height: auto;[m
+[32m+[m[32m    grid-column: 1;[m
+[32m+[m[32m    grid-row: 2;[m
+[32m+[m[32m    flex-direction: row;[m
+[32m+[m[32m    flex-wrap: wrap;[m
+[32m+[m[32m    align-items: center;[m
+[32m+[m[32m    gap: 0.65rem 1rem;[m
+[32m+[m[32m    padding: 0.75rem 1rem 0;[m
+   }[m
+[31m-  to {[m
+[31m-    transform: rotate(360deg);[m
+[32m+[m
+[32m+[m[32m  .brand {[m
+[32m+[m[32m    flex: 1;[m
+[32m+[m[32m    padding: 0 0 0.6rem;[m
+[32m+[m[32m    border-bottom: 0;[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  .main-nav {[m
+[32m+[m[32m    order: 3;[m
+[32m+[m[32m    width: 100%;[m
+[32m+[m[32m    height: 43px;[m
+[32m+[m[32m    flex-direction: row;[m
+[32m+[m[32m    overflow-x: auto;[m
+[32m+[m[32m    padding: 0;[m
+[32m+[m[32m    border-top: 1px solid rgb(255 255 255 / 10%);[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  .nav-item {[m
+[32m+[m[32m    min-height: 42px;[m
+[32m+[m[32m    padding: 0 0.7rem;[m
+[32m+[m[32m    font-size: 0.68rem;[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  .topbar-user {[m
+[32m+[m[32m    display: flex;[m
+[32m+[m[32m    margin: 0 0 0.55rem;[m
+[32m+[m[32m    padding: 0;[m
+[32m+[m[32m    border: 0;[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  .user-initials {[m
+[32m+[m[32m    display: none;[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  .main-content {[m
+[32m+[m[32m    width: min(100% - 1.6rem, 760px);[m
+[32m+[m[32m    grid-column: 1;[m
+[32m+[m[32m    grid-row: 3;[m
+[32m+[m[32m    padding-top: 1.35rem;[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  .app-footer {[m
+[32m+[m[32m    grid-column: 1;[m
+[32m+[m[32m    grid-row: 4;[m
+[32m+[m[32m    padding: 0.75rem 1rem;[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  .summary-counts {[m
+[32m+[m[32m    grid-template-columns: repeat(3, minmax(0, 1fr));[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  .record-layout {[m
+[32m+[m[32m    grid-template-columns: minmax(0, 1fr);[m
+[32m+[m[32m  }[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m@media (max-width: 560px) {[m
+[32m+[m[32m  .demo-banner {[m
+[32m+[m[32m    align-items: flex-start;[m
+[32m+[m[32m    flex-direction: column;[m
+[32m+[m[32m    gap: 0.1rem;[m
+[32m+[m[32m    padding: 0.52rem 0.8rem;[m
+[32m+[m[32m    font-size: 0.66rem;[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  .topbar {[m
+[32m+[m[32m    padding-right: 0.75rem;[m
+[32m+[m[32m    padding-left: 0.75rem;[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  .brand-mark {[m
+[32m+[m[32m    width: 35px;[m
+[32m+[m[32m    height: 35px;[m
+[32m+[m[32m    flex-basis: 35px;[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  .brand-name small {[m
+[32m+[m[32m    font-size: 0.5rem;[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  .user-caption {[m
+[32m+[m[32m    display: none;[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  .nav-item {[m
+[32m+[m[32m    padding: 0 0.58rem;[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  .nav-icon {[m
+[32m+[m[32m    display: none;[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  .page-heading {[m
+[32m+[m[32m    align-items: flex-start;[m
+[32m+[m[32m    flex-direction: column;[m
+[32m+[m[32m    gap: 0.65rem;[m
+[32m+[m[32m    margin-bottom: 0.95rem;[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  .summary-counts {[m
+[32m+[m[32m    grid-template-columns: repeat(2, minmax(0, 1fr));[m
+[32m+[m[32m    gap: 0.45rem;[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  .summary-card:last-child {[m
+[32m+[m[32m    grid-column: 1 / -1;[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  .incident-meta-grid {[m
+[32m+[m[32m    grid-template-columns: 1fr;[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  .coverage-field {[m
+[32m+[m[32m    min-height: 250px;[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  .map-page-panel > .coverage-field {[m
+[32m+[m[32m    min-height: 300px;[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  .table-filters {[m
+[32m+[m[32m    grid-template-columns: 1fr;[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  .app-footer {[m
+[32m+[m[32m    align-items: flex-start;[m
+[32m+[m[32m    flex-direction: column;[m
+[32m+[m[32m    gap: 0.3rem;[m
+[32m+[m[32m  }[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m@media (prefers-reduced-motion: reduce) {[m
+[32m+[m[32m  *,[m
+[32m+[m[32m  *::before,[m
+[32m+[m[32m  *::after {[m
+[32m+[m[32m    scroll-behavior: auto !important;[m
+[32m+[m[32m    transition-duration: 0.01ms !important;[m
+   }[m
+ }[m
+[1mdiff --git a/FireAlert_Frontend/src/App.js b/FireAlert_Frontend/src/App.js[m
+[1mindex 3784575..aefbfc6 100644[m
+[1m--- a/FireAlert_Frontend/src/App.js[m
+[1m+++ b/FireAlert_Frontend/src/App.js[m
+[36m@@ -1,23 +1,768 @@[m
+[31m-import logo from './logo.svg';[m
+[32m+[m[32mimport { useMemo, useState } from 'react';[m
+ import './App.css';[m
+ [m
+[31m-function App() {[m
+[32m+[m[32mconst INITIAL_INCIDENTS = [[m
+[32m+[m[32m  {[m
+[32m+[m[32m    id: 'DEMO-001',[m
+[32m+[m[32m    location: 'Sample market area',[m
+[32m+[m[32m    area: 'Illustrative barangay',[m
+[32m+[m[32m    description: 'Sample report for layout review. This is not a real emergency.',[m
+[32m+[m[32m    status: 'pending',[m
+[32m+[m[32m    received: 'Demo entry',[m
+[32m+[m[32m    unit: 'Unassigned',[m
+[32m+[m[32m  },[m
+[32m+[m[32m  {[m
+[32m+[m[32m    id: 'DEMO-002',[m
+[32m+[m[32m    location: 'Sample residential area',[m
+[32m+[m[32m    area: 'Illustrative barangay',[m
+[32m+[m[32m    description: 'Fictional report showing an accepted status.',[m
+[32m+[m[32m    status: 'accepted',[m
+[32m+[m[32m    received: 'Demo entry',[m
+[32m+[m[32m    unit: 'Unassigned',[m
+[32m+[m[32m  },[m
+[32m+[m[32m  {[m
+[32m+[m[32m    id: 'DEMO-003',[m
+[32m+[m[32m    location: 'Sample roadside area',[m
+[32m+[m[32m    area: 'Illustrative barangay',[m
+[32m+[m[32m    description: 'Fictional report showing a response status.',[m
+[32m+[m[32m    status: 'responding',[m
+[32m+[m[32m    received: 'Demo entry',[m
+[32m+[m[32m    unit: 'Demo unit 01',[m
+[32m+[m[32m  },[m
+[32m+[m[32m  {[m
+[32m+[m[32m    id: 'DEMO-004',[m
+[32m+[m[32m    location: 'Sample storage area',[m
+[32m+[m[32m    area: 'Illustrative barangay',[m
+[32m+[m[32m    description: 'Fictional report showing a resolved status.',[m
+[32m+[m[32m    status: 'resolved',[m
+[32m+[m[32m    received: 'Demo entry',[m
+[32m+[m[32m    unit: 'Demo unit 02',[m
+[32m+[m[32m  },[m
+[32m+[m[32m  {[m
+[32m+[m[32m    id: 'DEMO-005',[m
+[32m+[m[32m    location: 'Sample roadside shop',[m
+[32m+[m[32m    area: 'Illustrative barangay',[m
+[32m+[m[32m    description: 'Fictional report included to demonstrate filtering.',[m
+[32m+[m[32m    status: 'rejected',[m
+[32m+[m[32m    received: 'Demo entry',[m
+[32m+[m[32m    unit: 'Unassigned',[m
+[32m+[m[32m  },[m
+[32m+[m[32m];[m
+[32m+[m
+[32m+[m[32mconst STATUSES = ['pending', 'accepted', 'rejected', 'responding', 'resolved'];[m
+[32m+[m
+[32m+[m[32mconst STATUS_LABELS = {[m
+[32m+[m[32m  pending: 'Pending',[m
+[32m+[m[32m  accepted: 'Accepted',[m
+[32m+[m[32m  rejected: 'Rejected',[m
+[32m+[m[32m  responding: 'Responding',[m
+[32m+[m[32m  resolved: 'Resolved',[m
+[32m+[m[32m};[m
+[32m+[m
+[32m+[m[32mconst NAV_ITEMS = [[m
+[32m+[m[32m  { id: 'command', label: 'Command Center', icon: 'CC' },[m
+[32m+[m[32m  { id: 'reports', label: 'Reports', icon: 'RP' },[m
+[32m+[m[32m  { id: 'records', label: 'Incident Records', icon: 'IR' },[m
+[32m+[m[32m  { id: 'map', label: 'Incident Map', icon: 'MP' },[m
+[32m+[m[32m  { id: 'predictions', label: 'Predictions', icon: 'PR' },[m
+[32m+[m[32m];[m
+[32m+[m
+[32m+[m[32mfunction StatusBadge({ status }) {[m
+[32m+[m[32m  return ([m
+[32m+[m[32m    <span className={`status-badge status-${status}`}>[m
+[32m+[m[32m      <span className="status-dot" aria-hidden="true" />[m
+[32m+[m[32m      {STATUS_LABELS[status]}[m
+[32m+[m[32m    </span>[m
+[32m+[m[32m  );[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mfunction BrandMark() {[m
+[32m+[m[32m  return ([m
+[32m+[m[32m    <span className="brand-mark" aria-hidden="true">[m
+[32m+[m[32m      F[m
+[32m+[m[32m    </span>[m
+[32m+[m[32m  );[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mfunction DemoBanner() {[m
+[32m+[m[32m  return ([m
+[32m+[m[32m    <div className="demo-banner" role="note">[m
+[32m+[m[32m      <strong>Illustrative preview</strong>[m
+[32m+[m[32m      <span>[m
+[32m+[m[32m        All entries are fictional. This page is not connected to BFP records or[m
+[32m+[m[32m        live services.[m
+[32m+[m[32m      </span>[m
+[32m+[m[32m    </div>[m
+[32m+[m[32m  );[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mfunction MapPreview({ compact = false }) {[m
+[32m+[m[32m  return ([m
+[32m+[m[32m    <div[m
+[32m+[m[32m      className={`coverage-field${compact ? ' coverage-field-compact' : ''}`}[m
+[32m+[m[32m      role="img"[m
+[32m+[m[32m      aria-label="Illustrative coverage visualization; no live map or incident coordinates are shown"[m
+[32m+[m[32m    >[m
+[32m+[m[32m      <div className="field-grid" />[m
+[32m+[m[32m      <div className="field-cross field-cross-horizontal" />[m
+[32m+[m[32m      <div className="field-cross field-cross-vertical" />[m
+[32m+[m[32m      <div className="field-ring field-ring-outer" />[m
+[32m+[m[32m      <div className="field-ring field-ring-middle" />[m
+[32m+[m[32m      <div className="field-ring field-ring-inner" />[m
+[32m+[m[32m      <div className="field-sweep" />[m
+[32m+[m[32m      <span className="field-node field-node-base" aria-hidden="true">B</span>[m
+[32m+[m[32m      <span className="field-node field-node-report" aria-hidden="true">!</span>[m
+[32m+[m[32m      <span className="field-label field-label-base">DEMO BASE</span>[m
+[32m+[m[32m      <span className="field-label field-label-zone">SAMPLE ZONE</span>[m
+[32m+[m[32m      <span className="field-coordinate">COORDINATES UNAVAILABLE</span>[m
+[32m+[m[32m      <span className="field-caption">[m
+[32m+[m[32m        Illustrative coverage view - not live GPS or map data[m
+[32m+[m[32m      </span>[m
+[32m+[m[32m    </div>[m
+[32m+[m[32m  );[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mfunction SummaryCounts({ incidents }) {[m
+[32m+[m[32m  const counts = useMemo([m
+[32m+[m[32m    () =>[m
+[32m+[m[32m      STATUSES.map((status) => ({[m
+[32m+[m[32m        status,[m
+[32m+[m[32m        count: incidents.filter((incident) => incident.status === status).length,[m
+[32m+[m[32m      })),[m
+[32m+[m[32m    [incidents],[m
+[32m+[m[32m  );[m
+[32m+[m
+[32m+[m[32m  return ([m
+[32m+[m[32m    <section className="summary-counts" aria-label="Illustrative report counts by status">[m
+[32m+[m[32m      {counts.map(({ status, count }) => ([m
+[32m+[m[32m        <div className={`summary-card summary-${status}`} key={status}>[m
+[32m+[m[32m          <span className={`summary-indicator indicator-${status}`} />[m
+[32m+[m[32m          <span className="summary-label">{STATUS_LABELS[status]}</span>[m
+[32m+[m[32m          <strong>{count}</strong>[m
+[32m+[m[32m        </div>[m
+[32m+[m[32m      ))}[m
+[32m+[m[32m    </section>[m
+[32m+[m[32m  );[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mfunction CommandCenter({[m
+[32m+[m[32m  incidents,[m
+[32m+[m[32m  selectedIncident,[m
+[32m+[m[32m  onSelectIncident,[m
+[32m+[m[32m  onUpdateStatus,[m
+[32m+[m[32m  onOpenReports,[m
+[32m+[m[32m  notice,[m
+[32m+[m[32m}) {[m
+[32m+[m[32m  return ([m
+[32m+[m[32m    <>[m
+[32m+[m[32m      <div className="page-heading">[m
+[32m+[m[32m        <div>[m
+[32m+[m[32m          <p className="eyebrow">BFP Mansalay</p>[m
+[32m+[m[32m          <h1>Incident operations</h1>[m
+[32m+[m[32m          <p className="page-subtitle">[m
+[32m+[m[32m            Review incoming reports and coordinate response activity.[m
+[32m+[m[32m          </p>[m
+[32m+[m[32m        </div>[m
+[32m+[m[32m        <div className="connection-state">[m
+[32m+[m[32m          <span className="connection-dot" />[m
+[32m+[m[32m          Preview only - not connected[m
+[32m+[m[32m        </div>[m
+[32m+[m[32m      </div>[m
+[32m+[m
+[32m+[m[32m      <SummaryCounts incidents={incidents} />[m
+[32m+[m
+[32m+[m[32m      <div className="command-grid">[m
+[32m+[m[32m        <section className="panel alert-panel">[m
+[32m+[m[32m          <div className="panel-heading">[m
+[32m+[m[32m            <div>[m
+[32m+[m[32m              <h2>Illustrative report feed</h2>[m
+[32m+[m[32m              <p>Fictional entries for interface review</p>[m
+[32m+[m[32m            </div>[m
+[32m+[m[32m            <button className="icon-button" type="button" aria-label="Refresh preview">[m
+[32m+[m[32m              ↻[m
+[32m+[m[32m            </button>[m
+[32m+[m[32m          </div>[m
+[32m+[m[32m          <div className="alert-list">[m
+[32m+[m[32m            {incidents.slice(0, 4).map((incident) => ([m
+[32m+[m[32m              <button[m
+[32m+[m[32m                className={`alert-item${selectedIncident.id === incident.id ? ' is-selected' : ''}`}[m
+[32m+[m[32m                key={incident.id}[m
+[32m+[m[32m                onClick={() => onSelectIncident(incident.id)}[m
+[32m+[m[32m                type="button"[m
+[32m+[m[32m              >[m
+[32m+[m[32m                <span className="alert-item-top">[m
+[32m+[m[32m                  <span className="reference-code">{incident.id}</span>[m
+[32m+[m[32m                  <span className="demo-time">{incident.received}</span>[m
+[32m+[m[32m                </span>[m
+[32m+[m[32m                <strong>{incident.location}</strong>[m
+[32m+[m[32m                <span className="alert-area">{incident.area}</span>[m
+[32m+[m[32m                <StatusBadge status={incident.status} />[m
+[32m+[m[32m              </button>[m
+[32m+[m[32m            ))}[m
+[32m+[m[32m          </div>[m
+[32m+[m[32m          <button className="button button-secondary button-full" onClick={onOpenReports} type="button">[m
+[32m+[m[32m            View all illustrative reports[m
+[32m+[m[32m          </button>[m
+[32m+[m[32m          <p className="panel-footnote">[m
+[32m+[m[32m            Do not use this preview to assess or respond to an emergency.[m
+[32m+[m[32m          </p>[m
+[32m+[m[32m        </section>[m
+[32m+[m
+[32m+[m[32m        <section className="panel incident-panel">[m
+[32m+[m[32m          <div className="panel-heading incident-heading">[m
+[32m+[m[32m            <div>[m
+[32m+[m[32m              <p className="eyebrow">Selected demo entry</p>[m
+[32m+[m[32m              <h2>{selectedIncident.location}</h2>[m
+[32m+[m[32m              <p>{selectedIncident.area}</p>[m
+[32m+[m[32m            </div>[m
+[32m+[m[32m            <StatusBadge status={selectedIncident.status} />[m
+[32m+[m[32m          </div>[m
+[32m+[m
+[32m+[m[32m          <MapPreview />[m
+[32m+[m
+[32m+[m[32m          <div className="incident-meta-grid">[m
+[32m+[m[32m            <div>[m
+[32m+[m[32m              <span>Reference</span>[m
+[32m+[m[32m              <strong>{selectedIncident.id}</strong>[m
+[32m+[m[32m            </div>[m
+[32m+[m[32m            <div>[m
+[32m+[m[32m              <span>Location source</span>[m
+[32m+[m[32m              <strong>Not available in preview</strong>[m
+[32m+[m[32m            </div>[m
+[32m+[m[32m            <div>[m
+[32m+[m[32m              <span>Received</span>[m
+[32m+[m[32m              <strong>{selectedIncident.received}</strong>[m
+[32m+[m[32m            </div>[m
+[32m+[m[32m          </div>[m
+[32m+[m
+[32m+[m[32m          <div className="description-block">[m
+[32m+[m[32m            <h3>Illustrative report details</h3>[m
+[32m+[m[32m            <p>{selectedIncident.description}</p>[m
+[32m+[m[32m          </div>[m
+[32m+[m
+[32m+[m[32m          <div className="timeline-section">[m
+[32m+[m[32m            <div className="panel-heading">[m
+[32m+[m[32m              <div>[m
+[32m+[m[32m                <h3>Response progress</h3>[m
+[32m+[m[32m                <p>Example status sequence - not an event history</p>[m
+[32m+[m[32m              </div>[m
+[32m+[m[32m            </div>[m
+[32m+[m[32m            <ol className="timeline">[m
+[32m+[m[32m              {['Report submitted', 'Report reviewed', 'Response update', 'Resolved'].map([m
+[32m+[m[32m                (step, index) => ([m
+[32m+[m[32m                  <li[m
+[32m+[m[32m                    className={index === 0 || selectedIncident.status === 'resolved' ? 'is-complete' : ''}[m
+[32m+[m[32m                    key={step}[m
+[32m+[m[32m                  >[m
+[32m+[m[32m                    <span className="timeline-marker" />[m
+[32m+[m[32m                    <span>{step}</span>[m
+[32m+[m[32m                    <span className="timeline-time">Demo</span>[m
+[32m+[m[32m                  </li>[m
+[32m+[m[32m                ),[m
+[32m+[m[32m              )}[m
+[32m+[m[32m            </ol>[m
+[32m+[m[32m          </div>[m
+[32m+[m[32m        </section>[m
+[32m+[m
+[32m+[m[32m        <section className="panel dispatch-panel">[m
+[32m+[m[32m          <div className="panel-heading">[m
+[32m+[m[32m            <div>[m
+[32m+[m[32m              <h2>Response controls</h2>[m
+[32m+[m[32m              <p>Local preview only - changes are not saved</p>[m
+[32m+[m[32m            </div>[m
+[32m+[m[32m          </div>[m
+[32m+[m
+[32m+[m[32m          <div className="preview-notice">[m
+[32m+[m[32m            <strong>No live dispatch</strong>[m
+[32m+[m[32m            <span>Vehicle assignment and status changes are not connected to BFP.</span>[m
+[32m+[m[32m          </div>[m
+[32m+[m
+[32m+[m[32m          <label className="field-label" htmlFor="demo-unit">[m
+[32m+[m[32m            Demo unit identifier[m
+[32m+[m[32m          </label>[m
+[32m+[m[32m          <input[m
+[32m+[m[32m            className="text-input"[m
+[32m+[m[32m            id="demo-unit"[m
+[32m+[m[32m            onChange={(event) => onUpdateStatus(selectedIncident.id, 'unit', event.target.value)}[m
+[32m+[m[32m            placeholder="Not assigned"[m
+[32m+[m[32m            value={selectedIncident.unit}[m
+[32m+[m[32m          />[m
+[32m+[m
+[32m+[m[32m          <label className="field-label" htmlFor="demo-status">[m
+[32m+[m[32m            Local status preview[m
+[32m+[m[32m          </label>[m
+[32m+[m[32m          <select[m
+[32m+[m[32m            className="text-input"[m
+[32m+[m[32m            id="demo-status"[m
+[32m+[m[32m            onChange={(event) => onUpdateStatus(selectedIncident.id, 'status', event.target.value)}[m
+[32m+[m[32m            value={selectedIncident.status}[m
+[32m+[m[32m          >[m
+[32m+[m[32m            {STATUSES.map((status) => ([m
+[32m+[m[32m              <option key={status} value={status}>[m
+[32m+[m[32m                {STATUS_LABELS[status]}[m
+[32m+[m[32m              </option>[m
+[32m+[m[32m            ))}[m
+[32m+[m[32m          </select>[m
+[32m+[m
+[32m+[m[32m          {notice && ([m
+[32m+[m[32m            <p className="inline-notice" role="status">[m
+[32m+[m[32m              {notice}[m
+[32m+[m[32m            </p>[m
+[32m+[m[32m          )}[m
+[32m+[m
+[32m+[m[32m          <div className="later-phase-card">[m
+[32m+[m[32m            <strong>Routes and ETA</strong>[m
+[32m+[m[32m            <p>Later phase. No route or travel-time estimate is available in this preview.</p>[m
+[32m+[m[32m          </div>[m
+[32m+[m[32m          <div className="later-phase-card muted-card">[m
+[32m+[m[32m            <strong>Google Maps</strong>[m
+[32m+[m[32m            <p>Requires approved API configuration and live service integration.</p>[m
+[32m+[m[32m          </div>[m
+[32m+[m[32m        </section>[m
+[32m+[m[32m      </div>[m
+[32m+[m[32m    </>[m
+[32m+[m[32m  );[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mfunction ReportTable({ incidents, onSelectIncident, search, onSearch, status, onStatus }) {[m
+[32m+[m[32m  const filteredIncidents = incidents.filter((incident) => {[m
+[32m+[m[32m    const matchesSearch = `${incident.id} ${incident.location} ${incident.area}`[m
+[32m+[m[32m      .toLowerCase()[m
+[32m+[m[32m      .includes(search.toLowerCase());[m
+[32m+[m[32m    const matchesStatus = status === 'all' || incident.status === status;[m
+[32m+[m[32m    return matchesSearch && matchesStatus;[m
+[32m+[m[32m  });[m
+[32m+[m
+   return ([m
+[31m-    <div className="App">[m
+[31m-      <header className="App-header">[m
+[31m-        <img src={logo} className="App-logo" alt="logo" />[m
+[32m+[m[32m    <section className="panel table-panel">[m
+[32m+[m[32m      <div className="panel-heading">[m
+[32m+[m[32m        <div>[m
+[32m+[m[32m          <p className="eyebrow">Illustrative data</p>[m
+[32m+[m[32m          <h2>Reports</h2>[m
+[32m+[m[32m          <p>Search and filter fictional entries; results are not live incidents.</p>[m
+[32m+[m[32m        </div>[m
+[32m+[m[32m      </div>[m
+[32m+[m[32m      <div className="table-filters">[m
+[32m+[m[32m        <label className="search-field">[m
+[32m+[m[32m          <span className="visually-hidden">Search reports</span>[m
+[32m+[m[32m          <span aria-hidden="true">⌕</span>[m
+[32m+[m[32m          <input[m
+[32m+[m[32m            onChange={(event) => onSearch(event.target.value)}[m
+[32m+[m[32m            placeholder="Search reference or location"[m
+[32m+[m[32m            value={search}[m
+[32m+[m[32m          />[m
+[32m+[m[32m        </label>[m
+[32m+[m[32m        <label>[m
+[32m+[m[32m          <span className="visually-hidden">Filter by status</span>[m
+[32m+[m[32m          <select onChange={(event) => onStatus(event.target.value)} value={status}>[m
+[32m+[m[32m            <option value="all">All statuses</option>[m
+[32m+[m[32m            {STATUSES.map((item) => ([m
+[32m+[m[32m              <option key={item} value={item}>[m
+[32m+[m[32m                {STATUS_LABELS[item]}[m
+[32m+[m[32m              </option>[m
+[32m+[m[32m            ))}[m
+[32m+[m[32m          </select>[m
+[32m+[m[32m        </label>[m
+[32m+[m[32m      </div>[m
+[32m+[m[32m      <div className="table-scroll">[m
+[32m+[m[32m        <table>[m
+[32m+[m[32m          <thead>[m
+[32m+[m[32m            <tr>[m
+[32m+[m[32m              <th scope="col">Reference</th>[m
+[32m+[m[32m              <th scope="col">Location</th>[m
+[32m+[m[32m              <th scope="col">Received</th>[m
+[32m+[m[32m              <th scope="col">Status</th>[m
+[32m+[m[32m              <th scope="col">Assigned unit</th>[m
+[32m+[m[32m              <th scope="col">[m
+[32m+[m[32m                <span className="visually-hidden">Open</span>[m
+[32m+[m[32m              </th>[m
+[32m+[m[32m            </tr>[m
+[32m+[m[32m          </thead>[m
+[32m+[m[32m          <tbody>[m
+[32m+[m[32m            {filteredIncidents.map((incident) => ([m
+[32m+[m[32m              <tr key={incident.id}>[m
+[32m+[m[32m                <td>[m
+[32m+[m[32m                  <strong className="reference-code">{incident.id}</strong>[m
+[32m+[m[32m                  <span className="table-subtext">Fictional demo</span>[m
+[32m+[m[32m                </td>[m
+[32m+[m[32m                <td>[m
+[32m+[m[32m                  <strong>{incident.location}</strong>[m
+[32m+[m[32m                  <span className="table-subtext">{incident.area}</span>[m
+[32m+[m[32m                </td>[m
+[32m+[m[32m                <td>{incident.received}</td>[m
+[32m+[m[32m                <td>[m
+[32m+[m[32m                  <StatusBadge status={incident.status} />[m
+[32m+[m[32m                </td>[m
+[32m+[m[32m                <td>{incident.unit}</td>[m
+[32m+[m[32m                <td>[m
+[32m+[m[32m                  <button[m
+[32m+[m[32m                    aria-label={`Open ${incident.id}`}[m
+[32m+[m[32m                    className="table-open-button"[m
+[32m+[m[32m                    onClick={() => onSelectIncident(incident.id)}[m
+[32m+[m[32m                    type="button"[m
+[32m+[m[32m                  >[m
+[32m+[m[32m                    View[m
+[32m+[m[32m                  </button>[m
+[32m+[m[32m                </td>[m
+[32m+[m[32m              </tr>[m
+[32m+[m[32m            ))}[m
+[32m+[m[32m            {filteredIncidents.length === 0 && ([m
+[32m+[m[32m              <tr>[m
+[32m+[m[32m                <td className="empty-table" colSpan="6">[m
+[32m+[m[32m                  No illustrative entries match these filters.[m
+[32m+[m[32m                </td>[m
+[32m+[m[32m              </tr>[m
+[32m+[m[32m            )}[m
+[32m+[m[32m          </tbody>[m
+[32m+[m[32m        </table>[m
+[32m+[m[32m      </div>[m
+[32m+[m[32m      <p className="panel-footnote">[m
+[32m+[m[32m        This interface preview does not fetch, save, or modify report records.[m
+[32m+[m[32m      </p>[m
+[32m+[m[32m    </section>[m
+[32m+[m[32m  );[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mfunction PageHeader({ eyebrow, title, description, action }) {[m
+[32m+[m[32m  return ([m
+[32m+[m[32m    <div className="page-heading">[m
+[32m+[m[32m      <div>[m
+[32m+[m[32m        <p className="eyebrow">{eyebrow}</p>[m
+[32m+[m[32m        <h1>{title}</h1>[m
+[32m+[m[32m        <p className="page-subtitle">{description}</p>[m
+[32m+[m[32m      </div>[m
+[32m+[m[32m      {action}[m
+[32m+[m[32m    </div>[m
+[32m+[m[32m  );[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mfunction IncidentRecords({ incidents, onSelectIncident, search, onSearch, onOpenCommand }) {[m
+[32m+[m[32m  return ([m
+[32m+[m[32m    <>[m
+[32m+[m[32m      <PageHeader[m
+[32m+[m[32m        description="Review fictional sample records and interface states."[m
+[32m+[m[32m        eyebrow="BFP Mansalay"[m
+[32m+[m[32m        title="Incident Records"[m
+[32m+[m[32m        action={[m
+[32m+[m[32m          <button className="button button-primary" disabled type="button">[m
+[32m+[m[32m            New record - later phase[m
+[32m+[m[32m          </button>[m
+[32m+[m[32m        }[m
+[32m+[m[32m      />[m
+[32m+[m[32m      <div className="record-layout">[m
+[32m+[m[32m        <div>[m
+[32m+[m[32m          <label className="search-field record-search">[m
+[32m+[m[32m            <span aria-hidden="true">⌕</span>[m
+[32m+[m[32m            <span className="visually-hidden">Search incident records</span>[m
+[32m+[m[32m            <input[m
+[32m+[m[32m              onChange={(event) => onSearch(event.target.value)}[m
+[32m+[m[32m              placeholder="Search reference or location"[m
+[32m+[m[32m              value={search}[m
+[32m+[m[32m            />[m
+[32m+[m[32m          </label>[m
+[32m+[m[32m          <div className="panel table-panel">[m
+[32m+[m[32m            <div className="table-scroll">[m
+[32m+[m[32m              <table>[m
+[32m+[m[32m                <thead>[m
+[32m+[m[32m                  <tr>[m
+[32m+[m[32m                    <th scope="col">Incident reference</th>[m
+[32m+[m[32m                    <th scope="col">Location</th>[m
+[32m+[m[32m                    <th scope="col">Response status</th>[m
+[32m+[m[32m                    <th scope="col">Unit</th>[m
+[32m+[m[32m                    <th scope="col">[m
+[32m+[m[32m                      <span className="visually-hidden">Open</span>[m
+[32m+[m[32m                    </th>[m
+[32m+[m[32m                  </tr>[m
+[32m+[m[32m                </thead>[m
+[32m+[m[32m                <tbody>[m
+[32m+[m[32m                  {incidents[m
+[32m+[m[32m                    .filter((incident) =>[m
+[32m+[m[32m                      `${incident.id} ${incident.location} ${incident.area}`[m
+[32m+[m[32m                        .toLowerCase()[m
+[32m+[m[32m                        .includes(search.toLowerCase()),[m
+[32m+[m[32m                    )[m
+[32m+[m[32m                    .map((incident) => ([m
+[32m+[m[32m                      <tr key={incident.id}>[m
+[32m+[m[32m                        <td>[m
+[32m+[m[32m                          <strong className="reference-code">{incident.id}</strong>[m
+[32m+[m[32m                          <span className="table-subtext">Illustrative record</span>[m
+[32m+[m[32m                        </td>[m
+[32m+[m[32m                        <td>[m
+[32m+[m[32m                          <strong>{incident.location}</strong>[m
+[32m+[m[32m                          <span className="table-subtext">{incident.area}</span>[m
+[32m+[m[32m                        </td>[m
+[32m+[m[32m                        <td>[m
+[32m+[m[32m                          <StatusBadge status={incident.status} />[m
+[32m+[m[32m                        </td>[m
+[32m+[m[32m                        <td>{incident.unit}</td>[m
+[32m+[m[32m                        <td>[m
+[32m+[m[32m                          <button[m
+[32m+[m[32m                            aria-label={`Open ${incident.id}`}[m
+[32m+[m[32m                            className="table-open-button"[m
+[32m+[m[32m                            onClick={() => {[m
+[32m+[m[32m                              onSelectIncident(incident.id);[m
+[32m+[m[32m                              onOpenCommand();[m
+[32m+[m[32m                            }}[m
+[32m+[m[32m                            type="button"[m
+[32m+[m[32m                          >[m
+[32m+[m[32m                            Open[m
+[32m+[m[32m                          </button>[m
+[32m+[m[32m                        </td>[m
+[32m+[m[32m                      </tr>[m
+[32m+[m[32m                    ))}[m
+[32m+[m[32m                </tbody>[m
+[32m+[m[32m              </table>[m
+[32m+[m[32m            </div>[m
+[32m+[m[32m            <p className="panel-footnote">[m
+[32m+[m[32m              Incident record creation, editing, and live search require a connected API.[m
+[32m+[m[32m            </p>[m
+[32m+[m[32m          </div>[m
+[32m+[m[32m        </div>[m
+[32m+[m[32m        <aside className="panel record-detail">[m
+[32m+[m[32m          <div className="panel-heading">[m
+[32m+[m[32m            <div>[m
+[32m+[m[32m              <p className="eyebrow">Data protection</p>[m
+[32m+[m[32m              <h2>Restricted BFP workspace</h2>[m
+[32m+[m[32m            </div>[m
+[32m+[m[32m            <span className="lock-mark" aria-hidden="true">LOCK</span>[m
+[32m+[m[32m          </div>[m
+[32m+[m[32m          <p>[m
+[32m+[m[32m            This page uses fictional examples only. Real resident identity and incident[m
+[32m+[m[32m            locations must be provided by the authorized backend.[m
+[32m+[m[32m          </p>[m
+[32m+[m[32m          <div className="later-phase-card">[m
+[32m+[m[32m            <strong>Search and filters</strong>[m
+[32m+[m[32m            <p>Only local preview search is available; no server records are queried.</p>[m
+[32m+[m[32m          </div>[m
+[32m+[m[32m          <div className="later-phase-card muted-card">[m
+[32m+[m[32m            <strong>Status history</strong>[m
+[32m+[m[32m            <p>Real status events will be shown after the API contract is implemented.</p>[m
+[32m+[m[32m          </div>[m
+[32m+[m[32m        </aside>[m
+[32m+[m[32m      </div>[m
+[32m+[m[32m    </>[m
+[32m+[m[32m  );[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mfunction IncidentMap({ incidents }) {[m
+[32m+[m[32m  return ([m
+[32m+[m[32m    <>[m
+[32m+[m[32m      <PageHeader[m
+[32m+[m[32m        description="Location display is a visual placeholder; no real coordinates are loaded."[m
+[32m+[m[32m        eyebrow="BFP Mansalay"[m
+[32m+[m[32m        title="Coverage view"[m
+[32m+[m[32m      />[m
+[32m+[m[32m      <section className="panel map-page-panel">[m
+[32m+[m[32m        <div className="panel-heading">[m
+[32m+[m[32m          <div>[m
+[32m+[m[32m            <h2>Coverage field</h2>[m
+[32m+[m[32m            <p>The graphic is symbolic and does not plot actual incidents or locations.</p>[m
+[32m+[m[32m          </div>[m
+[32m+[m[32m          <span className="phase-label">Google Maps integration - later phase</span>[m
+[32m+[m[32m        </div>[m
+[32m+[m[32m        <MapPreview />[m
+[32m+[m[32m        <div className="map-legend" aria-label="Illustrative map legend">[m
+[32m+[m[32m          <span><i className="legend-dot legend-incident" /> Demo report signal</span>[m
+[32m+[m[32m          <span><i className="legend-dot legend-station" /> Demo base</span>[m
+[32m+[m[32m        </div>[m
+[32m+[m[32m        <div className="map-entry-list">[m
+[32m+[m[32m          {incidents.slice(0, 3).map((incident) => ([m
+[32m+[m[32m            <div className="map-entry" key={incident.id}>[m
+[32m+[m[32m              <span className="map-entry-icon" aria-hidden="true">!</span>[m
+[32m+[m[32m              <span>[m
+[32m+[m[32m                <strong>{incident.location}</strong>[m
+[32m+[m[32m                <small>{incident.id} - fictional entry</small>[m
+[32m+[m[32m              </span>[m
+[32m+[m[32m              <StatusBadge status={incident.status} />[m
+[32m+[m[32m            </div>[m
+[32m+[m[32m          ))}[m
+[32m+[m[32m        </div>[m
+[32m+[m[32m      </section>[m
+[32m+[m[32m    </>[m
+[32m+[m[32m  );[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mfunction Predictions() {[m
+[32m+[m[32m  return ([m
+[32m+[m[32m    <>[m
+[32m+[m[32m      <PageHeader[m
+[32m+[m[32m        description="Predictions are advisory only and are not used to dispatch or prioritize responses."[m
+[32m+[m[32m        eyebrow="Research feature"[m
+[32m+[m[32m        title="High-risk location predictions"[m
+[32m+[m[32m      />[m
+[32m+[m[32m      <section className="panel prediction-panel">[m
+[32m+[m[32m        <div className="prediction-icon" aria-hidden="true">!</div>[m
+[32m+[m[32m        <p className="eyebrow">Model status</p>[m
+[32m+[m[32m        <h2>Not yet validated - no historical data loaded</h2>[m
+         <p>[m
+[31m-          Edit <code>src/App.js</code> and save to reload.[m
+[32m+[m[32m          No prediction is available. This system has no approved historical dataset,[m
+[32m+[m[32m          defined prediction target, or validated model connected to this preview.[m
+[32m+[m[32m        </p>[m
+[32m+[m[32m        <div className="prediction-callout">[m
+[32m+[m[32m          <strong>Advisory only</strong>[m
+[32m+[m[32m          <span>[m
+[32m+[m[32m            No risk scores, accuracy figures, or automatic dispatch actions are shown.[m
+[32m+[m[32m          </span>[m
+[32m+[m[32m        </div>[m
+[32m+[m[32m      </section>[m
+[32m+[m[32m    </>[m
+[32m+[m[32m  );[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mfunction LoginPreview() {[m
+[32m+[m[32m  return ([m
+[32m+[m[32m    <main className="login-page">[m
+[32m+[m[32m      <section className="panel login-panel">[m
+[32m+[m[32m        <BrandMark />[m
+[32m+[m[32m        <p className="eyebrow">Mansalay response workspace</p>[m
+[32m+[m[32m        <h1>Sign in to FireAlert</h1>[m
+[32m+[m[32m        <p className="page-subtitle">[m
+[32m+[m[32m          Authorized BFP personnel access only. Authentication is not connected in this[m
+[32m+[m[32m          interface preview.[m
+[32m+[m[32m        </p>[m
+[32m+[m[32m        <label className="field-label" htmlFor="email">Email address</label>[m
+[32m+[m[32m        <input autoComplete="username" className="text-input" id="email" type="email" />[m
+[32m+[m[32m        <label className="field-label" htmlFor="password">Password</label>[m
+[32m+[m[32m        <input autoComplete="current-password" className="text-input" id="password" type="password" />[m
+[32m+[m[32m        <button className="button button-primary button-full" disabled type="button">[m
+[32m+[m[32m          Sign in - backend required[m
+[32m+[m[32m        </button>[m
+[32m+[m[32m        <p className="panel-footnote">[m
+[32m+[m[32m          This preview does not authenticate users or grant access to restricted records.[m
+         </p>[m
+[32m+[m[32m      </section>[m
+[32m+[m[32m    </main>[m
+[32m+[m[32m  );[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mfunction App() {[m
+[32m+[m[32m  const [page, setPage] = useState('command');[m
+[32m+[m[32m  const [incidents, setIncidents] = useState(INITIAL_INCIDENTS);[m
+[32m+[m[32m  const [selectedId, setSelectedId] = useState(INITIAL_INCIDENTS[0].id);[m
+[32m+[m[32m  const [notice, setNotice] = useState('');[m
+[32m+[m[32m  const [reportSearch, setReportSearch] = useState('');[m
+[32m+[m[32m  const [recordSearch, setRecordSearch] = useState('');[m
+[32m+[m[32m  const [reportStatus, setReportStatus] = useState('all');[m
+[32m+[m
+[32m+[m[32m  const selectedIncident =[m
+[32m+[m[32m    incidents.find((incident) => incident.id === selectedId) || incidents[0];[m
+[32m+[m
+[32m+[m[32m  function updateIncident(id, field, value) {[m
+[32m+[m[32m    setIncidents((current) =>[m
+[32m+[m[32m      current.map((incident) =>[m
+[32m+[m[32m        incident.id === id ? { ...incident, [field]: value } : incident,[m
+[32m+[m[32m      ),[m
+[32m+[m[32m    );[m
+[32m+[m[32m    setNotice('Changed locally for preview only. Nothing was sent or saved.');[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  function selectIncident(id) {[m
+[32m+[m[32m    setSelectedId(id);[m
+[32m+[m[32m    setNotice('');[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  if (page === 'login') {[m
+[32m+[m[32m    return ([m
+[32m+[m[32m      <>[m
+[32m+[m[32m        <DemoBanner />[m
+[32m+[m[32m        <LoginPreview />[m
+[32m+[m[32m      </>[m
+[32m+[m[32m    );[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  return ([m
+[32m+[m[32m    <div className="app-shell">[m
+[32m+[m[32m      <DemoBanner />[m
+[32m+[m[32m      <header className="topbar">[m
+         <a[m
+[31m-          className="App-link"[m
+[31m-          href="https://reactjs.org"[m
+[31m-          target="_blank"[m
+[31m-          rel="noopener noreferrer"[m
+[32m+[m[32m          aria-label="FireAlert Command Center"[m
+[32m+[m[32m          className="brand"[m
+[32m+[m[32m          href="#command"[m
+[32m+[m[32m          onClick={(event) => {[m
+[32m+[m[32m            event.preventDefault();[m
+[32m+[m[32m            setPage('command');[m
+[32m+[m[32m          }}[m
+         >[m
+[31m-          Learn React[m
+[32m+[m[32m          <BrandMark />[m
+[32m+[m[32m          <span className="brand-name">[m
+[32m+[m[32m            FireAlert[m
+[32m+[m[32m            <small>FIELD OPERATIONS / MANSALAY</small>[m
+[32m+[m[32m          </span>[m
+         </a>[m
+[32m+[m[32m        <nav aria-label="Main navigation" className="main-nav">[m
+[32m+[m[32m          {NAV_ITEMS.map((item) => ([m
+[32m+[m[32m            <button[m
+[32m+[m[32m              aria-current={page === item.id ? 'page' : undefined}[m
+[32m+[m[32m              className={`nav-item${page === item.id ? ' is-active' : ''}`}[m
+[32m+[m[32m              key={item.id}[m
+[32m+[m[32m              onClick={() => {[m
+[32m+[m[32m                setPage(item.id);[m
+[32m+[m[32m                setNotice('');[m
+[32m+[m[32m              }}[m
+[32m+[m[32m              type="button"[m
+[32m+[m[32m            >[m
+[32m+[m[32m              <span className="nav-icon" aria-hidden="true">{item.icon}</span>[m
+[32m+[m[32m              {item.label}[m
+[32m+[m[32m            </button>[m
+[32m+[m[32m          ))}[m
+[32m+[m[32m        </nav>[m
+[32m+[m[32m        <div className="topbar-user">[m
+[32m+[m[32m          <span className="user-initials" aria-hidden="true">BFP</span>[m
+[32m+[m[32m          <span className="user-caption">Preview mode</span>[m
+[32m+[m[32m          <button className="topbar-login" onClick={() => setPage('login')} type="button">[m
+[32m+[m[32m            Sign in[m
+[32m+[m[32m          </button>[m
+[32m+[m[32m        </div>[m
+       </header>[m
+[32m+[m
+[32m+[m[32m      <main className="main-content">[m
+[32m+[m[32m        {page === 'command' && ([m
+[32m+[m[32m          <CommandCenter[m
+[32m+[m[32m            incidents={incidents}[m
+[32m+[m[32m            notice={notice}[m
+[32m+[m[32m            onOpenReports={() => setPage('reports')}[m
+[32m+[m[32m            onSelectIncident={selectIncident}[m
+[32m+[m[32m            onUpdateStatus={updateIncident}[m
+[32m+[m[32m            selectedIncident={selectedIncident}[m
+[32m+[m[32m          />[m
+[32m+[m[32m        )}[m
+[32m+[m[32m        {page === 'reports' && ([m
+[32m+[m[32m          <>[m
+[32m+[m[32m            <PageHeader[m
+[32m+[m[32m              description="Search and review fictional entries. This page is not connected to live reports."[m
+[32m+[m[32m              eyebrow="BFP Mansalay"[m
+[32m+[m[32m              title="Incoming Reports"[m
+[32m+[m[32m            />[m
+[32m+[m[32m            <ReportTable[m
+[32m+[m[32m              incidents={incidents}[m
+[32m+[m[32m              onSearch={setReportSearch}[m
+[32m+[m[32m              onSelectIncident={(id) => {[m
+[32m+[m[32m                selectIncident(id);[m
+[32m+[m[32m                setPage('command');[m
+[32m+[m[32m              }}[m
+[32m+[m[32m              onStatus={setReportStatus}[m
+[32m+[m[32m              search={reportSearch}[m
+[32m+[m[32m              status={reportStatus}[m
+[32m+[m[32m            />[m
+[32m+[m[32m          </>[m
+[32m+[m[32m        )}[m
+[32m+[m[32m        {page === 'records' && ([m
+[32m+[m[32m          <IncidentRecords[m
+[32m+[m[32m            incidents={incidents}[m
+[32m+[m[32m            onOpenCommand={() => setPage('command')}[m
+[32m+[m[32m            onSearch={setRecordSearch}[m
+[32m+[m[32m            onSelectIncident={selectIncident}[m
+[32m+[m[32m            search={recordSearch}[m
+[32m+[m[32m          />[m
+[32m+[m[32m        )}[m
+[32m+[m[32m        {page === 'map' && <IncidentMap incidents={incidents} />}[m
+[32m+[m[32m        {page === 'predictions' && <Predictions />}[m
+[32m+[m[32m      </main>[m
+[32m+[m
+[32m+[m[32m      <footer className="app-footer">[m
+[32m+[m[32m        <span>FireAlert interface preview</span>[m
+[32m+[m[32m        <span>Fictional content - not for operational use</span>[m
+[32m+[m[32m      </footer>[m
+     </div>[m
+   );[m
+ }[m
+[1mdiff --git a/FireAlert_Frontend/src/App.test.js b/FireAlert_Frontend/src/App.test.js[m
+[1mindex 1f03afe..ecf5356 100644[m
+[1m--- a/FireAlert_Frontend/src/App.test.js[m
+[1m+++ b/FireAlert_Frontend/src/App.test.js[m
+[36m@@ -1,8 +1,49 @@[m
+[31m-import { render, screen } from '@testing-library/react';[m
+[32m+[m[32mimport { fireEvent, render, screen, within } from '@testing-library/react';[m
+ import App from './App';[m
+ [m
+[31m-test('renders learn react link', () => {[m
+[32m+[m[32mtest('renders a clearly labeled FireAlert operations preview', () => {[m
+   render(<App />);[m
+[31m-  const linkElement = screen.getByText(/learn react/i);[m
+[31m-  expect(linkElement).toBeInTheDocument();[m
+[32m+[m
+[32m+[m[32m  expect(screen.getByRole('heading', { name: 'Incident operations' })).toBeInTheDocument();[m
+[32m+[m[32m  expect(screen.getByText(/all entries are fictional/i)).toBeInTheDocument();[m
+[32m+[m[32m  expect(screen.getByText(/not live gps or map data/i)).toBeInTheDocument();[m
+[32m+[m[32m});[m
+[32m+[m
+[32m+[m[32mtest('shows only report counts by status', () => {[m
+[32m+[m[32m  render(<App />);[m
+[32m+[m
+[32m+[m[32m  const counts = within([m
+[32m+[m[32m    screen.getByLabelText(/illustrative report counts by status/i),[m
+[32m+[m[32m  );[m
+[32m+[m[32m  expect(counts.getByText('Pending')).toBeInTheDocument();[m
+[32m+[m[32m  expect(counts.getByText('Responding')).toBeInTheDocument();[m
+[32m+[m[32m});[m
+[32m+[m
+[32m+[m[32mtest('opens the incident records view', () => {[m
+[32m+[m[32m  render(<App />);[m
+[32m+[m
+[32m+[m[32m  fireEvent.click(screen.getByRole('button', { name: /incident records/i }));[m
+[32m+[m
+[32m+[m[32m  expect(screen.getByRole('heading', { name: 'Incident Records' })).toBeInTheDocument();[m
+[32m+[m[32m  expect(screen.getByText(/fictional sample records/i)).toBeInTheDocument();[m
+[32m+[m[32m});[m
+[32m+[m
+[32m+[m[32mtest('keeps predictions unavailable until a validated model is connected', () => {[m
+[32m+[m[32m  render(<App />);[m
+[32m+[m
+[32m+[m[32m  fireEvent.click(screen.getByRole('button', { name: 'Predictions' }));[m
+[32m+[m
+[32m+[m[32m  expect([m
+[32m+[m[32m    screen.getByRole('heading', { name: /not yet validated - no historical data loaded/i }),[m
+[32m+[m[32m  ).toBeInTheDocument();[m
+[32m+[m[32m  expect(screen.getByText(/no risk scores, accuracy figures, or automatic dispatch/i)).toBeInTheDocument();[m
+[32m+[m[32m});[m
+[32m+[m
+[32m+[m[32mtest('does not present the preview login as functional authentication', () => {[m
+[32m+[m[32m  render(<App />);[m
+[32m+[m
+[32m+[m[32m  fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));[m
+[32m+[m
+[32m+[m[32m  expect(screen.getByRole('heading', { name: 'Sign in to FireAlert' })).toBeInTheDocument();[m
+[32m+[m[32m  expect(screen.getByRole('button', { name: /backend required/i })).toBeDisabled();[m
+ });[m
+[1mdiff --git a/FireAlert_Frontend/src/index.css b/FireAlert_Frontend/src/index.css[m
+[1mindex ec2585e..44ea17d 100644[m
+[1m--- a/FireAlert_Frontend/src/index.css[m
+[1m+++ b/FireAlert_Frontend/src/index.css[m
+[36m@@ -1,13 +1,51 @@[m
+[32m+[m[32m:root {[m
+[32m+[m[32m  --color-night: #17231f;[m
+[32m+[m[32m  --color-forest: #223b33;[m
+[32m+[m[32m  --color-ember: #e15b3f;[m
+[32m+[m[32m  --color-amber: #e5a84b;[m
+[32m+[m[32m  --color-ink: #202b27;[m
+[32m+[m[32m  --color-muted: #6f7a72;[m
+[32m+[m[32m  --color-border: #dce1d8;[m
+[32m+[m[32m  --color-surface: #fffefa;[m
+[32m+[m[32m  --color-canvas: #f0f1e9;[m
+[32m+[m[32m  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m* {[m
+[32m+[m[32m  box-sizing: border-box;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mhtml {[m
+[32m+[m[32m  min-width: 320px;[m
+[32m+[m[32m  background: var(--color-canvas);[m
+[32m+[m[32m}[m
+[32m+[m
+ body {[m
+[32m+[m[32m  min-width: 320px;[m
+[32m+[m[32m  min-height: 100vh;[m
+   margin: 0;[m
+[31m-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',[m
+[31m-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',[m
+[31m-    sans-serif;[m
+[32m+[m[32m  background: var(--color-canvas);[m
+[32m+[m[32m  color: var(--color-ink);[m
+[32m+[m[32m  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;[m
+   -webkit-font-smoothing: antialiased;[m
+   -moz-osx-font-smoothing: grayscale;[m
+ }[m
+ [m
+[31m-code {[m
+[31m-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',[m
+[31m-    monospace;[m
+[32m+[m[32mbutton,[m
+[32m+[m[32minput,[m
+[32m+[m[32mselect {[m
+[32m+[m[32m  font: inherit;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mbutton:focus-visible,[m
+[32m+[m[32ma:focus-visible,[m
+[32m+[m[32minput:focus-visible,[m
+[32m+[m[32mselect:focus-visible {[m
+[32m+[m[32m  outline: 3px solid rgb(52 119 177 / 38%);[m
+[32m+[m[32m  outline-offset: 2px;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m::selection {[m
+[32m+[m[32m  background: #f3c6c3;[m
+[32m+[m[32m  color: #4b211f;[m
+ }[m
