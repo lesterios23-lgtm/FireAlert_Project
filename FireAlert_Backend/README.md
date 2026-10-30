@@ -56,3 +56,25 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+## FireAlert API
+
+The versioned API uses JWT bearer tokens. Configure the database in `.env`, then set the application and JWT secrets:
+
+```bash
+php artisan key:generate
+php artisan jwt:secret
+php artisan migrate
+```
+
+Keep `.env` private and never commit either secret. Public registration always creates a `resident`; the submitted request cannot assign a privileged role. The new role column is nullable so existing accounts are not automatically assigned or downgraded. After verifying the existing authorized BFP account, assign its `bfp` role through a trusted administrative process before enabling role-based access.
+
+Authentication endpoints:
+
+- `POST /api/v1/auth/register`
+- `POST /api/v1/auth/login`
+- `GET /api/v1/auth/me` (bearer token required)
+- `POST /api/v1/auth/refresh` (bearer token required)
+- `POST /api/v1/auth/logout` (bearer token required)
+
+Send authenticated requests with `Authorization: Bearer <access_token>`. Resident report listing is available at `GET /api/v1/reports` and remains scoped to the authenticated user.
