@@ -35,3 +35,12 @@ test('fire report schema keeps unconfirmed details and location optional', funct
         ->and(Schema::getColumnType('fire_reports', 'latitude'))
         ->toBe('numeric');
 });
+
+test('fire report seeder creates fictional reports only in the isolated test database', function () {
+    $this->seed();
+
+    expect(FireReport::count())->toBe(100)
+        ->and(User::count())->toBe(10)
+        ->and(FireReport::query()->where('incident_description', 'not like', '%Fictional%')->count())
+        ->toBe(0);
+});
