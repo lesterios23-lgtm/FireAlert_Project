@@ -111,6 +111,11 @@ Residents can partially update an existing report with `PATCH /api/v1/reports/{i
 
 Resource modifications are protected by versioned model policies (`App\Policies\V1\FireReportPolicy`). If an authenticated resident attempts to modify a report they do not own, the policy rejects the request and returns `403 Forbidden` with the message `"You are not authorized to update that resource."`.
 
+Token abilities are encoded directly into the JWT custom claims upon login (`App\Permissions\V1\Abilities`). Policies inspect token claims via `$user->tokenCan(...)`:
+- **Regular residents** receive owner-scoped abilities (`report:own:create`, `report:own:update`, `report:own:delete`). They cannot replace reports via PUT and cannot update or delete other residents' reports (returning `403 Forbidden`).
+- **Managers / BFP personnel** (`is_manager = true` or `role = 'bfp'`) receive broad operational abilities (`report:create`, `report:update`, `report:replace`, `report:delete`, `user:create`, etc.), enabling them to replace, update, or delete any emergency report.
+
+
 
 
 

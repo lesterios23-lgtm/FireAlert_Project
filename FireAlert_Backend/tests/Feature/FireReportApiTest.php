@@ -529,7 +529,9 @@ test('resident cannot delete another resident report', function () {
     JWTAuth::unsetToken();
 
     $this->withToken($token)->deleteJson("/api/v1/reports/{$otherReport->id}")
-        ->assertNotFound();
+        ->assertForbidden()
+        ->assertJsonPath('message', 'You are not authorized to delete that resource.')
+        ->assertJsonPath('status', 403);
 
     $this->assertDatabaseHas('fire_reports', [
         'id' => $otherReport->id,
@@ -548,8 +550,9 @@ test('replacing a report requires authentication', function () {
     ])->assertUnauthorized();
 });
 
-test('authenticated resident can replace their report with PUT', function () {
+test('authenticated manager can replace any report with PUT', function () {
     $resident = User::factory()->create();
+    $manager = User::factory()->manager()->create();
     $report = FireReport::factory()->create([
         'resident_id' => $resident->id,
         'incident_description' => 'Original description',
@@ -557,6 +560,43 @@ test('authenticated resident can replace their report with PUT', function () {
         'latitude' => null,
         'longitude' => null,
         'location_source' => null,
+    ]);
+
+    $token = Auth::guard('api')->login($manager);
+    Auth::forgetGuards();
+    JWTAuth::unsetToken();
+
+    $this->withToken($token)->putJson("/api/v1/reports/{$report->id}", [
+        'data' => [
+            'type' => 'fire_report',
+            'attributes' => [
+                'incidentDescription' => 'Fully replaced fire description by manager.',
+                'latitude' => 12.5204,
+                'longitude' => 121.4392,
+                'locationSource' => 'manual',
+            ],
+        ],
+    ])
+        ->assertOk()
+        ->assertJsonPath('data.type', 'fire_report')
+        ->assertJsonPath('data.attributes.incidentDescription', 'Fully replaced fire description by manager.')
+        ->assertJsonPath('data.attributes.incidentAddress', null)
+        ->assertJsonPath('data.attributes.latitude', '12.5204000')
+        ->assertJsonPath('data.attributes.longitude', '121.4392000')
+        ->assertJsonPath('data.attributes.locationSource', 'manual');
+
+    $this->assertDatabaseHas('fire_reports', [
+        'id' => $report->id,
+        'incident_description' => 'Fully replaced fire description by manager.',
+        'incident_address' => null,
+        'location_source' => 'manual',
+    ]);
+});
+
+test('regular resident cannot replace report with PUT and receives 403', function () {
+    $resident = User::factory()->create();
+    $report = FireReport::factory()->create([
+        'resident_id' => $resident->id,
     ]);
 
     $token = Auth::guard('api')->login($resident);
@@ -567,36 +607,21 @@ test('authenticated resident can replace their report with PUT', function () {
         'data' => [
             'type' => 'fire_report',
             'attributes' => [
-                'incidentDescription' => 'Fully replaced fire description.',
-                'latitude' => 12.5204,
-                'longitude' => 121.4392,
-                'locationSource' => 'manual',
+                'incidentDescription' => 'Resident attempt to PUT',
+                'incidentAddress' => 'Mansalay Market',
             ],
         ],
     ])
-        ->assertOk()
-        ->assertJsonPath('data.type', 'fire_report')
-        ->assertJsonPath('data.attributes.incidentDescription', 'Fully replaced fire description.')
-        ->assertJsonPath('data.attributes.incidentAddress', null)
-        ->assertJsonPath('data.attributes.latitude', '12.5204000')
-        ->assertJsonPath('data.attributes.longitude', '121.4392000')
-        ->assertJsonPath('data.attributes.locationSource', 'manual');
-
-    $this->assertDatabaseHas('fire_reports', [
-        'id' => $report->id,
-        'incident_description' => 'Fully replaced fire description.',
-        'incident_address' => null,
-        'location_source' => 'manual',
-    ]);
+        ->assertForbidden()
+        ->assertJsonPath('message', 'You are not authorized to replace that resource.')
+        ->assertJsonPath('status', 403);
 });
 
 test('replacing a report requires all mandatory fields', function () {
-    $resident = User::factory()->create();
-    $report = FireReport::factory()->create([
-        'resident_id' => $resident->id,
-    ]);
+    $manager = User::factory()->manager()->create();
+    $report = FireReport::factory()->create();
 
-    $token = Auth::guard('api')->login($resident);
+    $token = Auth::guard('api')->login($manager);
     Auth::forgetGuards();
     JWTAuth::unsetToken();
 
@@ -615,13 +640,12 @@ test('replacing a report requires all mandatory fields', function () {
 });
 
 test('replacing a report rejects unknown or workflow fields', function () {
-    $resident = User::factory()->create();
+    $manager = User::factory()->manager()->create();
     $report = FireReport::factory()->create([
-        'resident_id' => $resident->id,
         'status' => 'pending',
     ]);
 
-    $token = Auth::guard('api')->login($resident);
+    $token = Auth::guard('api')->login($manager);
     Auth::forgetGuards();
     JWTAuth::unsetToken();
 
@@ -641,35 +665,6 @@ test('replacing a report rejects unknown or workflow fields', function () {
     $this->assertDatabaseHas('fire_reports', [
         'id' => $report->id,
         'status' => 'pending',
-    ]);
-});
-
-test('resident cannot replace another resident report', function () {
-    $resident = User::factory()->create();
-    $otherResident = User::factory()->create();
-    $otherReport = FireReport::factory()->create([
-        'resident_id' => $otherResident->id,
-        'incident_description' => 'Original other description',
-    ]);
-
-    $token = Auth::guard('api')->login($resident);
-    Auth::forgetGuards();
-    JWTAuth::unsetToken();
-
-    $this->withToken($token)->putJson("/api/v1/reports/{$otherReport->id}", [
-        'data' => [
-            'type' => 'fire_report',
-            'attributes' => [
-                'incidentDescription' => 'Tampering attempt',
-                'incidentAddress' => 'Tampering address',
-            ],
-        ],
-    ])
-        ->assertNotFound();
-
-    $this->assertDatabaseHas('fire_reports', [
-        'id' => $otherReport->id,
-        'incident_description' => 'Original other description',
     ]);
 });
 
@@ -868,6 +863,56 @@ test('updating non-existent report with PATCH returns 404', function () {
     ])
         ->assertNotFound();
 });
+
+test('manager token contains broad abilities and can update and delete another resident report', function () {
+    $resident = User::factory()->create();
+    $manager = User::factory()->manager()->create();
+    $report = FireReport::factory()->create([
+        'resident_id' => $resident->id,
+        'incident_description' => 'Original resident report',
+    ]);
+
+    $token = Auth::guard('api')->login($manager);
+    Auth::forgetGuards();
+    JWTAuth::unsetToken();
+
+    // Manager can update (PATCH) another resident's report
+    $this->withToken($token)->patchJson("/api/v1/reports/{$report->id}", [
+        'data' => [
+            'type' => 'fire_report',
+            'attributes' => [
+                'incidentDescription' => 'Manager updated description',
+            ],
+        ],
+    ])
+        ->assertOk()
+        ->assertJsonPath('data.attributes.incidentDescription', 'Manager updated description');
+
+    // Manager can delete another resident's report
+    $this->withToken($token)->deleteJson("/api/v1/reports/{$report->id}")
+        ->assertOk()
+        ->assertJsonPath('message', 'Report successfully deleted');
+
+    $this->assertDatabaseMissing('fire_reports', [
+        'id' => $report->id,
+    ]);
+});
+
+test('resident and manager tokens have distinct abilities claims in jwt payload', function () {
+    $resident = User::factory()->create();
+    $manager = User::factory()->manager()->create();
+
+    $residentClaims = $resident->getJWTCustomClaims();
+    $managerClaims = $manager->getJWTCustomClaims();
+
+    expect($residentClaims)->toHaveKey('abilities')
+        ->and($residentClaims['abilities'])->toContain('report:own:create', 'report:own:update', 'report:own:delete')
+        ->and($residentClaims['abilities'])->not->toContain('report:replace', 'user:create');
+
+    expect($managerClaims)->toHaveKey('abilities')
+        ->and($managerClaims['abilities'])->toContain('report:create', 'report:update', 'report:replace', 'report:delete', 'user:create');
+});
+
 
 
 

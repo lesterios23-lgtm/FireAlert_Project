@@ -40,7 +40,7 @@ test('fire report seeder creates fictional reports only in the isolated test dat
     $this->seed();
 
     expect(FireReport::count())->toBe(100)
-        ->and(User::count())->toBe(10)
+        ->and(User::count())->toBe(11)
         ->and(FireReport::query()->where('incident_description', 'not like', '%Fictional%')->count())
         ->toBe(0);
 });

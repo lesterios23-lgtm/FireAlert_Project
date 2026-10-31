@@ -14,16 +14,24 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class FireReportController extends APIController
 {
-    public function store(StoreFireReportRequest $request): FireReportResource
+    /**
+     * POST /api/v1/reports
+     * Creates a report, but only if the policy allows this user to do so.
+     */
+    public function store(StoreFireReportRequest $request): FireReportResource|JsonResponse
     {
-        $report = FireReport::create([
-            ...$request->mappedAttributes(),
-            'resident_id' => $request->user()->getAuthIdentifier(),
-            'status' => 'pending',
-            'reported_at' => now(),
-        ]);
+        if ($this->isAble('store', FireReport::class)) {
+            $report = FireReport::create([
+                ...$request->mappedAttributes(),
+                'resident_id' => $request->user()->getAuthIdentifier(),
+                'status' => 'pending',
+                'reported_at' => now(),
+            ]);
 
-        return new FireReportResource($report);
+            return new FireReportResource($report);
+        }
+
+        return $this->notAuthorized('You are not authorized to create that resource.');
     }
 
     public function index(Request $request, FireReportFilter $filters): AnonymousResourceCollection
@@ -53,32 +61,32 @@ class FireReportController extends APIController
 
     /**
      * DELETE /api/v1/reports/{report}
-     * Deletes the fire report. A missing report never reaches this method: Laravel answers 404.
+     * Deletes the report, but only if the policy allows it.
      */
-    public function destroy(Request $request, FireReport $report): JsonResponse
+    public function destroy(FireReport $report): JsonResponse
     {
-        $ownedReport = FireReport::query()
-            ->where('resident_id', $request->user()->getAuthIdentifier())
-            ->findOrFail($report->getKey());
+        if ($this->isAble('delete', $report)) {
+            $report->delete();
 
-        $ownedReport->delete();
+            return $this->ok('Report successfully deleted');
+        }
 
-        return $this->ok('Report successfully deleted');
+        return $this->notAuthorized('You are not authorized to delete that resource.');
     }
 
     /**
      * PUT /api/v1/reports/{report}
-     * Replaces the fire report: all required incident attributes must be sent.
+     * Replaces the whole report, but only if the policy allows it.
      */
-    public function replace(ReplaceFireReportRequest $request, FireReport $report): FireReportResource
+    public function replace(ReplaceFireReportRequest $request, FireReport $report): FireReportResource|JsonResponse
     {
-        $ownedReport = FireReport::query()
-            ->where('resident_id', $request->user()->getAuthIdentifier())
-            ->findOrFail($report->getKey());
+        if ($this->isAble('replace', $report)) {
+            $report->update($request->mappedAttributes());
 
-        $ownedReport->update($request->mappedAttributes());
+            return new FireReportResource($report);
+        }
 
-        return new FireReportResource($ownedReport);
+        return $this->notAuthorized('You are not authorized to replace that resource.');
     }
 
     /**
