@@ -28,6 +28,7 @@ test('versioned report list returns only the authenticated resident reports', fu
         ->assertJsonCount(1, 'data')
         ->assertJsonPath('data.0.type', 'fire_report')
         ->assertJsonPath('data.0.id', $ownReport->id)
+        ->assertJsonMissingPath('data.0.attributes.incidentDescription')
         ->assertJsonPath('data.0.attributes.status', 'pending')
         ->assertJsonPath('data.0.relationships.resident.data.id', $resident->id)
         ->assertJsonPath('data.0.links.self', route('reports.show', ['report' => $ownReport->id]))

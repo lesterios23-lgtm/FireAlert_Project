@@ -77,4 +77,4 @@ Authentication endpoints:
 - `POST /api/v1/auth/refresh` (bearer token required)
 - `POST /api/v1/auth/logout` (bearer token required)
 
-Send authenticated requests with `Authorization: Bearer <access_token>`. Resident reports are available at `GET /api/v1/reports` and `GET /api/v1/reports/{id}`; both endpoints are scoped to the authenticated user. List responses use a versioned resource representation with `data`, pagination `links`, and `meta`, and return 15 reports per page (`?page=2`).
+Send authenticated requests with `Authorization: Bearer <access_token>`. Resident reports are available at `GET /api/v1/reports` and `GET /api/v1/reports/{id}`; both endpoints are scoped to the authenticated user. List responses use a versioned resource representation with `data`, pagination `links`, and `meta`, and return 15 reports per page (`?page=2`). To reduce list payload size, the incident description is omitted from list items and included in a report detail response.

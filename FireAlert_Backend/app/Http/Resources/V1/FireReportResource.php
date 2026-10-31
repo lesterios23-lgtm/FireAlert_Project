@@ -17,7 +17,10 @@ class FireReportResource extends JsonResource
             'type' => 'fire_report',
             'id' => $report->id,
             'attributes' => [
-                'incidentDescription' => $report->incident_description,
+                'incidentDescription' => $this->when(
+                    ! $request->routeIs('reports.index'),
+                    $report->incident_description,
+                ),
                 'incidentAddress' => $report->incident_address,
                 'latitude' => $report->latitude,
                 'longitude' => $report->longitude,
