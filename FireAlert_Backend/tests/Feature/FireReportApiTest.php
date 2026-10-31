@@ -8,6 +8,139 @@ use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
 
 uses(RefreshDatabase::class);
 
+test('creating a report requires authentication', function () {
+    $this->postJson('/api/v1/reports', [
+        'data' => [
+            'type' => 'fire_report',
+            'attributes' => [
+                'incidentDescription' => 'Smoke reported near the market.',
+                'incidentAddress' => 'Mansalay Central Market',
+            ],
+        ],
+    ])->assertUnauthorized();
+});
+
+test('authenticated resident can create a report with an address', function () {
+    $resident = User::factory()->create();
+    $token = Auth::guard('api')->login($resident);
+    Auth::forgetGuards();
+    JWTAuth::unsetToken();
+
+    $this->withToken($token)->postJson('/api/v1/reports', [
+        'data' => [
+            'type' => 'fire_report',
+            'attributes' => [
+                'incidentDescription' => 'Smoke reported near the market.',
+                'incidentAddress' => 'Mansalay Central Market',
+            ],
+        ],
+    ])
+        ->assertCreated()
+        ->assertJsonPath('data.type', 'fire_report')
+        ->assertJsonPath('data.attributes.incidentDescription', 'Smoke reported near the market.')
+        ->assertJsonPath('data.attributes.incidentAddress', 'Mansalay Central Market')
+        ->assertJsonPath('data.attributes.status', 'pending')
+        ->assertJsonPath('data.relationships.resident.data.id', $resident->id);
+
+    $this->assertDatabaseHas('fire_reports', [
+        'resident_id' => $resident->id,
+        'incident_description' => 'Smoke reported near the market.',
+        'incident_address' => 'Mansalay Central Market',
+        'status' => 'pending',
+    ]);
+});
+
+test('authenticated resident can create a report with a coordinate pair', function () {
+    $resident = User::factory()->create();
+    $token = Auth::guard('api')->login($resident);
+    Auth::forgetGuards();
+    JWTAuth::unsetToken();
+
+    $this->withToken($token)->postJson('/api/v1/reports', [
+        'data' => [
+            'type' => 'fire_report',
+            'attributes' => [
+                'incidentDescription' => 'Fire reported at the selected location.',
+                'latitude' => 12.5204,
+                'longitude' => 121.4392,
+                'locationSource' => 'manual',
+            ],
+        ],
+    ])
+        ->assertCreated()
+        ->assertJsonPath('data.attributes.latitude', '12.5204000')
+        ->assertJsonPath('data.attributes.longitude', '121.4392000')
+        ->assertJsonPath('data.attributes.locationSource', 'manual');
+});
+
+test('report creation validates required incident details and location', function () {
+    $resident = User::factory()->create();
+    $token = Auth::guard('api')->login($resident);
+    Auth::forgetGuards();
+    JWTAuth::unsetToken();
+
+    $this->withToken($token)->postJson('/api/v1/reports', [
+        'data' => [
+            'type' => 'fire_report',
+            'attributes' => [
+                'incidentDescription' => '',
+            ],
+        ],
+    ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors([
+            'data.attributes.incidentDescription',
+            'data.attributes.incidentAddress',
+        ]);
+});
+
+test('report creation rejects incomplete or out of range coordinates', function () {
+    $resident = User::factory()->create();
+    $token = Auth::guard('api')->login($resident);
+    Auth::forgetGuards();
+    JWTAuth::unsetToken();
+
+    $this->withToken($token)->postJson('/api/v1/reports', [
+        'data' => [
+            'type' => 'fire_report',
+            'attributes' => [
+                'incidentDescription' => 'Fire reported at the selected location.',
+                'latitude' => 100,
+                'locationSource' => 'device',
+            ],
+        ],
+    ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors([
+            'data.attributes.latitude',
+            'data.attributes.longitude',
+        ]);
+});
+
+test('resident cannot assign report ownership or workflow fields', function () {
+    $resident = User::factory()->create();
+    $otherResident = User::factory()->create();
+    $token = Auth::guard('api')->login($resident);
+    Auth::forgetGuards();
+    JWTAuth::unsetToken();
+
+    $this->withToken($token)->postJson('/api/v1/reports', [
+        'data' => [
+            'type' => 'fire_report',
+            'attributes' => [
+                'incidentDescription' => 'Smoke reported near the market.',
+                'incidentAddress' => 'Mansalay Central Market',
+                'residentId' => $otherResident->id,
+                'status' => 'resolved',
+            ],
+        ],
+    ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('data.attributes');
+
+    $this->assertDatabaseCount('fire_reports', 0);
+});
+
 test('versioned report list requires authentication', function () {
     $this->getJson('/api/v1/reports')
         ->assertUnauthorized();

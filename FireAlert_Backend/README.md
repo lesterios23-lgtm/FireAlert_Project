@@ -77,6 +77,22 @@ Authentication endpoints:
 - `POST /api/v1/auth/refresh` (bearer token required)
 - `POST /api/v1/auth/logout` (bearer token required)
 
+Residents can create reports with `POST /api/v1/reports`. The JSON:API-style body must include `data.type` set to `fire_report` and `data.attributes.incidentDescription`. Provide either `incidentAddress` or both `latitude` and `longitude`; coordinates must be within valid geographic ranges, and coordinate submissions must include `locationSource` set to `device` or `manual`. The endpoint returns `201 Created` with the new report resource. The authenticated resident, initial `pending` status, and report timestamp are assigned by the server; clients cannot set ownership or workflow fields.
+
+Example request using an address:
+
+```json
+{
+  "data": {
+    "type": "fire_report",
+    "attributes": {
+      "incidentDescription": "Smoke reported near the market.",
+      "incidentAddress": "Mansalay Central Market"
+    }
+  }
+}
+```
+
 Send authenticated requests with `Authorization: Bearer <access_token>`. Resident reports are available at `GET /api/v1/reports` and `GET /api/v1/reports/{id}`; both endpoints are scoped to the authenticated user. List responses use a versioned resource representation with `data`, pagination `links`, and `meta`, and return 15 reports per page (`?page=2`). To reduce list payload size, the incident description is omitted from list items and included in a report detail response.
 
 Use `?include=resident` on either report endpoint to include the authenticated resident's name. Related data is omitted by default; resident email and other account details are not included.
