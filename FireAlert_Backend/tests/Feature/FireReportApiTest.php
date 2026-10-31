@@ -108,3 +108,85 @@ test('report endpoints include only the resident name when requested', function 
         ->assertJsonPath('data.includes.resident.attributes.name', 'Private Resident')
         ->assertJsonMissingPath('data.includes.resident.attributes.email');
 });
+
+test('report list filters by one or several statuses within the resident scope', function () {
+    $resident = User::factory()->create();
+    $pending = FireReport::factory()->create([
+        'resident_id' => $resident->id,
+        'status' => 'pending',
+    ]);
+    $reviewed = FireReport::factory()->create([
+        'resident_id' => $resident->id,
+        'status' => 'reviewed',
+    ]);
+    FireReport::factory()->create([
+        'resident_id' => $resident->id,
+        'status' => 'resolved',
+    ]);
+    FireReport::factory()->create(['status' => 'pending']);
+
+    $token = Auth::guard('api')->login($resident);
+    Auth::forgetGuards();
+    JWTAuth::unsetToken();
+
+    $this->withToken($token)->getJson('/api/v1/reports?status=pending,reviewed')
+        ->assertOk()
+        ->assertJsonCount(2, 'data')
+        ->assertJsonFragment(['id' => $pending->id])
+        ->assertJsonFragment(['id' => $reviewed->id])
+        ->assertJsonPath('meta.total', 2);
+});
+
+test('report list supports wildcard address and reported-date range filters', function () {
+    $resident = User::factory()->create();
+    $matchingReport = FireReport::factory()->create([
+        'resident_id' => $resident->id,
+        'incident_address' => 'Mansalay Central Market',
+        'reported_at' => '2026-10-15 12:00:00',
+    ]);
+    FireReport::factory()->create([
+        'resident_id' => $resident->id,
+        'incident_address' => 'Mansalay Central Market',
+        'reported_at' => '2026-11-02 12:00:00',
+    ]);
+    FireReport::factory()->create([
+        'resident_id' => $resident->id,
+        'incident_address' => 'Other location',
+        'reported_at' => '2026-10-15 12:00:00',
+    ]);
+    FireReport::factory()->create([
+        'incident_address' => 'Mansalay Central Market',
+        'reported_at' => '2026-10-15 12:00:00',
+    ]);
+
+    $token = Auth::guard('api')->login($resident);
+    Auth::forgetGuards();
+    JWTAuth::unsetToken();
+
+    $this->withToken($token)
+        ->getJson('/api/v1/reports?incidentAddress=*Mansalay*&reportedAt=2026-10-01,2026-10-31')
+        ->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.id', $matchingReport->id)
+        ->assertJsonPath('meta.total', 1);
+});
+
+test('report list ignores unknown filters and rejects invalid date ranges', function () {
+    $resident = User::factory()->create();
+    FireReport::factory()->count(2)->create(['resident_id' => $resident->id]);
+    $token = Auth::guard('api')->login($resident);
+    Auth::forgetGuards();
+    JWTAuth::unsetToken();
+
+    $this->withToken($token)->getJson('/api/v1/reports?unknownFilter=anything&isValidDate=2026-10-01')
+        ->assertOk()
+        ->assertJsonPath('meta.total', 2);
+
+    $this->getJson('/api/v1/reports?reportedAt=2026-10-31,2026-10-01')
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['reportedAt']);
+
+    $this->getJson('/api/v1/reports?reportedAt=not-a-date')
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['reportedAt']);
+});
