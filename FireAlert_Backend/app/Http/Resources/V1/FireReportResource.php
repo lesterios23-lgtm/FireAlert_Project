@@ -3,6 +3,7 @@
 namespace App\Http\Resources\V1;
 
 use App\Models\FireReport;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -38,6 +39,17 @@ class FireReportResource extends JsonResource
                     ],
                 ],
             ],
+            'includes' => $this->whenLoaded('resident', function (User $resident): array {
+                return [
+                    'resident' => [
+                        'type' => 'user',
+                        'id' => $resident->id,
+                        'attributes' => [
+                            'name' => $resident->name,
+                        ],
+                    ],
+                ];
+            }),
             'links' => [
                 'self' => route('reports.show', ['report' => $report->id]),
             ],

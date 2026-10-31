@@ -29,6 +29,7 @@ test('versioned report list returns only the authenticated resident reports', fu
         ->assertJsonPath('data.0.type', 'fire_report')
         ->assertJsonPath('data.0.id', $ownReport->id)
         ->assertJsonMissingPath('data.0.attributes.incidentDescription')
+        ->assertJsonMissingPath('data.0.includes')
         ->assertJsonPath('data.0.attributes.status', 'pending')
         ->assertJsonPath('data.0.relationships.resident.data.id', $resident->id)
         ->assertJsonPath('data.0.links.self', route('reports.show', ['report' => $ownReport->id]))
@@ -73,6 +74,7 @@ test('versioned report detail uses the resource and hides reports belonging to o
         ->assertJsonPath('data.id', $ownReport->id)
         ->assertJsonPath('data.attributes.incidentDescription', 'Smoke visible near the market.')
         ->assertJsonPath('data.relationships.resident.data.id', $resident->id)
+        ->assertJsonMissingPath('data.includes')
         ->assertJsonPath('data.links.self', route('reports.show', ['report' => $ownReport->id]));
 
     Auth::forgetGuards();
@@ -81,4 +83,28 @@ test('versioned report detail uses the resource and hides reports belonging to o
     $this->withToken($token)
         ->getJson("/api/v1/reports/{$otherReport->id}")
         ->assertNotFound();
+});
+
+test('report endpoints include only the resident name when requested', function () {
+    $resident = User::factory()->create([
+        'name' => 'Private Resident',
+        'email' => 'private@example.com',
+    ]);
+    $report = FireReport::factory()->create(['resident_id' => $resident->id]);
+    $token = Auth::guard('api')->login($resident);
+    Auth::forgetGuards();
+    JWTAuth::unsetToken();
+
+    $this->withToken($token)->getJson('/api/v1/reports?include=Resident')
+        ->assertOk()
+        ->assertJsonPath('data.0.includes.resident.type', 'user')
+        ->assertJsonPath('data.0.includes.resident.id', $resident->id)
+        ->assertJsonPath('data.0.includes.resident.attributes.name', 'Private Resident')
+        ->assertJsonMissingPath('data.0.includes.resident.attributes.email')
+        ->assertJsonMissingPath('data.0.includes.resident.attributes.role');
+
+    $this->getJson("/api/v1/reports/{$report->id}?include=resident")
+        ->assertOk()
+        ->assertJsonPath('data.includes.resident.attributes.name', 'Private Resident')
+        ->assertJsonMissingPath('data.includes.resident.attributes.email');
 });
