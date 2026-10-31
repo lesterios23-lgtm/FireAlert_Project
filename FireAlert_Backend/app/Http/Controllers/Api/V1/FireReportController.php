@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Filters\V1\FireReportFilter;
 use App\Http\Requests\Api\V1\ReplaceFireReportRequest;
 use App\Http\Requests\Api\V1\StoreFireReportRequest;
+use App\Http\Requests\Api\V1\UpdateFireReportRequest;
 use App\Http\Resources\V1\FireReportResource;
 use App\Models\FireReport;
 use Illuminate\Http\JsonResponse;
@@ -70,6 +71,21 @@ class FireReportController extends APIController
      * Replaces the fire report: all required incident attributes must be sent.
      */
     public function replace(ReplaceFireReportRequest $request, FireReport $report): FireReportResource
+    {
+        $ownedReport = FireReport::query()
+            ->where('resident_id', $request->user()->getAuthIdentifier())
+            ->findOrFail($report->getKey());
+
+        $ownedReport->update($request->mappedAttributes());
+
+        return new FireReportResource($ownedReport);
+    }
+
+    /**
+     * PATCH /api/v1/reports/{report}
+     * Updates only the fields that were sent (see UpdateFireReportRequest).
+     */
+    public function update(UpdateFireReportRequest $request, FireReport $report): FireReportResource
     {
         $ownedReport = FireReport::query()
             ->where('resident_id', $request->user()->getAuthIdentifier())

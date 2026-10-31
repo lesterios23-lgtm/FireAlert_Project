@@ -691,4 +691,181 @@ test('replacing a non-existent report returns 404', function () {
         ->assertNotFound();
 });
 
+test('updating a report with PATCH requires authentication', function () {
+    $this->patchJson('/api/v1/reports/1', [
+        'data' => [
+            'type' => 'fire_report',
+            'attributes' => [
+                'incidentDescription' => 'Patched description',
+            ],
+        ],
+    ])->assertUnauthorized();
+});
+
+test('authenticated resident can partially update incident description with PATCH', function () {
+    $resident = User::factory()->create();
+    $report = FireReport::factory()->create([
+        'resident_id' => $resident->id,
+        'incident_description' => 'Original description',
+        'incident_address' => 'Mansalay Market',
+    ]);
+
+    $token = Auth::guard('api')->login($resident);
+    Auth::forgetGuards();
+    JWTAuth::unsetToken();
+
+    $this->withToken($token)->patchJson("/api/v1/reports/{$report->id}", [
+        'data' => [
+            'type' => 'fire_report',
+            'attributes' => [
+                'incidentDescription' => 'Patched description only.',
+            ],
+        ],
+    ])
+        ->assertOk()
+        ->assertJsonPath('data.attributes.incidentDescription', 'Patched description only.')
+        ->assertJsonPath('data.attributes.incidentAddress', 'Mansalay Market');
+
+    $this->assertDatabaseHas('fire_reports', [
+        'id' => $report->id,
+        'incident_description' => 'Patched description only.',
+        'incident_address' => 'Mansalay Market',
+    ]);
+});
+
+test('authenticated resident can partially update location with PATCH', function () {
+    $resident = User::factory()->create();
+    $report = FireReport::factory()->create([
+        'resident_id' => $resident->id,
+        'incident_description' => 'Original description stays',
+        'latitude' => null,
+        'longitude' => null,
+        'location_source' => null,
+    ]);
+
+    $token = Auth::guard('api')->login($resident);
+    Auth::forgetGuards();
+    JWTAuth::unsetToken();
+
+    $this->withToken($token)->patchJson("/api/v1/reports/{$report->id}", [
+        'data' => [
+            'type' => 'fire_report',
+            'attributes' => [
+                'latitude' => 12.5204,
+                'longitude' => 121.4392,
+                'locationSource' => 'device',
+            ],
+        ],
+    ])
+        ->assertOk()
+        ->assertJsonPath('data.attributes.incidentDescription', 'Original description stays')
+        ->assertJsonPath('data.attributes.latitude', '12.5204000')
+        ->assertJsonPath('data.attributes.longitude', '121.4392000')
+        ->assertJsonPath('data.attributes.locationSource', 'device');
+
+    $this->assertDatabaseHas('fire_reports', [
+        'id' => $report->id,
+        'incident_description' => 'Original description stays',
+        'location_source' => 'device',
+    ]);
+});
+
+test('updating a report with PATCH rejects unknown or workflow fields', function () {
+    $resident = User::factory()->create();
+    $report = FireReport::factory()->create([
+        'resident_id' => $resident->id,
+        'status' => 'pending',
+    ]);
+
+    $token = Auth::guard('api')->login($resident);
+    Auth::forgetGuards();
+    JWTAuth::unsetToken();
+
+    $this->withToken($token)->patchJson("/api/v1/reports/{$report->id}", [
+        'data' => [
+            'type' => 'fire_report',
+            'attributes' => [
+                'status' => 'resolved',
+            ],
+        ],
+    ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('data.attributes');
+
+    $this->assertDatabaseHas('fire_reports', [
+        'id' => $report->id,
+        'status' => 'pending',
+    ]);
+});
+
+test('updating a report with invalid coordinates via PATCH returns 422', function () {
+    $resident = User::factory()->create();
+    $report = FireReport::factory()->create([
+        'resident_id' => $resident->id,
+    ]);
+
+    $token = Auth::guard('api')->login($resident);
+    Auth::forgetGuards();
+    JWTAuth::unsetToken();
+
+    $this->withToken($token)->patchJson("/api/v1/reports/{$report->id}", [
+        'data' => [
+            'type' => 'fire_report',
+            'attributes' => [
+                'latitude' => 150,
+            ],
+        ],
+    ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors([
+            'data.attributes.latitude',
+        ]);
+});
+
+test('resident cannot update another resident report with PATCH', function () {
+    $resident = User::factory()->create();
+    $otherResident = User::factory()->create();
+    $otherReport = FireReport::factory()->create([
+        'resident_id' => $otherResident->id,
+        'incident_description' => 'Unchanged other description',
+    ]);
+
+    $token = Auth::guard('api')->login($resident);
+    Auth::forgetGuards();
+    JWTAuth::unsetToken();
+
+    $this->withToken($token)->patchJson("/api/v1/reports/{$otherReport->id}", [
+        'data' => [
+            'type' => 'fire_report',
+            'attributes' => [
+                'incidentDescription' => 'Unauthorized patch attempt',
+            ],
+        ],
+    ])
+        ->assertNotFound();
+
+    $this->assertDatabaseHas('fire_reports', [
+        'id' => $otherReport->id,
+        'incident_description' => 'Unchanged other description',
+    ]);
+});
+
+test('updating non-existent report with PATCH returns 404', function () {
+    $resident = User::factory()->create();
+    $token = Auth::guard('api')->login($resident);
+    Auth::forgetGuards();
+    JWTAuth::unsetToken();
+
+    $this->withToken($token)->patchJson('/api/v1/reports/99999', [
+        'data' => [
+            'type' => 'fire_report',
+            'attributes' => [
+                'incidentDescription' => 'Non existent',
+            ],
+        ],
+    ])
+        ->assertNotFound();
+});
+
+
 

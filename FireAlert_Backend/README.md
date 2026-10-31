@@ -107,4 +107,7 @@ Residents can delete their reports with `DELETE /api/v1/reports/{id}` (bearer to
 
 Residents can replace an existing report with `PUT /api/v1/reports/{id}` (bearer token required). Unlike partial updates, PUT replaces the whole incident resource: the JSON:API body must include all required incident attributes (`incidentDescription` and valid location details via `incidentAddress` or coordinates). Missing required fields return `422 Unprocessable Entity`. Unsent optional fields (such as previously stored coordinates when switching to an address) are reset to null. The endpoint is scoped to the authenticated resident, preventing unauthorized modifications.
 
+Residents can partially update an existing report with `PATCH /api/v1/reports/{id}` (bearer token required). The JSON:API body only needs to include the specific attributes being changed (for example, updating just the `incidentDescription` or location fields). Unsent attributes are left unmodified in the database. The endpoint is scoped to the authenticated resident and rejects modifications to unauthorized fields.
+
+
 
