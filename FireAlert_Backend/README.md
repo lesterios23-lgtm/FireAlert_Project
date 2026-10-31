@@ -119,3 +119,10 @@ Token abilities are encoded directly into the JWT custom claims upon login (`App
 
 
 
+
+### Granular Permissions (Topic 21)
+
+Ability checks are applied inside the Form Requests themselves, before the controller, allowing fine-grained input rules per role:
+
+- **On `POST /api/v1/reports`:** A resident holding `report:own:create` may optionally send their own id in `data.relationships.resident.data.id`, but sending any other user's id returns `422 Unprocessable Entity` (size rule). Managers holding `report:create` may supply any valid resident id to log a report on their behalf; the controller uses that id as the report owner. When the relationship field is omitted entirely, the authenticated user is always the owner.
+- **On `PATCH /api/v1/reports/{id}`:** A resident holding `report:own:update` may not include `data.relationships.resident.data.id` at all — ownership is non-transferable and the field is `prohibited`, returning `422 Unprocessable Entity`. A manager holding `report:update` may include the field to reassign the report to another resident.

@@ -17,14 +17,19 @@ class FireReportController extends APIController
     /**
      * POST /api/v1/reports
      * Creates a report, but only if the policy allows this user to do so.
+     * If the validated body includes a resident id (managers may set this),
+     * it is used; otherwise the authenticated user is the owner.
      */
     public function store(StoreFireReportRequest $request): FireReportResource|JsonResponse
     {
         if ($this->isAble('store', FireReport::class)) {
+            $mapped = $request->mappedAttributes();
+
             $report = FireReport::create([
-                ...$request->mappedAttributes(),
-                'resident_id' => $request->user()->getAuthIdentifier(),
-                'status' => 'pending',
+                ...$mapped,
+                // Fall back to the authenticated user when no resident_id was sent
+                'resident_id' => $mapped['resident_id'] ?? $request->user()->getAuthIdentifier(),
+                'status'      => 'pending',
                 'reported_at' => now(),
             ]);
 
