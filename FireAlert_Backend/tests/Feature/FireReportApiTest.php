@@ -190,3 +190,51 @@ test('report list ignores unknown filters and rejects invalid date ranges', func
         ->assertUnprocessable()
         ->assertJsonValidationErrors(['reportedAt']);
 });
+
+test('nested report route returns the authenticated user reports and applies filters', function () {
+    $resident = User::factory()->create();
+    $otherResident = User::factory()->create();
+    $matchingReport = FireReport::factory()->create([
+        'resident_id' => $resident->id,
+        'status' => 'pending',
+        'incident_address' => 'Mansalay Central',
+    ]);
+    FireReport::factory()->create([
+        'resident_id' => $resident->id,
+        'status' => 'resolved',
+        'incident_address' => 'Other location',
+    ]);
+    FireReport::factory()->create([
+        'resident_id' => $otherResident->id,
+        'status' => 'pending',
+        'incident_address' => 'Mansalay Central',
+    ]);
+
+    $token = Auth::guard('api')->login($resident);
+    Auth::forgetGuards();
+    JWTAuth::unsetToken();
+
+    $this->withToken($token)
+        ->getJson("/api/v1/users/{$resident->id}/reports?status=pending&incidentAddress=*Mansalay*")
+        ->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.id', $matchingReport->id)
+        ->assertJsonPath('meta.total', 1);
+});
+
+test('nested report route does not allow access to another resident reports', function () {
+    $resident = User::factory()->create();
+    $otherResident = User::factory()->create();
+
+    $token = Auth::guard('api')->login($resident);
+    Auth::forgetGuards();
+    JWTAuth::unsetToken();
+
+    $this->withToken($token)
+        ->getJson("/api/v1/users/{$otherResident->id}/reports")
+        ->assertNotFound();
+
+    $this->withToken($token)
+        ->getJson('/api/v1/users/999999/reports')
+        ->assertNotFound();
+});

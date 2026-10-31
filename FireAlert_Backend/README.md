@@ -82,3 +82,5 @@ Send authenticated requests with `Authorization: Bearer <access_token>`. Residen
 Use `?include=resident` on either report endpoint to include the authenticated resident's name. Related data is omitted by default; resident email and other account details are not included.
 
 The report list accepts allow-listed filters: `?status=pending,reviewed`, `?incidentAddress=*Mansalay*` (`*` matches any text), and `?reportedAt=2026-10-01,2026-10-31` (inclusive date range). You can combine filters; unknown query parameters are ignored. Filters never broaden the authenticated resident's report scope.
+
+The nested `GET /api/v1/users/{user}/reports` endpoint uses the same filters and pagination but returns 404 unless `{user}` is the authenticated resident.

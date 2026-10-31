@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\FireReportController;
+use App\Http\Controllers\Api\V1\UserReportsController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->controller(AuthController::class)->group(function () {
@@ -16,4 +17,7 @@ Route::middleware('auth:api')->group(function () {
 
     Route::apiResource('reports', FireReportController::class)
         ->only(['index', 'show']);
+
+    Route::apiResource('users.reports', UserReportsController::class)
+        ->only(['index']);
 });
