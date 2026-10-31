@@ -109,5 +109,8 @@ Residents can replace an existing report with `PUT /api/v1/reports/{id}` (bearer
 
 Residents can partially update an existing report with `PATCH /api/v1/reports/{id}` (bearer token required). The JSON:API body only needs to include the specific attributes being changed (for example, updating just the `incidentDescription` or location fields). Unsent attributes are left unmodified in the database. The endpoint is scoped to the authenticated resident and rejects modifications to unauthorized fields.
 
+Resource modifications are protected by versioned model policies (`App\Policies\V1\FireReportPolicy`). If an authenticated resident attempts to modify a report they do not own, the policy rejects the request and returns `403 Forbidden` with the message `"You are not authorized to update that resource."`.
+
+
 
 

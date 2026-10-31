@@ -842,7 +842,9 @@ test('resident cannot update another resident report with PATCH', function () {
             ],
         ],
     ])
-        ->assertNotFound();
+        ->assertForbidden()
+        ->assertJsonPath('message', 'You are not authorized to update that resource.')
+        ->assertJsonPath('status', 403);
 
     $this->assertDatabaseHas('fire_reports', [
         'id' => $otherReport->id,

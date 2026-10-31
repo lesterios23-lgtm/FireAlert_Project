@@ -83,16 +83,16 @@ class FireReportController extends APIController
 
     /**
      * PATCH /api/v1/reports/{report}
-     * Updates only the fields that were sent (see UpdateFireReportRequest).
+     * Updates only the fields that were sent, but only if the policy allows it.
      */
-    public function update(UpdateFireReportRequest $request, FireReport $report): FireReportResource
+    public function update(UpdateFireReportRequest $request, FireReport $report): FireReportResource|JsonResponse
     {
-        $ownedReport = FireReport::query()
-            ->where('resident_id', $request->user()->getAuthIdentifier())
-            ->findOrFail($report->getKey());
+        if ($this->isAble('update', $report)) {
+            $report->update($request->mappedAttributes());
 
-        $ownedReport->update($request->mappedAttributes());
+            return new FireReportResource($report);
+        }
 
-        return new FireReportResource($ownedReport);
+        return $this->notAuthorized('You are not authorized to update that resource.');
     }
 }

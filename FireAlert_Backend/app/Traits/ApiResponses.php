@@ -27,4 +27,12 @@ trait ApiResponses
             'status' => $statusCode,
         ], $statusCode);
     }
+
+    /**
+     * 403 Forbidden: the user is logged in but is not allowed to do this.
+     */
+    protected function notAuthorized(string $message): JsonResponse
+    {
+        return $this->error($message, 403);
+    }
 }
