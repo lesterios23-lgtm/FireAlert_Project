@@ -238,3 +238,96 @@ test('nested report route does not allow access to another resident reports', fu
         ->getJson('/api/v1/users/999999/reports')
         ->assertNotFound();
 });
+
+test('report list sorts by allowed columns in ascending and descending order', function () {
+    $resident = User::factory()->create();
+    $pending = FireReport::factory()->create([
+        'resident_id' => $resident->id,
+        'status' => 'pending',
+        'reported_at' => '2026-10-10 12:00:00',
+    ]);
+    $reviewed = FireReport::factory()->create([
+        'resident_id' => $resident->id,
+        'status' => 'reviewed',
+        'reported_at' => '2026-10-20 12:00:00',
+    ]);
+    $resolved = FireReport::factory()->create([
+        'resident_id' => $resident->id,
+        'status' => 'resolved',
+        'reported_at' => '2026-10-15 12:00:00',
+    ]);
+
+    $token = Auth::guard('api')->login($resident);
+    Auth::forgetGuards();
+    JWTAuth::unsetToken();
+
+    $this->withToken($token)->getJson('/api/v1/reports?sort=status')
+        ->assertOk()
+        ->assertJsonPath('data.0.id', $pending->id)
+        ->assertJsonPath('data.1.id', $resolved->id)
+        ->assertJsonPath('data.2.id', $reviewed->id);
+
+    $this->getJson('/api/v1/reports?sort=-reportedAt')
+        ->assertOk()
+        ->assertJsonPath('data.0.id', $reviewed->id)
+        ->assertJsonPath('data.1.id', $resolved->id)
+        ->assertJsonPath('data.2.id', $pending->id);
+});
+
+test('report sorting supports multiple columns and ignores unsupported columns', function () {
+    $resident = User::factory()->create();
+    $pendingOlder = FireReport::factory()->create([
+        'resident_id' => $resident->id,
+        'status' => 'pending',
+        'reported_at' => '2026-10-10 12:00:00',
+    ]);
+    $pendingNewer = FireReport::factory()->create([
+        'resident_id' => $resident->id,
+        'status' => 'pending',
+        'reported_at' => '2026-10-20 12:00:00',
+    ]);
+    $reviewed = FireReport::factory()->create([
+        'resident_id' => $resident->id,
+        'status' => 'reviewed',
+        'reported_at' => '2026-10-25 12:00:00',
+    ]);
+
+    $token = Auth::guard('api')->login($resident);
+    Auth::forgetGuards();
+    JWTAuth::unsetToken();
+
+    $this->withToken($token)->getJson('/api/v1/reports?sort=status,-reportedAt')
+        ->assertOk()
+        ->assertJsonPath('data.0.id', $pendingNewer->id)
+        ->assertJsonPath('data.1.id', $pendingOlder->id)
+        ->assertJsonPath('data.2.id', $reviewed->id);
+
+    $this->getJson('/api/v1/reports?sort=privateColumn')
+        ->assertOk()
+        ->assertJsonCount(3, 'data')
+        ->assertJsonPath('meta.total', 3);
+});
+
+test('nested report list supports the same allow-listed sorting', function () {
+    $resident = User::factory()->create();
+    $pending = FireReport::factory()->create([
+        'resident_id' => $resident->id,
+        'status' => 'pending',
+    ]);
+    $reviewed = FireReport::factory()->create([
+        'resident_id' => $resident->id,
+        'status' => 'reviewed',
+    ]);
+    FireReport::factory()->create(['status' => 'pending']);
+
+    $token = Auth::guard('api')->login($resident);
+    Auth::forgetGuards();
+    JWTAuth::unsetToken();
+
+    $this->withToken($token)
+        ->getJson("/api/v1/users/{$resident->id}/reports?sort=-status")
+        ->assertOk()
+        ->assertJsonCount(2, 'data')
+        ->assertJsonPath('data.0.id', $reviewed->id)
+        ->assertJsonPath('data.1.id', $pending->id);
+});

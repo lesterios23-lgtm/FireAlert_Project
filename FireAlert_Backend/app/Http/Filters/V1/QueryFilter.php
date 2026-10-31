@@ -9,6 +9,13 @@ abstract class QueryFilter
 {
     protected Builder $builder;
 
+    /**
+     * Public sort names mapped to their database columns.
+     *
+     * @var array<string, string>
+     */
+    protected array $sortable = [];
+
     public function __construct(protected Request $request)
     {
     }
@@ -26,5 +33,29 @@ abstract class QueryFilter
         }
 
         return $this->builder;
+    }
+
+    protected function sort(mixed $value): void
+    {
+        if (! is_string($value)) {
+            return;
+        }
+
+        foreach (explode(',', $value) as $attribute) {
+            $attribute = trim($attribute);
+
+            if ($attribute === '') {
+                continue;
+            }
+
+            $direction = str_starts_with($attribute, '-') ? 'desc' : 'asc';
+            $attribute = ltrim($attribute, '-');
+
+            if (! array_key_exists($attribute, $this->sortable)) {
+                continue;
+            }
+
+            $this->builder->orderBy($this->sortable[$attribute], $direction);
+        }
     }
 }

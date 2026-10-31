@@ -6,6 +6,13 @@ use Illuminate\Validation\ValidationException;
 
 class FireReportFilter extends QueryFilter
 {
+    protected array $sortable = [
+        'status' => 'status',
+        'incidentAddress' => 'incident_address',
+        'reportedAt' => 'reported_at',
+        'createdAt' => 'created_at',
+    ];
+
     public function status(mixed $value): void
     {
         $statuses = $this->commaSeparatedValues($value);
