@@ -15,5 +15,5 @@ Route::middleware('auth:api')->group(function () {
     Route::post('/auth/refresh', [AuthController::class, 'refresh']);
 
     Route::apiResource('reports', FireReportController::class)
-        ->only(['index']);
+        ->only(['index', 'show']);
 });

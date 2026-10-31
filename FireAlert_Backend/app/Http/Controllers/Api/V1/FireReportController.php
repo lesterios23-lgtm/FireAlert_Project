@@ -3,21 +3,28 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\V1\FireReportResource;
 use App\Models\FireReport;
 use Illuminate\Http\Request;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class FireReportController extends Controller
 {
-    /**
-     * List reports belonging to the authenticated resident.
-     *
-     * @return Collection<int, FireReport>
-     */
-    public function index(Request $request): Collection
+    public function index(Request $request): AnonymousResourceCollection
     {
-        return FireReport::query()
+        $reports = FireReport::query()
             ->where('resident_id', $request->user()->getAuthIdentifier())
-            ->get();
+            ->paginate(15);
+
+        return FireReportResource::collection($reports);
+    }
+
+    public function show(Request $request, FireReport $report): FireReportResource
+    {
+        $ownedReport = FireReport::query()
+            ->where('resident_id', $request->user()->getAuthIdentifier())
+            ->findOrFail($report->getKey());
+
+        return new FireReportResource($ownedReport);
     }
 }
