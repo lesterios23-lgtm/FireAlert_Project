@@ -105,3 +105,6 @@ Report lists accept allow-listed sorting with `?sort=status` (ascending), `?sort
 
 Residents can delete their reports with `DELETE /api/v1/reports/{id}` (bearer token required). The endpoint is idempotent, scoped to the authenticated resident, and returns `200 OK` with a confirmation message upon successful deletion, or `404 Not Found` if the report does not exist or belongs to another user.
 
+Residents can replace an existing report with `PUT /api/v1/reports/{id}` (bearer token required). Unlike partial updates, PUT replaces the whole incident resource: the JSON:API body must include all required incident attributes (`incidentDescription` and valid location details via `incidentAddress` or coordinates). Missing required fields return `422 Unprocessable Entity`. Unsent optional fields (such as previously stored coordinates when switching to an address) are reset to null. The endpoint is scoped to the authenticated resident, preventing unauthorized modifications.
+
+

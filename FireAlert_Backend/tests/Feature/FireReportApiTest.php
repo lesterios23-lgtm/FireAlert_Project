@@ -536,3 +536,159 @@ test('resident cannot delete another resident report', function () {
     ]);
 });
 
+test('replacing a report requires authentication', function () {
+    $this->putJson('/api/v1/reports/1', [
+        'data' => [
+            'type' => 'fire_report',
+            'attributes' => [
+                'incidentDescription' => 'Replacement test',
+                'incidentAddress' => 'New Address',
+            ],
+        ],
+    ])->assertUnauthorized();
+});
+
+test('authenticated resident can replace their report with PUT', function () {
+    $resident = User::factory()->create();
+    $report = FireReport::factory()->create([
+        'resident_id' => $resident->id,
+        'incident_description' => 'Original description',
+        'incident_address' => 'Original address',
+        'latitude' => null,
+        'longitude' => null,
+        'location_source' => null,
+    ]);
+
+    $token = Auth::guard('api')->login($resident);
+    Auth::forgetGuards();
+    JWTAuth::unsetToken();
+
+    $this->withToken($token)->putJson("/api/v1/reports/{$report->id}", [
+        'data' => [
+            'type' => 'fire_report',
+            'attributes' => [
+                'incidentDescription' => 'Fully replaced fire description.',
+                'latitude' => 12.5204,
+                'longitude' => 121.4392,
+                'locationSource' => 'manual',
+            ],
+        ],
+    ])
+        ->assertOk()
+        ->assertJsonPath('data.type', 'fire_report')
+        ->assertJsonPath('data.attributes.incidentDescription', 'Fully replaced fire description.')
+        ->assertJsonPath('data.attributes.incidentAddress', null)
+        ->assertJsonPath('data.attributes.latitude', '12.5204000')
+        ->assertJsonPath('data.attributes.longitude', '121.4392000')
+        ->assertJsonPath('data.attributes.locationSource', 'manual');
+
+    $this->assertDatabaseHas('fire_reports', [
+        'id' => $report->id,
+        'incident_description' => 'Fully replaced fire description.',
+        'incident_address' => null,
+        'location_source' => 'manual',
+    ]);
+});
+
+test('replacing a report requires all mandatory fields', function () {
+    $resident = User::factory()->create();
+    $report = FireReport::factory()->create([
+        'resident_id' => $resident->id,
+    ]);
+
+    $token = Auth::guard('api')->login($resident);
+    Auth::forgetGuards();
+    JWTAuth::unsetToken();
+
+    $this->withToken($token)->putJson("/api/v1/reports/{$report->id}", [
+        'data' => [
+            'type' => 'fire_report',
+            'attributes' => [
+                'incidentAddress' => 'Only address sent',
+            ],
+        ],
+    ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors([
+            'data.attributes.incidentDescription',
+        ]);
+});
+
+test('replacing a report rejects unknown or workflow fields', function () {
+    $resident = User::factory()->create();
+    $report = FireReport::factory()->create([
+        'resident_id' => $resident->id,
+        'status' => 'pending',
+    ]);
+
+    $token = Auth::guard('api')->login($resident);
+    Auth::forgetGuards();
+    JWTAuth::unsetToken();
+
+    $this->withToken($token)->putJson("/api/v1/reports/{$report->id}", [
+        'data' => [
+            'type' => 'fire_report',
+            'attributes' => [
+                'incidentDescription' => 'Attempting status change',
+                'incidentAddress' => 'Valid address',
+                'status' => 'resolved',
+            ],
+        ],
+    ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('data.attributes');
+
+    $this->assertDatabaseHas('fire_reports', [
+        'id' => $report->id,
+        'status' => 'pending',
+    ]);
+});
+
+test('resident cannot replace another resident report', function () {
+    $resident = User::factory()->create();
+    $otherResident = User::factory()->create();
+    $otherReport = FireReport::factory()->create([
+        'resident_id' => $otherResident->id,
+        'incident_description' => 'Original other description',
+    ]);
+
+    $token = Auth::guard('api')->login($resident);
+    Auth::forgetGuards();
+    JWTAuth::unsetToken();
+
+    $this->withToken($token)->putJson("/api/v1/reports/{$otherReport->id}", [
+        'data' => [
+            'type' => 'fire_report',
+            'attributes' => [
+                'incidentDescription' => 'Tampering attempt',
+                'incidentAddress' => 'Tampering address',
+            ],
+        ],
+    ])
+        ->assertNotFound();
+
+    $this->assertDatabaseHas('fire_reports', [
+        'id' => $otherReport->id,
+        'incident_description' => 'Original other description',
+    ]);
+});
+
+test('replacing a non-existent report returns 404', function () {
+    $resident = User::factory()->create();
+    $token = Auth::guard('api')->login($resident);
+    Auth::forgetGuards();
+    JWTAuth::unsetToken();
+
+    $this->withToken($token)->putJson('/api/v1/reports/99999', [
+        'data' => [
+            'type' => 'fire_report',
+            'attributes' => [
+                'incidentDescription' => 'Non existent',
+                'incidentAddress' => 'Somewhere',
+            ],
+        ],
+    ])
+        ->assertNotFound();
+});
+
+
