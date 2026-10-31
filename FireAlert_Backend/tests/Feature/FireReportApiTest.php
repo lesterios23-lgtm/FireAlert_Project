@@ -464,3 +464,75 @@ test('nested report list supports the same allow-listed sorting', function () {
         ->assertJsonPath('data.0.id', $reviewed->id)
         ->assertJsonPath('data.1.id', $pending->id);
 });
+
+test('deleting a report requires authentication', function () {
+    $this->deleteJson('/api/v1/reports/1')->assertUnauthorized();
+});
+
+test('authenticated resident can delete their report', function () {
+    $resident = User::factory()->create();
+    $report = FireReport::factory()->create([
+        'resident_id' => $resident->id,
+    ]);
+
+    $token = Auth::guard('api')->login($resident);
+    Auth::forgetGuards();
+    JWTAuth::unsetToken();
+
+    $this->withToken($token)->deleteJson("/api/v1/reports/{$report->id}")
+        ->assertOk()
+        ->assertJsonPath('data', null)
+        ->assertJsonPath('message', 'Report successfully deleted')
+        ->assertJsonPath('status', 200);
+
+    $this->assertDatabaseMissing('fire_reports', [
+        'id' => $report->id,
+    ]);
+});
+
+test('deleting a non-existent report returns 404', function () {
+    $resident = User::factory()->create();
+    $token = Auth::guard('api')->login($resident);
+    Auth::forgetGuards();
+    JWTAuth::unsetToken();
+
+    $this->withToken($token)->deleteJson('/api/v1/reports/99999')
+        ->assertNotFound();
+});
+
+test('deleting an already deleted report is idempotent and returns 404', function () {
+    $resident = User::factory()->create();
+    $report = FireReport::factory()->create([
+        'resident_id' => $resident->id,
+    ]);
+
+    $token = Auth::guard('api')->login($resident);
+    Auth::forgetGuards();
+    JWTAuth::unsetToken();
+
+    $this->withToken($token)->deleteJson("/api/v1/reports/{$report->id}")
+        ->assertOk();
+
+    $this->withToken($token)->deleteJson("/api/v1/reports/{$report->id}")
+        ->assertNotFound();
+});
+
+test('resident cannot delete another resident report', function () {
+    $resident = User::factory()->create();
+    $otherResident = User::factory()->create();
+    $otherReport = FireReport::factory()->create([
+        'resident_id' => $otherResident->id,
+    ]);
+
+    $token = Auth::guard('api')->login($resident);
+    Auth::forgetGuards();
+    JWTAuth::unsetToken();
+
+    $this->withToken($token)->deleteJson("/api/v1/reports/{$otherReport->id}")
+        ->assertNotFound();
+
+    $this->assertDatabaseHas('fire_reports', [
+        'id' => $otherReport->id,
+    ]);
+});
+

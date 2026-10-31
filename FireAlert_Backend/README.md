@@ -102,3 +102,6 @@ The report list accepts allow-listed filters: `?status=pending,reviewed`, `?inci
 The nested `GET /api/v1/users/{user}/reports` endpoint uses the same filters and pagination but returns 404 unless `{user}` is the authenticated resident.
 
 Report lists accept allow-listed sorting with `?sort=status` (ascending), `?sort=-reportedAt` (descending), or `?sort=status,-reportedAt` (multiple fields). Supported fields are `status`, `incidentAddress`, `reportedAt`, and `createdAt`; unsupported sort fields are ignored.
+
+Residents can delete their reports with `DELETE /api/v1/reports/{id}` (bearer token required). The endpoint is idempotent, scoped to the authenticated resident, and returns `200 OK` with a confirmation message upon successful deletion, or `404 Not Found` if the report does not exist or belongs to another user.
+
