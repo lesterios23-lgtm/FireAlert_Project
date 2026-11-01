@@ -28,11 +28,18 @@ final class Abilities
     public const DeleteProduct = self::DeleteReport;
     public const DeleteOwnProduct = self::DeleteOwnReport;
 
-    // User management abilities (managers only)
+    // User management abilities (BFP managers only)
     public const CreateUser = 'user:create';
     public const UpdateUser = 'user:update';
     public const ReplaceUser = 'user:replace';
     public const DeleteUser = 'user:delete';
+
+    /**
+     * Separate, explicit grant for privilege-granting operations: changing an
+     * account's role or management flag. Not implied by user:update, so an
+     * account-management token alone cannot create more managers.
+     */
+    public const ManageUser = 'user:manage';
 
     /**
      * Returns the list of abilities a user receives. The list is written into the
@@ -40,7 +47,9 @@ final class Abilities
      */
     public static function getAbilities(User $user): array
     {
-        // Managers / BFP personnel may act on anything
+        // Managers / BFP personnel: report management plus explicit account
+        // management. Least privilege: each ability is granted for a reason;
+        // role/is_manager changes additionally require user:manage.
         if ($user->is_manager || $user->role === User::ROLE_BFP) {
             return [
                 self::CreateReport,
@@ -51,6 +60,7 @@ final class Abilities
                 self::UpdateUser,
                 self::ReplaceUser,
                 self::DeleteUser,
+                self::ManageUser,
             ];
         }
 

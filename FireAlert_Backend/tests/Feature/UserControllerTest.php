@@ -351,3 +351,152 @@ test('deleting a user without reports succeeds', function () {
 
     $this->assertDatabaseMissing('users', ['id' => $resident->id]);
 });
+
+// ── Topic 24: The Principle of Least Privilege ──────────────────────────────
+
+test('manager cannot replace their own account with PUT', function () {
+    $manager = User::factory()->manager()->create();
+    $token = loginToken($manager);
+
+    $this->withToken($token)->putJson("/api/v1/users/{$manager->id}", createUserPayload(userAttributes([
+        'email' => 'self.replaced@example.com',
+    ])))
+        ->assertForbidden()
+        ->assertJsonPath('message', 'You are not authorized to replace that resource.');
+
+    $this->assertDatabaseHas('users', ['id' => $manager->id, 'email' => $manager->email]);
+});
+
+test('manager cannot update their own account with PATCH', function () {
+    $manager = User::factory()->manager()->create(['name' => 'Manager Self']);
+    $token = loginToken($manager);
+
+    $this->withToken($token)->patchJson("/api/v1/users/{$manager->id}", createUserPayload([
+        'name' => 'Self Renamed',
+    ]))
+        ->assertForbidden();
+
+    $this->assertDatabaseHas('users', ['id' => $manager->id, 'name' => 'Manager Self']);
+});
+
+test('manager cannot delete their own account', function () {
+    $manager = User::factory()->manager()->create();
+    $token = loginToken($manager);
+
+    $this->withToken($token)->deleteJson("/api/v1/users/{$manager->id}")
+        ->assertForbidden()
+        ->assertJsonPath('message', 'You are not authorized to delete that resource.');
+
+    $this->assertDatabaseHas('users', ['id' => $manager->id]);
+});
+
+test('user JSON never exposes the management flag', function () {
+    $manager = User::factory()->manager()->create();
+    $resident = User::factory()->create(['is_manager' => false]);
+    $token = loginToken($manager);
+
+    $this->withToken($token)->getJson("/api/v1/users/{$resident->id}")
+        ->assertOk()
+        ->assertJsonMissingPath('data.attributes.isManager');
+});
+
+test('residents receive no user management abilities in their token', function () {
+    $resident = User::factory()->create();
+
+    $claims = $resident->getJWTCustomClaims();
+
+    expect($claims['abilities'])->not->toContain(
+        'user:create', 'user:update', 'user:replace', 'user:delete', 'user:manage',
+    );
+});
+
+test('bfp personnel hold report and account abilities plus the explicit manage grant', function () {
+    $manager = User::factory()->manager()->create();
+
+    $claims = $manager->getJWTCustomClaims();
+
+    expect($claims['abilities'])->toContain(
+        'report:create', 'report:update', 'report:replace', 'report:delete',
+        'user:create', 'user:update', 'user:replace', 'user:delete', 'user:manage',
+    );
+});
+
+test('creating a BFP account requires the explicit manage grant in the token', function () {
+    $manager = User::factory()->manager()->create();
+    $token = loginToken($manager);
+
+    // BFP managers hold user:manage, so they may create BFP personnel accounts.
+    $this->withToken($token)->postJson('/api/v1/users', createUserPayload(userAttributes([
+        'email' => 'new.bfp@example.com',
+        'role' => User::ROLE_BFP,
+    ])))
+        ->assertCreated()
+        ->assertJsonPath('data.attributes.role', User::ROLE_BFP);
+
+    $this->assertDatabaseHas('users', ['email' => 'new.bfp@example.com', 'role' => User::ROLE_BFP]);
+});
+
+test('a token without user:manage cannot create an elevated account', function () {
+    // Simulate a future restricted account-management token: user:create only.
+    $creator = User::factory()->create();
+    $token = Auth::guard('api')->claims(['abilities' => ['user:create']])->login($creator);
+    Auth::forgetGuards();
+    JWTAuth::unsetToken();
+
+    $this->withToken($token)->postJson('/api/v1/users', createUserPayload(userAttributes([
+        'email' => 'elevated.attempt@example.com',
+        'role' => User::ROLE_BFP,
+        'isManager' => true,
+    ])))
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['data.attributes.role', 'data.attributes.isManager']);
+
+    $this->assertDatabaseMissing('users', ['email' => 'elevated.attempt@example.com']);
+});
+
+test('a token without user:manage cannot promote an existing user via PATCH', function () {
+    $limited = User::factory()->create();
+    $token = Auth::guard('api')->claims(['abilities' => ['user:update']])->login($limited);
+    Auth::forgetGuards();
+    JWTAuth::unsetToken();
+
+    $resident = User::factory()->create();
+
+    $this->withToken($token)->patchJson("/api/v1/users/{$resident->id}", createUserPayload([
+        'role' => User::ROLE_BFP,
+        'isManager' => true,
+    ]))
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['data.attributes.role', 'data.attributes.isManager']);
+
+    $this->assertDatabaseHas('users', ['id' => $resident->id, 'role' => User::ROLE_RESIDENT]);
+});
+
+test('a token without user:manage can still rename a plain resident account', function () {
+    $limited = User::factory()->create();
+    $token = Auth::guard('api')->claims(['abilities' => ['user:update', 'user:replace', 'user:delete', 'user:create']])->login($limited);
+    Auth::forgetGuards();
+    JWTAuth::unsetToken();
+
+    $resident = User::factory()->create(['name' => 'Before Rename']);
+
+    $this->withToken($token)->patchJson("/api/v1/users/{$resident->id}", createUserPayload([
+        'name' => 'After Rename',
+    ]))
+        ->assertOk()
+        ->assertJsonPath('data.attributes.name', 'After Rename');
+});
+
+test('manager can promote a resident to BFP with PATCH through the manage grant', function () {
+    $manager = User::factory()->manager()->create();
+    $resident = User::factory()->create();
+    $token = loginToken($manager);
+
+    $this->withToken($token)->patchJson("/api/v1/users/{$resident->id}", createUserPayload([
+        'role' => User::ROLE_BFP,
+    ]))
+        ->assertOk()
+        ->assertJsonPath('data.attributes.role', User::ROLE_BFP);
+
+    $this->assertDatabaseHas('users', ['id' => $resident->id, 'role' => User::ROLE_BFP]);
+});

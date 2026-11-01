@@ -2,12 +2,13 @@
 
 namespace App\Http\Requests\Api\V1;
 
-use App\Models\User;
 use App\Permissions\V1\Abilities;
+use App\Models\User;
 use Illuminate\Validation\Rule;
 
 /**
  * Validates the body of POST /users (manager-only user creation).
+ * Creating an account with a management role/flag requires user:manage.
  */
 class StoreUserRequest extends BaseUserRequest
 {
@@ -31,6 +32,15 @@ class StoreUserRequest extends BaseUserRequest
             'data.attributes.role' => ['required', 'string', 'in:'.User::ROLE_RESIDENT.','.User::ROLE_BFP],
             'data.attributes.isManager' => ['sometimes', 'boolean'],
         ];
+
+        // Privilege-granting fields need the explicit manage ability.
+        $elevated = $this->boolean('data.attributes.isManager')
+            || $this->input('data.attributes.role') === User::ROLE_BFP;
+
+        if ($elevated && ! $this->user()->tokenCan(Abilities::ManageUser)) {
+            $rules['data.attributes.role'] = ['prohibited'];
+            $rules['data.attributes.isManager'] = ['prohibited'];
+        }
 
         return $rules;
     }

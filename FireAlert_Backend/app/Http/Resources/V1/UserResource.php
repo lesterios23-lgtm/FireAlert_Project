@@ -23,7 +23,6 @@ class UserResource extends JsonResource
                 'name' => $user->name,
                 'email' => $user->email,
                 'role' => $user->role,
-                'isManager' => $user->is_manager,
                 'createdAt' => $user->created_at,
                 'updatedAt' => $user->updated_at,
             ],

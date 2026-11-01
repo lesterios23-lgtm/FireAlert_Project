@@ -2,8 +2,12 @@
 
 namespace App\Http\Requests\Api\V1;
 
+use App\Permissions\V1\Abilities;
+use App\Models\User;
+
 /**
  * Validates the body of PUT /users/{user}: full replacement of account fields.
+ * Changing role or management flag additionally requires user:manage.
  */
 class ReplaceUserRequest extends BaseUserRequest
 {
@@ -14,9 +18,10 @@ class ReplaceUserRequest extends BaseUserRequest
 
     public function rules(): array
     {
-        $userId = $this->route('user')?->id;
+        $target = $this->route('user');
+        $userId = $target?->id;
 
-        return [
+        $rules = [
             'data' => ['required', 'array:type,attributes'],
             'data.type' => ['required', 'string', 'in:user'],
             'data.attributes' => [
@@ -31,9 +36,21 @@ class ReplaceUserRequest extends BaseUserRequest
                 'unique:users,email'.($userId ? ','.$userId : ''),
             ],
             'data.attributes.password' => ['required', 'string', 'min:8'],
-            'data.attributes.role' => ['required', 'string', 'in:resident,bfp'],
+            'data.attributes.role' => ['required', 'string', 'in:'.User::ROLE_RESIDENT.','.User::ROLE_BFP],
             'data.attributes.isManager' => ['sometimes', 'boolean'],
         ];
+
+        // Privilege changes on an existing account need the explicit manage ability.
+        $elevates = $this->boolean('data.attributes.isManager')
+            || $this->input('data.attributes.role') === User::ROLE_BFP
+            || ($target && ($target->role === User::ROLE_BFP || $target->is_manager));
+
+        if ($elevates && ! $this->user()->tokenCan(Abilities::ManageUser)) {
+            $rules['data.attributes.role'] = ['prohibited'];
+            $rules['data.attributes.isManager'] = ['prohibited'];
+        }
+
+        return $rules;
     }
 
     public function mappedAttributes(): array
