@@ -15,6 +15,12 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 class FireReportController extends APIController
 {
     /**
+     * @group Fire Reports
+     *
+     * Create, read, update and delete fire incident reports.
+     */
+
+    /**
      * POST /api/v1/reports
      * Creates a report, but only if the policy allows this user to do so.
      * If the validated body includes a resident id (managers may set this),
@@ -41,6 +47,19 @@ class FireReportController extends APIController
 
     public function index(Request $request, FireReportFilter $filters): AnonymousResourceCollection
     {
+        /**
+         * List fire reports
+         *
+         * Returns a paginated list of fire reports owned by the authenticated user.
+         * Supports filtering, sorting and including the resident.
+         *
+         * @queryParam status string Filter by status. Use a comma for several. Example: pending,resolved
+         * @queryParam incidentAddress string Filter by address. Use * as a wildcard. Example: *Rizal*
+         * @queryParam reportedAt string A date, or a range as from,to. Example: 2026-01-01,2026-12-31
+         * @queryParam sort string Sort by status, incidentAddress, reportedAt or createdAt. Prefix with - for descending. Example: -reportedAt
+         * @queryParam include string Include related data. Example: resident
+         * @queryParam page integer The page number. Example: 1
+         */
         $query = FireReport::query()
             ->where('resident_id', $request->user()->getAuthIdentifier())
             ->filter($filters);

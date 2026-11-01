@@ -72,10 +72,54 @@ class StoreFireReportRequest extends BaseFireReportRequest
 
         // A resident who may only create their own reports must be the author.
         // size:{id} means the submitted id must exactly equal the logged-in user's id.
-        if ($user->tokenCan(Abilities::CreateOwnReport)) {
+        if ($user?->tokenCan(Abilities::CreateOwnReport)) {
             $rules['data.relationships.resident.data.id'] = ['sometimes', 'integer', 'size:' . $user->id];
         }
 
         return $rules;
+    }
+
+    /**
+     * Descriptions and examples that Scribe shows in the documentation.
+     */
+    public function bodyParameters(): array
+    {
+        $documentation = [
+            'data.attributes.incidentDescription' => [
+                'description' => 'Description of the fire incident.',
+                'example' => 'House fire in kitchen area',
+            ],
+            'data.attributes.incidentAddress' => [
+                'description' => 'Address where the fire incident occurred.',
+                'example' => '123 Rizal Street, Poblacion, Mansalay, Oriental Mindoro',
+            ],
+            'data.attributes.latitude' => [
+                'description' => 'Latitude of the fire incident location.',
+                'example' => 12.3456789,
+            ],
+            'data.attributes.longitude' => [
+                'description' => 'Longitude of the fire incident location.',
+                'example' => 121.1234567,
+            ],
+            'data.attributes.locationSource' => [
+                'description' => 'Source of the location data: device or manual.',
+                'example' => 'device',
+            ],
+        ];
+
+        // The resident id is in the body on POST /reports, and in the URL on POST /users/{user}/reports
+        if ($this->routeIs('reports.store')) {
+            $documentation['data.relationships.resident.data.id'] = [
+                'description' => 'The id of the resident assigned to the report.',
+                'example' => 1,
+            ];
+        } else {
+            $documentation['resident'] = [
+                'description' => 'The resident id. It is taken from the URL, so repeat the {user} path value.',
+                'example' => 1,
+            ];
+        }
+
+        return $documentation;
     }
 }

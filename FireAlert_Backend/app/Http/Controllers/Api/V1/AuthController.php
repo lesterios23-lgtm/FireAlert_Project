@@ -15,6 +15,17 @@ class AuthController extends Controller
 {
     use ApiResponses;
 
+    /**
+     * @group Auth
+     *
+     * User authentication: register, login, logout, me, refresh.
+     */
+
+    /**
+     * Register a new user account.
+     *
+     * @unauthenticated
+     */
     public function register(RegisterUserRequest $request): JsonResponse
     {
         $attributes = $request->validated();
@@ -31,6 +42,11 @@ class AuthController extends Controller
         return $this->ok('Registered successfully', $this->formatToken($token));
     }
 
+    /**
+     * Authenticate a user and return an access token.
+     *
+     * @unauthenticated
+     */
     public function login(LoginUserRequest $request): JsonResponse
     {
         $token = Auth::guard('api')->attempt($request->validated());

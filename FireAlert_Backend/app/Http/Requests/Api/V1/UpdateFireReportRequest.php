@@ -50,7 +50,7 @@ class UpdateFireReportRequest extends BaseFireReportRequest
         ];
 
         // Users who may only update their own reports cannot transfer ownership
-        if ($this->user()->tokenCan(Abilities::UpdateOwnReport)) {
+        if ($this->user()?->tokenCan(Abilities::UpdateOwnReport)) {
             $rules['data.relationships.resident.data.id'] = 'prohibited';
         }
 

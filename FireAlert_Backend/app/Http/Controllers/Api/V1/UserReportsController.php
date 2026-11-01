@@ -15,6 +15,12 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class UserReportsController extends APIController
 {
+    /**
+     * @group User Reports
+     *
+     * Fire reports that belong to a specific user: /api/v1/users/{user}/reports.
+     */
+
     public function index(
         Request $request,
         User $user,

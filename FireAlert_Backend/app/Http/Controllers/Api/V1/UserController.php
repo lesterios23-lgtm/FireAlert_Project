@@ -11,6 +11,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 /**
+ * @group Users
+ *
  * Manager-only account management: list, create, show, replace, update, delete.
  * Every action asks the UserPolicy, which reads the user's JWT abilities.
  */
