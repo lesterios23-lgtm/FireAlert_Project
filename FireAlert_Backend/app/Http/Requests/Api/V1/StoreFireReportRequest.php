@@ -14,13 +14,33 @@ class StoreFireReportRequest extends BaseFireReportRequest
         return true;
     }
 
+    /**
+     * When the request comes through the nested route /users/{user}/reports,
+     * the resident id is in the URL, not the body. Copy it in so that the
+     * same size:{id} rule applies uniformly.
+     */
+    protected function prepareForValidation(): void
+    {
+        // $this->route('user') is the bound User model from the URL segment
+        if ($urlUser = $this->route('user')) {
+            $this->merge([
+                'data' => array_merge($this->input('data', []), [
+                    'relationships' => array_merge(
+                        $this->input('data.relationships', []),
+                        ['resident' => ['data' => ['id' => $urlUser->id]]]
+                    ),
+                ]),
+            ]);
+        }
+    }
+
     public function rules(): array
     {
         $user = $this->user();
 
         $rules = [
             'data'                                         => ['required', 'array:type,attributes,relationships'],
-            'data.type'                                    => ['required', 'string', 'in:fire_report'],
+            'data.type'                                    => ['sometimes', 'string', 'in:fire_report'],
             'data.attributes'                              => [
                 'required',
                 'array:incidentDescription,incidentAddress,latitude,longitude,locationSource',

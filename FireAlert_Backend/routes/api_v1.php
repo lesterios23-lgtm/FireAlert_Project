@@ -21,5 +21,7 @@ Route::middleware('auth:api')->group(function () {
     Route::patch('reports/{report}', [FireReportController::class, 'update']);
 
     Route::apiResource('users.reports', UserReportsController::class)
-        ->only(['index']);
+        ->only(['index', 'store', 'destroy']);
+    Route::put('users/{user}/reports/{report}', [UserReportsController::class, 'replace']);
+    Route::patch('users/{user}/reports/{report}', [UserReportsController::class, 'update']);
 });

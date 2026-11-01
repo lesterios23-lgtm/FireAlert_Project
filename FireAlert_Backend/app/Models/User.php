@@ -8,6 +8,7 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
@@ -57,6 +58,15 @@ class User extends Authenticatable implements JWTSubject
     }
 
     /**
+     * A user's fire reports (via resident_id).
+     * Required by Laravel's scoped route model binding on /users/{user}/reports.
+     */
+    public function reports(): HasMany
+    {
+        return $this->hasMany(FireReport::class, 'resident_id');
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
@@ -65,8 +75,8 @@ class User extends Authenticatable implements JWTSubject
     {
         return [
             'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-            'is_manager' => 'boolean',
+            'password'          => 'hashed',
+            'is_manager'        => 'boolean',
         ];
     }
 }
