@@ -10,15 +10,6 @@ uses(RefreshDatabase::class);
 
 // ── Topic 22: Implementing the Users Reports Controller ─────────────────────
 
-function loginToken(User $user): string
-{
-    $token = Auth::guard('api')->login($user);
-    Auth::forgetGuards();
-    JWTAuth::unsetToken();
-
-    return $token;
-}
-
 // ── POST: creating a report through the nested route ────────────────────────
 
 test('creating a report through the nested route requires authentication', function () {
