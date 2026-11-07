@@ -18,7 +18,7 @@ class FireReportFilter extends QueryFilter
         $statuses = $this->commaSeparatedValues($value);
 
         if ($statuses !== []) {
-            $this->builder->whereIn('status', $statuses);
+            $this->builder->whereIn('status', \App\Models\FireReport::statusIdsForValues($statuses));
         }
     }
 
@@ -30,7 +30,8 @@ class FireReportFilter extends QueryFilter
 
         $pattern = str_replace(['!', '%', '_', '*'], ['!!', '!%', '!_', '%'], $value);
 
-        $this->builder->whereRaw("incident_address LIKE ? ESCAPE '!' ", [$pattern]);
+        $column = \App\Models\FireReport::columnFor('incidentAddress');
+        $this->builder->whereRaw("{$column} LIKE ? ESCAPE '!' ", [$pattern]);
     }
 
     public function include(mixed $value): void
@@ -43,7 +44,7 @@ class FireReportFilter extends QueryFilter
         $allowedIncludes = array_intersect(['resident'], $requestedIncludes);
 
         if ($allowedIncludes !== []) {
-            $this->builder->with('resident:id,name');
+            $this->builder->with('resident');
         }
     }
 
@@ -62,7 +63,7 @@ class FireReportFilter extends QueryFilter
         }
 
         if (count($dates) === 1) {
-            $this->builder->whereDate('reported_at', $dates[0]);
+            $this->builder->whereDate(\App\Models\FireReport::columnFor('reportedAt'), $dates[0]);
 
             return;
         }
@@ -74,7 +75,7 @@ class FireReportFilter extends QueryFilter
                 ]);
             }
 
-            $this->builder->whereBetween('reported_at', [
+            $this->builder->whereBetween(\App\Models\FireReport::columnFor('reportedAt'), [
                 $dates[0].' 00:00:00',
                 $dates[1].' 23:59:59.999999',
             ]);
@@ -83,6 +84,29 @@ class FireReportFilter extends QueryFilter
         }
 
         $this->invalidReportedAt();
+    }
+
+    protected function sort(mixed $value): void
+    {
+        if (! is_string($value)) {
+            return;
+        }
+
+        foreach (explode(',', $value) as $attribute) {
+            $attribute = trim($attribute);
+            if ($attribute === '') {
+                continue;
+            }
+
+            $direction = str_starts_with($attribute, '-') ? 'desc' : 'asc';
+            $attribute = ltrim($attribute, '-');
+            if (! array_key_exists($attribute, $this->sortable)) {
+                continue;
+            }
+
+            $column = \App\Models\FireReport::columnFor($attribute);
+            $this->builder->orderBy($column, $direction);
+        }
     }
 
     /**

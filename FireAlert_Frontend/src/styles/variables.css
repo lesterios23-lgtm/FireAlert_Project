@@ -1,0 +1,82 @@
+/* ============================================================================
+   FireAlert — Design System (per MASTER UI/UX DESIGN PROMPT)
+   Colors:
+     Navy #14283F — Navigation, headers
+     Emergency Red #D93636 — Critical actions, submit buttons
+     Success Green #239B70 — Resolved statuses
+     Warning Amber #E9A23B — Pending/warning statuses
+     Background #F3F5F7 — Page background
+     Surface #FFFFFF — Card backgrounds
+   ============================================================================ */
+
+:root {
+  /* Colors */
+  --navy: #14283F;
+  --navy-dark: #0E1C2B;
+  --red: #D93636;
+  --red-dark: #B5121F;
+  --red-soft: #FDECEC;
+  --green: #239B70;
+  --green-dark: #1A7A5A;
+  --green-soft: #E5F6EC;
+  --amber: #E9A23B;
+  --amber-dark: #C18A2E;
+  --amber-soft: #FDF3E0;
+  --blue: #2563EB;
+  --blue-soft: #E8EFFC;
+
+  /* Backgrounds & surfaces */
+  --bg: #F3F5F7;
+  --surface: #FFFFFF;
+  --border: #DDE4EC;
+
+  /* Typography */
+  --text: #263445;
+  --text-2: #77818D;
+  --text-3: #AAB7C4;
+  --text-inverse: #FFFFFF;
+
+  /* Radii */
+  --radius: 8px;
+  --radius-lg: 12px;
+
+  /* Shadows */
+  --shadow: 0 1px 3px rgb(20 40 63 / 0.08), 0 1px 2px rgb(20 40 63 / 0.06);
+  --shadow-lg: 0 12px 32px rgb(20 40 63 / 0.12);
+
+  /* Transitions */
+  --transition: all 0.18s ease;
+
+  /* Font */
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+
+  /* Layout */
+  --sidebar-width: 260px;
+  --topbar-height: 64px;
+  --header-height: 56px;
+  --bottom-nav-height: 64px;
+}
+
+/* Reset */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+#root {
+  min-height: 100vh;
+}

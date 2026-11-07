@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/fire_background"
+    tools:context=".ui.home.HomeActivity">
+
+    <TextView
+        android:id="@+id/tvAppName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/app_name"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        android:textColor="@color/fire_primary"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintTop_margin="40dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintStart_margin="24dp" />
+
+    <TextView
+        android:id="@+id/tvWelcome"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/welcome_message"
+        android:textSize="18sp"
+        android:textColor="@color/text_secondary"
+        app:layout_constraintTop_toBottomOf="@id/tvAppName"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintStart_margin="24dp" />
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/cardReportEmergency"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        style="@style/Widget.FireAlertResident.Card.Report"
+        app:layout_constraintTop_toBottomOf="@id/tvWelcome"
+        app:layout_constraintTop_margin="32dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintStart_margin="24dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintEnd_margin="24dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="24dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Report Fire Emergency"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:textColor="@color/text_primary" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Submit a new fire incident report with location"
+                android:textSize="14sp"
+                android:textColor="@color/text_secondary"
+                android:layout_marginTop="8dp" />
+
+            <Button
+                android:id="@+id/btnReportEmergency"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/btn_report_emergency"
+                style="@style/Widget.FireAlertResident.Button.Primary"
+                android:layout_marginTop="16dp" />
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/cardMyReports"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        style="@style/Widget.FireAlertResident.Card.Report"
+        app:layout_constraintTop_toBottomOf="@id/cardReportEmergency"
+        app:layout_constraintTop_margin="16dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintStart_margin="24dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintEnd_margin="24dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="24dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="My Reports"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:textColor="@color/text_primary" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="View your submitted fire reports and status"
+                android:textSize="14sp"
+                android:textColor="@color/text_secondary"
+                android:layout_marginTop="8dp" />
+
+            <Button
+                android:id="@+id/btnMyReports"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/btn_my_reports"
+                style="@style/Widget.FireAlertResident.Button.Outline"
+                android:layout_marginTop="16dp" />
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/cardNotifications"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        style="@style/Widget.FireAlertResident.Card.Report"
+        app:layout_constraintTop_toBottomOf="@id/cardMyReports"
+        app:layout_constraintTop_margin="16dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintStart_margin="24dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintEnd_margin="24dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="24dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Notifications"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:textColor="@color/text_primary" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Receive updates on your report status"
+                android:textSize="14sp"
+                android:textColor="@color/text_secondary"
+                android:layout_marginTop="8dp" />
+
+            <Button
+                android:id="@+id/btnNotifications"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/btn_notifications"
+                style="@style/Widget.FireAlertResident.Button.Outline"
+                android:layout_marginTop="16dp" />
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <Button
+        android:id="@+id/btnLogout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/btn_logout"
+        android:textColor="@color/fire_primary"
+        android:textSize="14sp"
+        android:background="@android:color/transparent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintBottom_margin="32dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

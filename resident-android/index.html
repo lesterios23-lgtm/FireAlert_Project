@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <meta name="theme-color" content="#172a40" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="FireAlert" />
+    <meta name="description" content="FireAlert - Fire emergency reporting and incident records for BFP Mansalay, Oriental Mindoro." />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="apple-touch-icon" href="logo192.png" />
+    <link rel="apple-touch-icon" sizes="192x192" href="logo192.png" />
+    <link rel="apple-touch-icon" sizes="512x512" href="logo512.png" />
+    <link rel="icon" href="favicon.ico" />
+    <title>FireAlert - Fire Emergency Reporting</title>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+    <script>
+      // Register service worker for PWA offline support
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker
+            .register('/service-worker.js')
+            .then((registration) => {
+              console.log(
+                'FireAlert Mobile PWA: ServiceWorker registered',
+                registration.scope
+              );
+            })
+            .catch((error) => {
+              console.log(
+                'FireAlert Mobile PWA: ServiceWorker registration failed',
+                error
+              );
+            });
+        });
+      }
+    </script>
+    <!-- Redirect to the main React frontend -->
+    <script>
+      if (window.location.pathname !== '/') {
+        window.location.href = window.location.origin + '/';
+      }
+    </script>
+  </body>
+</html>

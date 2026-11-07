@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Api\V1;
 
+use App\Models\FireReport;
 use App\Permissions\V1\Abilities;
 
 /**
@@ -20,40 +21,65 @@ class UpdateFireReportRequest extends BaseFireReportRequest
     public function rules(): array
     {
         $rules = [
-            'data'                                       => ['sometimes', 'array:type,attributes,relationships'],
-            'data.type'                                  => ['sometimes', 'string', 'in:fire_report'],
-            'data.attributes'                            => [
+            'data' => ['sometimes', 'array:type,attributes,relationships'],
+            'data.type' => ['sometimes', 'string', 'in:fire_report'],
+            'data.attributes' => [
                 'sometimes',
-                'array:incidentDescription,incidentAddress,latitude,longitude,locationSource',
+                'array:incidentDescription,incidentAddress,latitude,longitude,locationSource,status',
             ],
-            'data.attributes.incidentDescription'        => ['sometimes', 'string'],
-            'data.attributes.incidentAddress'            => ['sometimes', 'nullable', 'string', 'max:255'],
-            'data.attributes.latitude'                   => [
+            'data.attributes.status' => [
+                'sometimes',
+                'string',
+                'in:'.implode(',', FireReport::availableStatusValues()),
+            ],
+            'data.attributes.incidentDescription' => ['sometimes', 'string'],
+            'data.attributes.incidentAddress' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'data.attributes.latitude' => [
                 'sometimes',
                 'required_with:data.attributes.longitude',
                 'numeric',
                 'between:-90,90',
             ],
-            'data.attributes.longitude'                  => [
+            'data.attributes.longitude' => [
                 'sometimes',
                 'required_with:data.attributes.latitude',
                 'numeric',
                 'between:-180,180',
             ],
-            'data.attributes.locationSource'             => [
+            'data.attributes.locationSource' => [
                 'sometimes',
                 'required_with:data.attributes.latitude',
                 'string',
                 'in:device,manual',
             ],
-            'data.relationships.resident.data.id'        => ['sometimes', 'integer', 'exists:users,id'],
+            'data.relationships.resident.data.id' => [
+                'sometimes',
+                'integer',
+                'exists:users,'.(new \App\Models\User())->getKeyName(),
+            ],
         ];
 
         // Users who may only update their own reports cannot transfer ownership
         if ($this->user()?->tokenCan(Abilities::UpdateOwnReport)) {
             $rules['data.relationships.resident.data.id'] = 'prohibited';
+            // Residents may not change workflow status either
+            $rules['data.attributes.status'] = 'prohibited';
         }
 
         return $rules;
+    }
+
+    /**
+     * The PATCH flow also allows the workflow status to change.
+     */
+    public function mappedAttributes(): array
+    {
+        $mapped = parent::mappedAttributes();
+
+        if ($this->has('data.attributes.status')) {
+            $mapped['status'] = $this->input('data.attributes.status');
+        }
+
+        return $mapped;
     }
 }

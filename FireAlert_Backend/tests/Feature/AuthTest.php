@@ -11,6 +11,7 @@ uses(RefreshDatabase::class);
 test('registration creates a resident and returns a JWT', function () {
     $response = $this->postJson('/api/v1/auth/register', [
         'name' => 'Resident Test',
+        'contact_number' => '+639171234567',
         'email' => 'resident@example.com',
         'password' => 'password123',
         'password_confirmation' => 'password123',
@@ -23,6 +24,7 @@ test('registration creates a resident and returns a JWT', function () {
 
     $user = User::where('email', 'resident@example.com')->firstOrFail();
     expect($user->role)->toBe(User::ROLE_RESIDENT)
+        ->and($user->contact_number)->toBe('+639171234567')
         ->and(Hash::check('password123', $user->password))->toBeTrue();
 
     Auth::forgetGuards();
@@ -38,12 +40,21 @@ test('registration creates a resident and returns a JWT', function () {
 test('registration validates input and cannot set a privileged role', function () {
     $this->postJson('/api/v1/auth/register', [
         'name' => 'Resident Test',
+        'contact_number' => '+639171234567',
         'email' => 'invalid',
         'password' => 'short',
         'password_confirmation' => 'different',
         'role' => User::ROLE_BFP,
     ])->assertUnprocessable()
         ->assertJsonValidationErrors(['email', 'password']);
+
+    $this->postJson('/api/v1/auth/register', [
+        'name' => 'Resident Test',
+        'email' => 'resident@example.com',
+        'password' => 'password123',
+        'password_confirmation' => 'password123',
+    ])->assertUnprocessable()
+        ->assertJsonValidationErrors(['contact_number']);
 
     $this->assertDatabaseCount('users', 0);
 });

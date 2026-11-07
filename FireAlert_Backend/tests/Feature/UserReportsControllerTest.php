@@ -3,8 +3,6 @@
 use App\Models\FireReport;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Auth;
-use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
 
 uses(RefreshDatabase::class);
 
@@ -273,7 +271,7 @@ test('updating through the nested route rejects workflow fields', function () {
         ],
     ])
         ->assertUnprocessable()
-        ->assertJsonValidationErrors('data.attributes');
+        ->assertJsonValidationErrors('data.attributes.status');
 
     $this->assertDatabaseHas('fire_reports', [
         'id' => $report->id,

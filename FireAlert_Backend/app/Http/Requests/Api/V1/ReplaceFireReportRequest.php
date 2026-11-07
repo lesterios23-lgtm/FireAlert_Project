@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Api\V1;
 
+use App\Models\User;
+
 /**
  * Validates the body of PUT /reports/{report}: full replacement of incident details.
  */
@@ -46,6 +48,11 @@ class ReplaceFireReportRequest extends BaseFireReportRequest
                 'string',
                 'in:device,manual',
             ],
+            'data.relationships.resident.data.id' => [
+                'sometimes',
+                'integer',
+                'exists:users,'.(new User())->getKeyName(),
+            ],
         ];
     }
 
@@ -62,4 +69,3 @@ class ReplaceFireReportRequest extends BaseFireReportRequest
         ];
     }
 }
-

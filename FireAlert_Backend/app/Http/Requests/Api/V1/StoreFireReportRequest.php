@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Api\V1;
 
 use App\Permissions\V1\Abilities;
+use App\Models\User;
 
 /**
  * Validates the body of POST /reports and POST /users/{user}/reports.
@@ -21,6 +22,18 @@ class StoreFireReportRequest extends BaseFireReportRequest
      */
     protected function prepareForValidation(): void
     {
+        if (is_string($data = $this->input('data'))) {
+            $decoded = json_decode($data, true);
+            if (is_array($decoded)) {
+                // Multipart clients may serialize the JSON:API document either
+                // directly or inside a second "data" property.
+                if (isset($decoded['data']) && is_array($decoded['data'])) {
+                    $decoded = $decoded['data'];
+                }
+                $this->merge(['data' => $decoded]);
+            }
+        }
+
         // $this->route('user') is the bound User model from the URL segment
         if ($urlUser = $this->route('user')) {
             $this->merge([
@@ -67,7 +80,12 @@ class StoreFireReportRequest extends BaseFireReportRequest
                 'string',
                 'in:device,manual',
             ],
-            'data.relationships.resident.data.id'         => ['sometimes', 'integer', 'exists:users,id'],
+            'data.relationships.resident.data.id'         => [
+                'sometimes',
+                'integer',
+                'exists:users,'.(new User())->getKeyName(),
+            ],
+            'evidencePhoto' => ['sometimes', 'image', 'mimes:jpeg,png,webp', 'max:5120'],
         ];
 
         // A resident who may only create their own reports must be the author.

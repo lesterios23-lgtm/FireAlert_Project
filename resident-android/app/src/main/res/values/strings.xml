@@ -1,0 +1,68 @@
+<resources>
+    <string name="app_name">FireAlert Resident</string>
+
+    <!-- Authentication -->
+    <string name="title_login">Login</string>
+    <string name="title_register">Register</string>
+    <string name="hint_email">Email</string>
+    <string name="hint_password">Password</string>
+    <string name="hint_name">Full Name</string>
+    <string name="btn_login">Login</string>
+    <string name="btn_register">Register</string>
+    <string name="btn_register_link">Create an account</string>
+    <string name="btn_login_link">Already have an account?</string>
+    <string name="error_invalid_credentials">Invalid email or password</string>
+    <string name="error_registration_failed">Registration failed. Please try again.</string>
+    <string name="error_network">Network error. Please check your connection.</string>
+    <string name="msg_registration_success">Account created successfully</string>
+    <string name="msg_login_success">Welcome back</string>
+    <string name="msg_logout">Logged out successfully</string>
+    <string name="title_logout_confirm">Sign out?</string>
+    <string name="msg_logout_confirm">Are you sure you want to sign out of FireAlert? You will need to sign in again to continue.</string>
+    <string name="btn_cancel">Cancel</string>
+    <string name="btn_sign_out">Sign out</string>
+
+    <!-- Home -->
+    <string name="title_home">FireAlert</string>
+    <string name="btn_report_emergency">Report Fire Emergency</string>
+    <string name="btn_my_reports">My Reports</string>
+    <string name="btn_notifications">Notifications</string>
+    <string name="btn_logout">Logout</string>
+    <string name="welcome_message">Welcome, %s</string>
+
+    <!-- Report Form -->
+    <string name="title_report_form">Report Fire Emergency</string>
+    <string name="hint_incident_description">Describe the fire incident</string>
+    <string name="hint_incident_address">Incident address</string>
+    <string name="btn_use_current_location">Use Current Location</string>
+    <string name="btn_select_on_map">Select on Map</string>
+    <string name="btn_submit_report">Submit Report</string>
+    <string name="error_required_field">This field is required</string>
+    <string name="error_invalid_coordinates">Invalid location coordinates</string>
+    <string name="msg_report_submitted">Report submitted successfully</string>
+    <string name="msg_report_failed">Failed to submit report</string>
+
+    <!-- Report List -->
+    <string name="title_my_reports">My Reports</string>
+    <string name="empty_reports">No reports yet</string>
+    <string name="subtitle_report_status">Status: %s</string>
+    <string name="subtitle_reported_at">Reported: %s</string>
+
+    <!-- Report Detail -->
+    <string name="title_report_detail">Report Details</string>
+    <string name="label_description">Description</string>
+    <string name="label_address">Address</string>
+    <string name="label_location_source">Location Source</string>
+    <string name="label_status">Status</string>
+    <string name="label_reported_at">Reported At</string>
+    <string name="label_created_at">Created At</string>
+
+    <!-- Notifications -->
+    <string name="title_notifications">Notifications</string>
+    <string name="empty_notifications">No notifications</string>
+
+    <!-- Location -->
+    <string name="location_permission_rationale">FireAlert needs location access to help you report fire emergencies accurately.</string>
+    <string name="location_permission_denied">Location permission denied. You can still enter the address manually.</string>
+    <string name="google_maps_api_key">YOUR_GOOGLE_MAPS_API_KEY</string>
+</resources>

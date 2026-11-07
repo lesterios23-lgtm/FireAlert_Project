@@ -1,0 +1,218 @@
+FIREALERT LARAVEL BACKEND IMPLEMENTATION INSTRUCTIONS
+
+PROJECT OVERVIEW
+I am developing FireAlert: A Web-Based Fire Emergency Reporting, Incident Record Management, and Geolocation-Based Firetruck Response System for the Bureau of Fire Protection in Mansalay, Oriental Mindoro.
+
+Technology stack:
+- Frontend: React
+- Backend: Laravel
+- Database: MySQL
+- Development environment: Visual Studio Code
+- Mapping: Google Maps
+- Resident platform: Android
+- Deployment environment: Web and mobile
+- Predictive model: Planned/integrated later; prediction target is not yet determined
+
+The Laravel backend and React frontend files already exist in my local VS Code workspace, and the project is connected to a GitHub repository.
+
+PRIMARY LARAVEL REFERENCE
+Analyze this tutorial before making any code changes:
+https://nameless-wildflower-c553.workers.dev/
+
+The tutorial contains 27 topics or implementation steps. Topics 1–4 have already been implemented and committed/pushed previously. Topics 5–27 remain to be addressed.
+
+Use the tutorial as the primary reference. Follow its original topic order, code formats, commands, file conventions, and implementation approach wherever compatible with the existing project and installed Laravel version.
+
+If the tutorial cannot be accessed or any topic's content is unavailable, tell me and request the missing information. Do not invent tutorial content or guess what a missing step requires.
+
+MANDATORY INITIAL PHASE — NO CODING YET
+Before editing any files:
+1. Open and analyze the complete tutorial.
+2. Identify all 27 topics in their original order, including each topic's title and purpose.
+3. Inspect the existing project structure and relevant Laravel/React files.
+4. Inspect Git status and existing changes without modifying them.
+5. Verify what is already implemented for Topics 1–4. Do not recreate working features unnecessarily.
+6. Create a checklist of Topics 1–27 with statuses: previously implemented, verified, pending, in progress, or blocked.
+7. Identify the files, prerequisites, dependencies, and tests needed for Topic 5.
+8. Present your findings and proposed implementation plan to me.
+
+DO NOT implement Topic 5 until I review the analysis and explicitly authorize you to start.
+
+ONE-TOPIC-AT-A-TIME WORKFLOW
+After I approve the initial analysis, implement exactly one pending topic per cycle. Never automatically move to the next topic.
+
+STEP A — EXPLAIN BEFORE CODING
+State:
+- The topic number and original tutorial title.
+- What it does and why it is relevant to FireAlert.
+- The files expected to be created or modified.
+- Its dependencies and prerequisites.
+- How you plan to test it.
+
+Use clear language understandable for a third-year college student.
+
+STEP B — INSPECT BEFORE EDITING
+Inspect the relevant existing files, routes, controllers, models, middleware, migrations, configuration, database structure, API contracts, and React integration as applicable.
+
+Do not assume this project has the same structure as a fresh Laravel installation. Preserve existing working code and conventions.
+
+STEP C — IMPLEMENT ONLY THE CURRENT TOPIC
+Implement the current topic using the tutorial and the existing project requirements.
+- Follow the tutorial's code format and sequence as closely as possible.
+- Use practices compatible with the installed PHP and Laravel versions.
+- Integrate with React and MySQL when required by the current topic.
+- Keep code readable, secure, maintainable, and consistent.
+- Make the smallest necessary changes.
+- Avoid unrelated refactoring, duplicate features, unnecessary files, and premature implementation of later topics.
+- If a minimal dependency from another topic is essential, explain it before making that change.
+- If the tutorial conflicts with the existing architecture or installed version, explain the conflict and use the smallest compatible adjustment.
+
+STEP D — TEST AND VERIFY
+Test the current implementation before reporting success. Depending on the topic, perform relevant checks such as:
+- PHP syntax checks.
+- Laravel route checks.
+- Migration/model/database checks.
+- API endpoint and request-validation tests.
+- Authentication and authorization checks.
+- React-to-Laravel integration checks.
+- Regression checks for existing features.
+
+If something fails, identify the actual cause, fix the issue within the current scope, and rerun relevant tests.
+
+Do not claim a feature works unless you have verified it. If a test cannot run because a database, credential, service, or environment dependency is unavailable, state what is blocked and what remains unverified.
+
+STEP E — REPORT THE TOPIC RESULTS
+After implementation and tests, provide:
+1. Topic completed: number and original title.
+2. Files created: names and purposes.
+3. Files modified: names and explanations of changes.
+4. Implementation summary: what was actually implemented.
+5. Testing results: commands/tests run and their actual outcomes.
+6. Integration status: Laravel, MySQL, and React integration as applicable.
+7. Issues or limitations: anything unresolved or unverified.
+8. Git status: created, modified, or deleted files and whether the changes are ready for my review and manual commit.
+
+Do not mark a topic completed and verified if essential functionality or required tests are failing.
+
+STEP F — STOP AND REQUEST PERMISSION
+After reporting the current topic, STOP and ask whether I authorize proceeding to the next topic.
+
+Example: "Topic 5 has been implemented and tested. Would you like me to proceed to Topic 6?"
+
+Wait for my explicit approval. Do not treat silence, a successful test, or a Git commit as permission to continue.
+
+If I ask for corrections, stay focused on the current topic until the requested corrections are completed and verified.
+
+GITHUB RULES — I COMMIT AND PUSH MANUALLY
+I will handle all Git commits and pushes myself.
+
+Do not execute any of the following unless I explicitly authorize it:
+- git add
+- git commit
+- git push
+- Branch changes
+- Git history rewrites
+- Automatic uploads or pushes to GitHub
+
+You may inspect Git status and diffs. Do not overwrite or discard my existing uncommitted changes.
+
+After each topic, list the changed files and tell me that I can review and manually commit/push them. You may suggest commands, but do not execute them.
+
+Example commands for me to run manually:
+git status
+git diff
+git add <reviewed-files>
+git commit -m "Implement Laravel topic 5"
+git push
+
+Use a commit message that matches the actual topic. Recommend reviewing git status and git diff before staging. Do not stage unrelated or sensitive files.
+
+FIREALERT FUNCTIONAL CONTEXT
+The system is intended to support these functions as the relevant tutorial topics are implemented:
+- Resident registration and authentication.
+- Secure communication between React and Laravel.
+- Resident fire emergency reporting.
+- Fire incident record management.
+- Capture and validation of incident location coordinates.
+- Incident information for authorized Bureau of Fire Protection personnel.
+- Firetruck dispatch and response workflows.
+- Google Maps integration for incident locations and navigation.
+- Estimated firetruck arrival time based on appropriate location and route information.
+- Incident history and authorized historical record requests.
+- Appropriate notifications and API responses.
+- Future predictive-model integration after the prediction purpose and requirements are established.
+
+These are overall system requirements, not permission to implement everything at once. Only implement functionality required by the current tutorial topic and its necessary dependencies.
+
+Do not invent prediction algorithms, ETA formulas, database fields, or business rules that have not been established. Ask me before making consequential design decisions when required information is missing.
+
+DATABASE AND DATA PROTECTION
+The database is MySQL.
+
+Before database-related changes:
+- Inspect the current configuration, migrations, models, relationships, and schema.
+- Assess whether the operation could affect existing data.
+- Explain potentially destructive operations before taking action.
+- Prefer safe, incremental migrations where appropriate.
+- Preserve existing records and working relationships.
+- Do not reset, wipe, or unnecessarily replace the database schema.
+
+Never run destructive commands such as:
+php artisan migrate:fresh
+php artisan db:wipe
+
+Do not expose .env credentials, passwords, tokens, API keys, or other secrets in reports or commits.
+
+ACCURACY, COMPATIBILITY, AND SECURITY
+Before finishing each topic, check:
+- Imports, namespaces, class names, and file paths.
+- Laravel routes, middleware, and route names.
+- Database relationships and migration dependencies.
+- Request validation and error handling.
+- Authentication and authorization where applicable.
+- Compatibility with the installed PHP/Laravel versions.
+- API response formats expected by React.
+- Existing routes and features for regressions.
+- Duplicate routes, conflicting controllers, redundant migrations, and inconsistent naming.
+- That no secrets or unrelated files are included in the changes.
+
+Do not replace existing project files with generic tutorial examples if that would break current functionality. Do not use placeholders and describe them as complete functionality.
+
+If an existing issue blocks the current topic, explain it and make only the necessary fix unless I authorize broader changes.
+
+PROGRESS CHECKLIST
+Maintain a checklist of all 27 topics and update it after each topic.
+
+Use these statuses:
+- Previously implemented — verification pending
+- Verified complete
+- In progress
+- Pending
+- Blocked
+
+Initially mark Topics 1–4 as previously implemented, with verification pending until inspected. Mark Topics 5–27 as pending until each is individually implemented and verified.
+
+Do not mark a topic complete merely because code has been written.
+
+FINAL REPORT AFTER TOPIC 27
+After all topics have been implemented and verified, provide:
+- The complete checklist for Topics 1–27.
+- A summary of each topic's implementation.
+- Files created and modified.
+- Actual test results.
+- Laravel, React, and MySQL integration status.
+- Remaining manual setup and environment configuration.
+- Known limitations or unresolved issues.
+
+Do not claim the backend is production-ready unless the relevant security, integration, deployment, and operational checks have actually been completed.
+
+START HERE
+For your first response, perform analysis only. Do not edit code.
+
+1. Analyze the tutorial and identify all 27 topics in their original order.
+2. Inspect the existing project and Git status without changing anything.
+3. Verify the current state of Topics 1–4.
+4. Prepare the full checklist and identify the prerequisites/files/tests for Topic 5.
+5. Report the analysis and wait for my explicit authorization before implementing Topic 5.
+
+NON-NEGOTIABLE RULES: One topic per cycle. Test before reporting success. No automatic commits or pushes. Always obtain my permission before starting the next topic.

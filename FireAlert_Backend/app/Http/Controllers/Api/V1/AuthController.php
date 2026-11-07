@@ -8,6 +8,7 @@ use App\Http\Requests\Api\RegisterUserRequest;
 use App\Models\User;
 use App\Traits\ApiResponses;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
@@ -32,6 +33,7 @@ class AuthController extends Controller
 
         $user = User::create([
             'name' => $attributes['name'],
+            'contact_number' => $attributes['contact_number'],
             'email' => $attributes['email'],
             'password' => Hash::make($attributes['password']),
             'role' => User::ROLE_RESIDENT,
@@ -75,6 +77,23 @@ class AuthController extends Controller
         Auth::guard('api')->logout();
 
         return $this->ok('Successfully logged out');
+    }
+
+    /**
+     * Update the authenticated resident's own profile (address, etc.).
+     */
+    public function updateProfile(Request $request): JsonResponse
+    {
+        /** @var User $user */
+        $user = Auth::guard('api')->user();
+
+        $validated = $request->validate([
+            'address' => 'sometimes|nullable|string|max:500',
+        ]);
+
+        $user->update($validated);
+
+        return $this->ok('Profile updated', $user->fresh());
     }
 
     /**

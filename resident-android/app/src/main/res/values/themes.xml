@@ -1,0 +1,46 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Theme.FireAlertResident" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- Primary brand color. -->
+        <item name="colorPrimary">@color/fire_primary</item>
+        <item name="colorPrimaryVariant">@color/fire_primary_dark</item>
+        <item name="colorOnPrimary">@color/text_inverse</item>
+        <!-- Secondary brand color. -->
+        <item name="colorSecondary">@color/fire_secondary</item>
+        <item name="colorOnSecondary">@color/text_primary</item>
+        <!-- Status bar color. -->
+        <item name="android:statusBarColor" tools:targetApi="l">@color/fire_primary_dark</item>
+        <!-- Background -->
+        <item name="android:windowBackground">@color/fire_background</item>
+    </style>
+
+    <style name="Theme.FireAlertResident.Splash" parent="Theme.FireAlertResident">
+        <item name="android:windowBackground">@drawable/splash_background</item>
+    </style>
+
+    <!-- Button styles -->
+    <style name="Widget.FireAlertResident.Button.Primary" parent="Widget.MaterialComponents.Button.UnelevatedButton">
+        <item name="backgroundTint">@color/fire_primary</item>
+        <item name="rippleColor">@color/fire_primary_dark</item>
+        <item name="android:textColor">@color/text_inverse</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:minHeight">56dp</item>
+    </style>
+
+    <style name="Widget.FireAlertResident.Button.Outline" parent="Widget.MaterialComponents.Button.OutlinedButton">
+        <item name="strokeColor">@color/fire_primary</item>
+        <item name="android:textColor">@color/fire_primary</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:minHeight">56dp</item>
+    </style>
+
+    <!-- Card style -->
+    <style name="Widget.FireAlertResident.Card.Report" parent="Widget.MaterialComponents.CardView">
+        <item name="cardBackgroundColor">@color/fire_surface</item>
+        <item name="cardCornerRadius">12dp</item>
+        <item name="cardElevation">2dp</item>
+        <item name="android:layout_margin">8dp</item>
+    </style>
+</resources>

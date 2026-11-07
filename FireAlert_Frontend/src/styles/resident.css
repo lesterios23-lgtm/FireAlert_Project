@@ -1,0 +1,388 @@
+/* ============================================================================
+   FireAlert — Resident Portal (Mobile-First) Styles
+   Bottom navigation, screen containers, emergency report form, tracking.
+   ============================================================================ */
+
+/* ===== Address Setup Card ===== */
+.resident-address-setup {
+  background: var(--surface);
+  border: 1.5px solid var(--amber);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.resident-address-setup--prompt {
+  border-color: var(--red);
+  box-shadow: 0 0 0 3px rgba(217, 54, 54, 0.12);
+}
+
+.resident-address-setup-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.resident-address-setup-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.resident-address-setup-header h2 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 0.2rem;
+}
+
+.resident-address-setup-header p {
+  font-size: 0.8125rem;
+  color: var(--text-2);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.resident-address-setup-alert {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  background: var(--red-soft);
+  border: 1px solid var(--red);
+  border-radius: var(--radius);
+  padding: 0.625rem 0.875rem;
+  margin-bottom: 1rem;
+  color: var(--red-dark);
+  line-height: 1.4;
+}
+
+.resident-address-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.resident-address-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.resident-address-field label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.resident-address-required {
+  color: var(--red);
+  margin-left: 0.1rem;
+}
+
+.resident-address-field input {
+  width: 100%;
+  padding: 0.65rem 0.875rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.9375rem;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--bg);
+  transition: var(--transition);
+  outline: none;
+}
+
+.resident-address-field input:focus {
+  border-color: var(--navy);
+  background: var(--surface);
+  box-shadow: 0 0 0 2px rgba(20, 40, 63, 0.1);
+}
+
+.resident-address-error {
+  font-size: 0.8125rem;
+  color: var(--red);
+  margin-top: 0.5rem;
+  margin-bottom: 0;
+}
+
+.resident-address-submit {
+  width: 100%;
+  margin-top: 1rem;
+  padding: 0.75rem 1.25rem;
+  background: var(--navy);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.resident-address-submit:hover:not(:disabled) {
+  background: var(--navy-dark);
+}
+
+.resident-address-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ===== Emergency Warning Card ===== */
+.emergency-warning {
+  background: var(--red-soft);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--red);
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.emergency-warning-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.emergency-warning-content h4 {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--red-dark);
+  margin-bottom: 0.25rem;
+}
+
+.emergency-warning-content p {
+  font-size: 0.8125rem;
+  color: var(--text-2);
+  line-height: 1.4;
+}
+
+/* ===== Location Pin on Map ===== */
+.location-pin {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 40px;
+  height: 40px;
+  background: var(--red);
+  color: #fff;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg) translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  box-shadow: var(--shadow);
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* ===== Success Confirmation Card ===== */
+.success-card {
+  background: var(--green-soft);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--green);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.success-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.success-content h4 {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #14532D;
+  margin-bottom: 0.25rem;
+}
+
+.success-content p {
+  font-size: 0.8125rem;
+  color: var(--text-2);
+  line-height: 1.4;
+}
+
+/* ===== Incident Info Card ===== */
+.incident-info-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.info-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.info-row:last-child {
+  margin-bottom: 0;
+}
+
+.info-icon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.info-content p {
+  font-size: 0.875rem;
+  color: var(--text);
+  margin: 0;
+}
+
+.info-content span {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-2);
+  margin-top: 0.125rem;
+}
+
+/* ===== Map for Resident ===== */
+.resident-map {
+  height: 240px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: #E9ECEF;
+  margin-bottom: 1rem;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ===== ETA Card ===== */
+.eta-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.eta-info h4 {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 0.25rem;
+}
+
+.eta-info p {
+  font-size: 0.8125rem;
+  color: var(--text-2);
+  margin: 0;
+}
+
+.eta-value {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--amber);
+}
+
+/* ===== History Card ===== */
+.history-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+  cursor: pointer;
+  transition: var(--transition);
+  margin-bottom: 0.75rem;
+}
+
+.history-card:hover {
+  background: var(--bg);
+  border-color: var(--navy);
+}
+
+.history-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.history-id {
+  font-size: 0.875rem;
+  font-weight: 800;
+  color: var(--navy);
+}
+
+.history-desc {
+  font-size: 0.875rem;
+  color: var(--text);
+  margin-bottom: 0.25rem;
+}
+
+.history-addr {
+  font-size: 0.8125rem;
+  color: var(--text-2);
+  margin-bottom: 0.5rem;
+}
+
+.history-date {
+  font-size: 0.75rem;
+  color: var(--text-2);
+}
+
+/* ===== Report a New Fire FAB ===== */
+.fab-report {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  width: 56px;
+  height: 56px;
+  background: var(--red);
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.75rem;
+  font-weight: 800;
+  box-shadow: var(--shadow-lg);
+  cursor: pointer;
+  transition: var(--transition);
+  z-index: 100;
+}
+
+.fab-report:hover {
+  background: var(--red-dark);
+  transform: translateY(-2px);
+}
+
+/* ===== Resident Responsive Adjustments ===== */
+@media (max-width: 639px) {
+  .resident-screen {
+    padding: 0.75rem;
+  }
+
+  .resident-header {
+    padding: 0 0.75rem;
+  }
+
+  .eta-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .eta-value {
+    align-self: flex-end;
+  }
+}

@@ -50,7 +50,7 @@ final class Abilities
         // Managers / BFP personnel: report management plus explicit account
         // management. Least privilege: each ability is granted for a reason;
         // role/is_manager changes additionally require user:manage.
-        if ($user->is_manager || $user->role === User::ROLE_BFP) {
+        if ($user->is_manager || in_array($user->role, [User::ROLE_BFP, 'admin'], true)) {
             return [
                 self::CreateReport,
                 self::UpdateReport,
@@ -72,4 +72,3 @@ final class Abilities
         ];
     }
 }
-

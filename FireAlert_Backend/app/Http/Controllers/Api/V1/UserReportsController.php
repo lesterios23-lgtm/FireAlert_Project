@@ -32,7 +32,7 @@ class UserReportsController extends APIController
         );
 
         $reports = FireReport::query()
-            ->where('resident_id', $user->getKey())
+            ->where(FireReport::residentForeignKey(), $user->getKey())
             ->filter($filters)
             ->paginate(15);
 
@@ -47,7 +47,7 @@ class UserReportsController extends APIController
     public function store(StoreFireReportRequest $request, User $user): FireReportResource|JsonResponse
     {
         if ($this->isAble('store', FireReport::class)) {
-            $report = FireReport::create([
+            $report = FireReport::createFromApi([
                 ...$request->mappedAttributes(),
                 // The resident is the user from the URL, not the request body
                 'resident_id' => $user->getKey(),
@@ -83,7 +83,7 @@ class UserReportsController extends APIController
     public function replace(ReplaceFireReportRequest $request, User $user, FireReport $report): FireReportResource|JsonResponse
     {
         if ($this->isAble('replace', $report)) {
-            $report->update($request->mappedAttributes());
+            $report->updateFromApi($request->mappedAttributes());
 
             return new FireReportResource($report);
         }
@@ -98,7 +98,7 @@ class UserReportsController extends APIController
     public function update(UpdateFireReportRequest $request, User $user, FireReport $report): FireReportResource|JsonResponse
     {
         if ($this->isAble('update', $report)) {
-            $report->update($request->mappedAttributes());
+            $report->updateFromApi($request->mappedAttributes());
 
             return new FireReportResource($report);
         }

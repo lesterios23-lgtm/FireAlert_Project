@@ -1,49 +1,53 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import App from './App';
 
-test('renders a clearly labeled FireAlert operations preview', () => {
-  render(<App />);
-
-  expect(screen.getByRole('heading', { name: 'Incident operations' })).toBeInTheDocument();
-  expect(screen.getByText(/all entries are fictional/i)).toBeInTheDocument();
-  expect(screen.getByText(/not live gps or map data/i)).toBeInTheDocument();
+beforeEach(() => {
+  localStorage.clear();
+  global.fetch = jest.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({ data: [], links: {}, meta: {} }),
+  });
 });
 
-test('shows only report counts by status', () => {
-  render(<App />);
-
-  const counts = within(
-    screen.getByLabelText(/illustrative report counts by status/i),
-  );
-  expect(counts.getByText('Pending')).toBeInTheDocument();
-  expect(counts.getByText('Responding')).toBeInTheDocument();
+afterEach(() => {
+  jest.restoreAllMocks();
 });
 
-test('opens the incident records view', () => {
+test('shows the sign-in page instead of an unauthenticated preview', () => {
   render(<App />);
 
-  fireEvent.click(screen.getByRole('button', { name: /incident records/i }));
-
-  expect(screen.getByRole('heading', { name: 'Incident Records' })).toBeInTheDocument();
-  expect(screen.getByText(/fictional sample records/i)).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: /Welcome back/i })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /Sign In/i })).toBeInTheDocument();
+  expect(screen.queryByText(/Illustrative Preview/i)).not.toBeInTheDocument();
 });
 
-test('keeps predictions unavailable until a validated model is connected', () => {
+test('opens the documented BFP command center for an authenticated BFP user', async () => {
+  localStorage.setItem('firealert_token', 'test-token');
+  localStorage.setItem('firealert_user', JSON.stringify({
+    id: 7,
+    name: 'BFP Duty Officer',
+    role: 'bfp',
+  }));
+
   render(<App />);
 
-  fireEvent.click(screen.getByRole('button', { name: 'Predictions' }));
-
-  expect(
-    screen.getByRole('heading', { name: /not yet validated - no historical data loaded/i }),
-  ).toBeInTheDocument();
-  expect(screen.getByText(/no risk scores, accuracy figures, or automatic dispatch/i)).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: /Emergency Command Center/i })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /Incident Records/i })).toBeInTheDocument();
+  expect(await screen.findByText(/No fire reports have been submitted/i)).toBeInTheDocument();
+  expect(screen.queryByText(/DEMO-001/i)).not.toBeInTheDocument();
+  expect(screen.queryByText(/Preview only - not connected/i)).not.toBeInTheDocument();
 });
 
-test('does not present the preview login as functional authentication', () => {
+test('opens the resident emergency report form for a resident account', () => {
+  localStorage.setItem('firealert_token', 'test-token');
+  localStorage.setItem('firealert_user', JSON.stringify({
+    id: 8,
+    name: 'Resident User',
+    role: 'resident',
+  }));
+
   render(<App />);
 
-  fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
-
-  expect(screen.getByRole('heading', { name: 'Sign in to FireAlert' })).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: /backend required/i })).toBeDisabled();
+  expect(screen.getByRole('heading', { name: /Report a fire/i })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /Submit emergency report/i })).toBeInTheDocument();
 });

@@ -3,7 +3,9 @@
 use App\Models\FireReport;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
 
 uses(RefreshDatabase::class);
@@ -71,6 +73,66 @@ test('authenticated resident can create a report with a coordinate pair', functi
         ->assertJsonPath('data.attributes.latitude', '12.5204000')
         ->assertJsonPath('data.attributes.longitude', '121.4392000')
         ->assertJsonPath('data.attributes.locationSource', 'manual');
+});
+
+test('authenticated resident can create a multipart report with serialized JSON:API data', function () {
+    $resident = User::factory()->create();
+    $token = Auth::guard('api')->login($resident);
+    Auth::forgetGuards();
+    JWTAuth::unsetToken();
+
+    $document = [
+        'type' => 'fire_report',
+        'attributes' => [
+            'incidentDescription' => 'Smoke reported at the barangay hall.',
+            'incidentAddress' => 'Mansalay Barangay Hall',
+        ],
+    ];
+
+    foreach ([$document, ['data' => $document]] as $serializedDocument) {
+        $response = $this->withToken($token)->post('/api/v1/reports', [
+            'data' => json_encode($serializedDocument, JSON_THROW_ON_ERROR),
+        ], ['Accept' => 'application/json']);
+
+        $response->assertCreated()
+            ->assertJsonPath('data.attributes.incidentAddress', 'Mansalay Barangay Hall')
+            ->assertJsonPath('data.relationships.resident.data.id', $resident->id);
+    }
+
+    $this->assertDatabaseCount('fire_reports', 2);
+});
+
+test('authenticated resident can attach private image evidence to a report', function () {
+    Storage::fake('local');
+    $resident = User::factory()->create();
+    $token = Auth::guard('api')->login($resident);
+    Auth::forgetGuards();
+    JWTAuth::unsetToken();
+
+    $response = $this->withToken($token)->post('/api/v1/reports', [
+        'data' => [
+            'type' => 'fire_report',
+            'attributes' => [
+                'incidentDescription' => 'Smoke near the market.',
+                'incidentAddress' => 'Mansalay Central Market',
+            ],
+        ],
+        'evidencePhoto' => UploadedFile::fake()->image('incident-evidence.jpg'),
+    ], ['Accept' => 'application/json']);
+
+    $response->assertCreated()
+        ->assertJsonPath('data.attributes.hasEvidence', true);
+
+    $evidence = \App\Models\ReportEvidence::firstOrFail();
+    Storage::disk('local')->assertExists($evidence->storage_path);
+
+    Auth::forgetGuards();
+    JWTAuth::unsetToken();
+
+    $this->withToken($token)
+        ->get('/api/v1/reports/'.$response->json('data.id').'/evidence')
+        ->assertOk()
+        ->assertHeader('Content-Type', 'image/jpeg');
 });
 
 test('report creation validates required incident details and location', function () {
@@ -161,7 +223,7 @@ test('versioned report list returns only the authenticated resident reports', fu
         ->assertJsonCount(1, 'data')
         ->assertJsonPath('data.0.type', 'fire_report')
         ->assertJsonPath('data.0.id', $ownReport->id)
-        ->assertJsonMissingPath('data.0.attributes.incidentDescription')
+        ->assertJsonPath('data.0.attributes.incidentDescription', $ownReport->incident_description)
         ->assertJsonMissingPath('data.0.includes')
         ->assertJsonPath('data.0.attributes.status', 'pending')
         ->assertJsonPath('data.0.relationships.resident.data.id', $resident->id)
@@ -785,7 +847,7 @@ test('updating a report with PATCH rejects unknown or workflow fields', function
         ],
     ])
         ->assertUnprocessable()
-        ->assertJsonValidationErrors('data.attributes');
+        ->assertJsonValidationErrors('data.attributes.status');
 
     $this->assertDatabaseHas('fire_reports', [
         'id' => $report->id,
@@ -913,14 +975,10 @@ test('resident and manager tokens have distinct abilities claims in jwt payload'
         ->and($managerClaims['abilities'])->toContain('report:create', 'report:update', 'report:replace', 'report:delete', 'user:create');
 });
 
-
-
-
-
 // ── Topic 21: Applying Granular Permissions ─────────────────────────────────
 
 test('resident cannot assign report to another user on create', function () {
-    $resident      = User::factory()->create();
+    $resident = User::factory()->create();
     $otherResident = User::factory()->create();
 
     $token = Auth::guard('api')->login($resident);
@@ -930,10 +988,10 @@ test('resident cannot assign report to another user on create', function () {
     // Submitting another resident's id must fail with 422 (size rule)
     $this->withToken($token)->postJson('/api/v1/reports', [
         'data' => [
-            'type'          => 'fire_report',
-            'attributes'    => [
+            'type' => 'fire_report',
+            'attributes' => [
                 'incidentDescription' => 'Smoke reported near the market.',
-                'incidentAddress'     => 'Mansalay Central Market',
+                'incidentAddress' => 'Mansalay Central Market',
             ],
             'relationships' => [
                 'resident' => ['data' => ['id' => $otherResident->id]],
@@ -955,10 +1013,10 @@ test('resident can create a report with their own id in the relationship', funct
 
     $this->withToken($token)->postJson('/api/v1/reports', [
         'data' => [
-            'type'          => 'fire_report',
-            'attributes'    => [
+            'type' => 'fire_report',
+            'attributes' => [
                 'incidentDescription' => 'Smoke reported near the market.',
-                'incidentAddress'     => 'Mansalay Central Market',
+                'incidentAddress' => 'Mansalay Central Market',
             ],
             'relationships' => [
                 'resident' => ['data' => ['id' => $resident->id]],
@@ -970,7 +1028,7 @@ test('resident can create a report with their own id in the relationship', funct
 });
 
 test('manager can create a report and assign it to any resident', function () {
-    $manager       = User::factory()->manager()->create();
+    $manager = User::factory()->manager()->create();
     $otherResident = User::factory()->create();
 
     $token = Auth::guard('api')->login($manager);
@@ -979,10 +1037,10 @@ test('manager can create a report and assign it to any resident', function () {
 
     $this->withToken($token)->postJson('/api/v1/reports', [
         'data' => [
-            'type'          => 'fire_report',
-            'attributes'    => [
+            'type' => 'fire_report',
+            'attributes' => [
                 'incidentDescription' => 'Manager-logged fire incident.',
-                'incidentAddress'     => 'Barangay Hall',
+                'incidentAddress' => 'Barangay Hall',
             ],
             'relationships' => [
                 'resident' => ['data' => ['id' => $otherResident->id]],
@@ -993,15 +1051,15 @@ test('manager can create a report and assign it to any resident', function () {
         ->assertJsonPath('data.relationships.resident.data.id', $otherResident->id);
 
     $this->assertDatabaseHas('fire_reports', [
-        'resident_id'         => $otherResident->id,
+        'resident_id' => $otherResident->id,
         'incident_description' => 'Manager-logged fire incident.',
     ]);
 });
 
 test('resident cannot change ownership via PATCH', function () {
-    $resident      = User::factory()->create();
+    $resident = User::factory()->create();
     $otherResident = User::factory()->create();
-    $report        = FireReport::factory()->create(['resident_id' => $resident->id]);
+    $report = FireReport::factory()->create(['resident_id' => $resident->id]);
 
     $token = Auth::guard('api')->login($resident);
     Auth::forgetGuards();
@@ -1018,16 +1076,16 @@ test('resident cannot change ownership via PATCH', function () {
         ->assertJsonValidationErrors(['data.relationships.resident.data.id']);
 
     $this->assertDatabaseHas('fire_reports', [
-        'id'          => $report->id,
+        'id' => $report->id,
         'resident_id' => $resident->id,
     ]);
 });
 
 test('manager can transfer report ownership via PATCH', function () {
-    $manager       = User::factory()->manager()->create();
-    $resident      = User::factory()->create();
+    $manager = User::factory()->manager()->create();
+    $resident = User::factory()->create();
     $otherResident = User::factory()->create();
-    $report        = FireReport::factory()->create(['resident_id' => $resident->id]);
+    $report = FireReport::factory()->create(['resident_id' => $resident->id]);
 
     $token = Auth::guard('api')->login($manager);
     Auth::forgetGuards();
@@ -1044,7 +1102,7 @@ test('manager can transfer report ownership via PATCH', function () {
         ->assertJsonPath('data.relationships.resident.data.id', $otherResident->id);
 
     $this->assertDatabaseHas('fire_reports', [
-        'id'          => $report->id,
+        'id' => $report->id,
         'resident_id' => $otherResident->id,
     ]);
 });
