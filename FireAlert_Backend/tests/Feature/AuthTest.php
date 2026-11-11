@@ -69,7 +69,8 @@ test('login rejects invalid credentials and returns a JWT for valid credentials'
         'email' => $user->email,
         'password' => 'incorrect',
     ])->assertUnauthorized()
-        ->assertJsonPath('message', 'Invalid credentials');
+        ->assertJsonPath('status', 401)
+        ->assertJsonPath('remaining_attempts', 4);
 
     $response = $this->postJson('/api/v1/auth/login', [
         'email' => $user->email,

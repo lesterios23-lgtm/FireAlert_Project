@@ -1,0 +1,135 @@
+
+> firealert-frontend@0.1.0 start
+> react-scripts start
+
+Attempting to bind to HOST environment variable: 0.0.0.0
+If this was unintentional, check that you haven't mistakenly set it in your shell.
+Learn more here: https://cra.link/advanced-config
+
+Starting the development server...
+
+Compiled successfully!
+
+You can now view firealert-frontend in the browser.
+
+  Local:            http://localhost:3000
+  On Your Network:  http://192.168.56.1:3000
+
+Note that the development build is not optimized.
+To create a production build, use npm run build.
+
+webpack compiled [1m[32msuccessfully[39m[22m
+Compiling...
+Compiled successfully!
+webpack compiled [1m[32msuccessfully[39m[22m
+Compiling...
+Compiled successfully!
+webpack compiled [1m[32msuccessfully[39m[22m
+Compiling...
+Compiled successfully!
+webpack compiled [1m[32msuccessfully[39m[22m
+Compiling...
+Compiled successfully!
+webpack compiled [1m[32msuccessfully[39m[22m
+Compiling...
+Compiled successfully!
+webpack compiled [1m[32msuccessfully[39m[22m
+Compiling...
+Compiled successfully!
+webpack compiled [1m[32msuccessfully[39m[22m
+Compiling...
+Compiled successfully!
+webpack compiled [1m[32msuccessfully[39m[22m
+Compiling...
+Failed to compile.
+
+[eslint] 
+src\components\resident\ResidentShell.jsx
+Syntax error: Unexpected token (305:20) (305:20)
+[1m[31mERROR[39m[22m in [1m./src/components/resident/ResidentShell.jsx[39m[22m
+Module build failed (from ./node_modules/babel-loader/lib/index.js):
+SyntaxError: C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\src\components\resident\ResidentShell.jsx: Unexpected token (305:20)
+
+[0m [90m 303 |[39m         [33m>[39m
+ [90m 304 |[39m           [33m<[39m[33msection[39m className[33m=[39m[32m'resident-address-modal'[39m role[33m=[39m[32m'dialog'[39m aria[33m-[39mmodal[33m=[39m[32m'true'[39m aria[33m-[39mlabelledby[33m=[39m[32m'address-modal-heading'[39m[33m>[39m
+[31m[1m>[22m[39m[90m 305 |[39m             [33m<[39m[33mdivName[39m[33m=[39m[32m'resident-address-modal-header'[39m[33m>[39m
+ [90m     |[39m                     [31m[1m^[22m[39m
+ [90m 306 |[39m               [33m<[39m[33mdiv[39m[33m>[39m
+ [90m 307 |[39m                 [33m<[39m[33mp[39m className[33m=[39m[32m'resident-eyebrow'[39m[33m>[39m[33mPROFILE[39m [33mSETUP[39m[33m<[39m[33m/[39m[33mp[39m[33m>[39m
+ [90m 308 |[39m                 [33m<[39m[33mh2[39m id[33m=[39m[32m'address-modal-heading'[39m[33m>[39m[33mYour[39m home address[33m<[39m[33m/[39m[33mh2[39m[33m>[39m[0m
+    at constructor (C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\node_modules\@babel\parser\lib\index.js:369:19)
+    at FlowParserMixin.raise (C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\node_modules\@babel\parser\lib\index.js:6600:19)
+    at FlowParserMixin.unexpected (C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\node_modules\@babel\parser\lib\index.js:6620:16)
+    at FlowParserMixin.jsxParseIdentifier (C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\node_modules\@babel\parser\lib\index.js:4591:12)
+    at FlowParserMixin.jsxParseNamespacedName (C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\node_modules\@babel\parser\lib\index.js:4598:23)
+    at FlowParserMixin.jsxParseAttribute (C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\node_modules\@babel\parser\lib\index.js:4674:22)
+    at FlowParserMixin.jsxParseOpeningElementAfterName (C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\node_modules\@babel\parser\lib\index.js:4689:28)
+    at FlowParserMixin.jsxParseOpeningElementAfterName (C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\node_modules\@babel\parser\lib\index.js:4089:18)
+    at FlowParserMixin.jsxParseOpeningElementAt (C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\node_modules\@babel\parser\lib\index.js:4684:17)
+    at FlowParserMixin.jsxParseElementAt (C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\node_modules\@babel\parser\lib\index.js:4708:33)
+    at FlowParserMixin.jsxParseElementAt (C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\node_modules\@babel\parser\lib\index.js:4720:32)
+    at FlowParserMixin.jsxParseElementAt (C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\node_modules\@babel\parser\lib\index.js:4720:32)
+    at FlowParserMixin.jsxParseElement (C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\node_modules\@babel\parser\lib\index.js:4771:17)
+    at FlowParserMixin.parseExprAtom (C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\node_modules\@babel\parser\lib\index.js:4781:19)
+    at FlowParserMixin.parseExprSubscripts (C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\node_modules\@babel\parser\lib\index.js:7985:23)
+    at FlowParserMixin.parseUpdate (C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\node_modules\@babel\parser\lib\index.js:7970:21)
+    at FlowParserMixin.parseMaybeUnary (C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\node_modules\@babel\parser\lib\index.js:7950:23)
+    at FlowParserMixin.parseMaybeUnaryOrPrivate (C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\node_modules\@babel\parser\lib\index.js:7796:61)
+    at FlowParserMixin.parseExprOps (C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\node_modules\@babel\parser\lib\index.js:7801:23)
+    at FlowParserMixin.parseMaybeConditional (C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\node_modules\@babel\parser\lib\index.js:7778:23)
+    at FlowParserMixin.parseMaybeAssign (C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\node_modules\@babel\parser\lib\index.js:7728:21)
+    at C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\node_modules\@babel\parser\lib\index.js:3519:39
+    at FlowParserMixin.tryParse (C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\node_modules\@babel\parser\lib\index.js:6937:20)
+    at FlowParserMixin.parseMaybeAssign (C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\node_modules\@babel\parser\lib\index.js:3519:18)
+    at C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\node_modules\@babel\parser\lib\index.js:7697:39
+    at FlowParserMixin.allowInAnd (C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\node_modules\@babel\parser\lib\index.js:9345:12)
+    at FlowParserMixin.parseMaybeAssignAllowIn (C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\node_modules\@babel\parser\lib\index.js:7697:17)
+    at FlowParserMixin.parseMaybeAssignAllowInOrVoidPattern (C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\node_modules\@babel\parser\lib\index.js:9412:17)
+    at FlowParserMixin.parseParenAndDistinguishExpression (C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\node_modules\@babel\parser\lib\index.js:8584:28)
+    at FlowParserMixin.parseParenAndDistinguishExpression (C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\node_modules\@babel\parser\lib\index.js:3612:18)
+    at FlowParserMixin.parseExprAtom (C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\node_modules\@babel\parser\lib\index.js:8240:23)
+    at FlowParserMixin.parseExprAtom (C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\node_modules\@babel\parser\lib\index.js:4786:20)
+    at FlowParserMixin.parseExprSubscripts (C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\node_modules\@babel\parser\lib\index.js:7985:23)
+    at FlowParserMixin.parseUpdate (C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\node_modules\@babel\parser\lib\index.js:7970:21)
+    at FlowParserMixin.parseMaybeUnary (C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\node_modules\@babel\parser\lib\index.js:7950:23)
+    at FlowParserMixin.parseMaybeUnaryOrPrivate (C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\node_modules\@babel\parser\lib\index.js:7796:61)
+    at FlowParserMixin.parseExprOpBaseRightExpr (C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\node_modules\@babel\parser\lib\index.js:7890:34)
+    at FlowParserMixin.parseExprOpRightExpr (C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\node_modules\@babel\parser\lib\index.js:7885:21)
+    at FlowParserMixin.parseExprOp (C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\node_modules\@babel\parser\lib\index.js:7851:27)
+    at FlowParserMixin.parseExprOps (C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\node_modules\@babel\parser\lib\index.js:7805:17)
+    at FlowParserMixin.parseMaybeConditional (C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\node_modules\@babel\parser\lib\index.js:7778:23)
+    at FlowParserMixin.parseMaybeAssign (C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\node_modules\@babel\parser\lib\index.js:7728:21)
+    at FlowParserMixin.parseMaybeAssign (C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\node_modules\@babel\parser\lib\index.js:3570:18)
+    at FlowParserMixin.parseExpressionBase (C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\node_modules\@babel\parser\lib\index.js:7681:23)
+    at C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\node_modules\@babel\parser\lib\index.js:7677:39
+    at FlowParserMixin.allowInAnd (C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\node_modules\@babel\parser\lib\index.js:9345:12)
+    at FlowParserMixin.parseExpression (C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\node_modules\@babel\parser\lib\index.js:7677:17)
+    at FlowParserMixin.jsxParseExpressionContainer (C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\node_modules\@babel\parser\lib\index.js:4654:31)
+    at FlowParserMixin.jsxParseElementAt (C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\node_modules\@babel\parser\lib\index.js:4733:36)
+    at FlowParserMixin.jsxParseElement (C:\laragon\etc\apps\www\Individual_Pro\FireAlert_Frontend\node_modules\@babel\parser\lib\index.js:4771:17)
+
+[1m[31mERROR[39m[22m in [1m[eslint] 
+src\components\resident\ResidentShell.jsx
+  Line 305:20:  Parsing [1m[31merror[39m[22m[1m: [1m[31mUnexpected[39m[22m[1m token (305:20)
+
+[39m[22m
+
+webpack compiled with [1m[31m2 errors[39m[22m
+Compiling...
+Compiled successfully!
+webpack compiled [1m[32msuccessfully[39m[22m
+Compiling...
+Compiled successfully!
+webpack compiled [1m[32msuccessfully[39m[22m
+Compiling...
+Compiled successfully!
+webpack compiled [1m[32msuccessfully[39m[22m
+Compiling...
+Compiled successfully!
+webpack compiled [1m[32msuccessfully[39m[22m
+Compiling...
+Compiled successfully!
+webpack compiled [1m[32msuccessfully[39m[22m
+Compiling...
+Compiled successfully!
+webpack compiled [1m[32msuccessfully[39m[22m

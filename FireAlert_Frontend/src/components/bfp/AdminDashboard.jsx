@@ -32,6 +32,11 @@ const EMPTY_TRUCK = {
   status: 'Available',
 };
 
+const DEFAULT_LOGIN_ATTEMPT_SETTINGS = {
+  max_attempts: 5,
+  lockout_minutes: 15,
+};
+
 function reportFromResource(report) {
   return {
     id: report.id,
@@ -53,6 +58,8 @@ export default function AdminDashboard() {
   const [userCategory, setUserCategory] = useState('all');
   const [editingTruck, setEditingTruck] = useState(null);
   const [truckForm, setTruckForm] = useState(EMPTY_TRUCK);
+  const [loginAttemptSettings, setLoginAttemptSettings] = useState(DEFAULT_LOGIN_ATTEMPT_SETTINGS);
+  const [savingLoginSettings, setSavingLoginSettings] = useState(false);
 
   const refresh = useCallback(async () => {
     setError('');
@@ -64,6 +71,10 @@ export default function AdminDashboard() {
         reports: (data.reports || []).map(reportFromResource),
         users: data.users || [],
         firetrucks: data.firetrucks || [],
+      });
+      setLoginAttemptSettings({
+        ...DEFAULT_LOGIN_ATTEMPT_SETTINGS,
+        ...(data.login_attempt_settings || {}),
       });
     } catch (requestError) {
       setError(requestError.message);
@@ -102,15 +113,17 @@ export default function AdminDashboard() {
     const countStatus = (status) => reports.filter((report) =>
       String(report.status || '').toLowerCase() === status
     ).length;
+    const activeReports = countStatus('pending');
+    const assignedUnits = dashboard.firetrucks.filter((truck) =>
+      String(truck.status || '').toLowerCase() !== 'available'
+    ).length;
     return {
       total: reports.length,
-      pending: countStatus('pending'),
-      responding: reports.filter((report) =>
-        ['accepted', 'responding', 'dispatched'].includes(String(report.status || '').toLowerCase())
-      ).length,
-      resolved: countStatus('resolved'),
+      active: activeReports,
+      assigned: assignedUnits,
+      highRisk: null,
     };
-  }, [reports]);
+  }, [reports, dashboard.firetrucks]);
 
   async function submitUser(event) {
     event.preventDefault();
@@ -211,10 +224,34 @@ export default function AdminDashboard() {
     return (
       <>
         <div className='admin-stat-grid'>
-          <StatCard label='Total incidents' value={stats.total} tone='navy' />
-          <StatCard label='Awaiting response' value={stats.pending} tone='amber' />
-          <StatCard label='Active response' value={stats.responding} tone='blue' />
-          <StatCard label='Resolved' value={stats.resolved} tone='green' />
+          <StatCard
+            label='Total reports*'
+            value={String(stats.total).padStart(2, '0')}
+            tone='navy'
+            icon='▤'
+            hint='Illustrative data'
+          />
+          <StatCard
+            label='Active reports*'
+            value={String(stats.active).padStart(2, '0')}
+            tone='amber'
+            icon='◷'
+            hint='Needs review'
+          />
+          <StatCard
+            label='Units assigned*'
+            value={String(stats.assigned).padStart(2, '0')}
+            tone='blue'
+            icon='▰'
+            hint={dashboard.firetrucks.length ? `${dashboard.firetrucks.length} units on record` : 'No units on record'}
+          />
+          <StatCard
+            label='High-risk areas*'
+            value={stats.highRisk === null ? '––' : String(stats.highRisk).padStart(2, '0')}
+            tone='amber'
+            icon='◍'
+            hint='Model output pending validation'
+          />
         </div>
         <section className='admin-panel'>
           <div className='admin-panel-heading'>
@@ -241,8 +278,66 @@ export default function AdminDashboard() {
     );
   }
 
+  async function submitLoginAttemptSettings(event) {
+    event.preventDefault();
+    setSavingLoginSettings(true);
+    setError('');
+    setNotice('');
+    try {
+      const response = await apiRequest('/admin/login-attempt-settings', {
+        method: 'PUT',
+        body: JSON.stringify({
+          max_attempts: Number(loginAttemptSettings.max_attempts),
+          lockout_minutes: Number(loginAttemptSettings.lockout_minutes),
+        }),
+      });
+      setLoginAttemptSettings({
+        ...DEFAULT_LOGIN_ATTEMPT_SETTINGS,
+        ...(response.data || {}),
+      });
+      setNotice('Login attempt security settings updated.');
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setSavingLoginSettings(false);
+    }
+  }
+
   function renderUsers() {
     return (
+      <>
+      <section className='admin-panel admin-login-security-panel'>
+        <div className='admin-panel-heading'>
+          <div><h2>Login security</h2><p>Lock an account temporarily after repeated incorrect passwords.</p></div>
+        </div>
+        <form className='admin-form admin-login-security-form' onSubmit={submitLoginAttemptSettings}>
+          <label>Failed attempts before lockout
+            <input
+              type='number'
+              min='1'
+              max='20'
+              required
+              value={loginAttemptSettings.max_attempts}
+              onChange={(event) => setLoginAttemptSettings({ ...loginAttemptSettings, max_attempts: event.target.value })}
+            />
+          </label>
+          <label>Lockout duration (minutes)
+            <input
+              type='number'
+              min='1'
+              max='1440'
+              required
+              value={loginAttemptSettings.lockout_minutes}
+              onChange={(event) => setLoginAttemptSettings({ ...loginAttemptSettings, lockout_minutes: event.target.value })}
+            />
+          </label>
+          <div className='admin-form-actions'>
+            <button className='admin-primary-button' type='submit' disabled={savingLoginSettings}>
+              {savingLoginSettings ? 'Saving...' : 'Save security settings'}
+            </button>
+          </div>
+        </form>
+      </section>
       <div className='admin-management-grid'>
         <section className='admin-panel'>
           <div className='admin-panel-heading'>
@@ -321,6 +416,7 @@ export default function AdminDashboard() {
           </div>
         </section>
       </div>
+      </>
     );
   }
 
@@ -397,8 +493,15 @@ export default function AdminDashboard() {
   );
 }
 
-function StatCard({ label, value, tone }) {
-  return <article className={`admin-stat-card ${tone}`}><span>{label}</span><strong>{value}</strong></article>;
+function StatCard({ label, value, tone, icon, hint }) {
+  return (
+    <article className={`admin-stat-card ${tone}`}>
+      {icon && <span className='admin-stat-icon' aria-hidden='true'>{icon}</span>}
+      <strong>{value}</strong>
+      <span>{label}</span>
+      {hint && <small className='admin-stat-hint'>{hint}</small>}
+    </article>
+  );
 }
 
 function PredictionUnavailable() {

@@ -7,8 +7,10 @@ use App\Http\Requests\Api\V1\ReplaceFireReportRequest;
 use App\Http\Requests\Api\V1\StoreFireReportRequest;
 use App\Http\Requests\Api\V1\UpdateFireReportRequest;
 use App\Http\Resources\V1\FireReportResource;
+use App\Models\FireIncident;
 use App\Models\FireReport;
 use App\Models\User;
+use App\Services\IncidentGroupingService;
 use App\Models\ReportEvidence;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -36,9 +38,11 @@ class FireReportController extends APIController
         if ($this->isAble('store', FireReport::class)) {
             $mapped = $request->mappedAttributes();
             $storedPath = null;
+            $groupingVerdict = null;
+            $groupingMeta = [];
 
             try {
-                $report = DB::transaction(function () use ($mapped, $request, &$storedPath): FireReport {
+                $report = DB::transaction(function () use ($mapped, $request, &$storedPath, &$groupingVerdict, &$groupingMeta): FireReport {
                     $report = FireReport::createFromApi([
                         ...$mapped,
                         'resident_id' => $mapped['resident_id'] ?? $request->user()->getAuthIdentifier(),
@@ -63,6 +67,23 @@ class FireReportController extends APIController
                         ]);
                     }
 
+                    // Duplicate detection + incident grouping. Kept inside the
+                    // request flow so reporting stays fast; grouping failures
+                    // must never lose the resident's submission.
+                    try {
+                        $grouping = IncidentGroupingService::fromConfig()->groupNewReport(
+                            $report,
+                            $request->user()?->getAuthIdentifier(),
+                        );
+                        $report->refresh();
+                        $groupingVerdict = $grouping['verdict'] ?? null;
+                        $groupingMeta = $grouping['meta'] ?? [];
+                    } catch (\Throwable $groupingError) {
+                        report($groupingError);
+                        $groupingVerdict = null;
+                        $groupingMeta = [];
+                    }
+
                     return $report;
                 });
             } catch (\Throwable $exception) {
@@ -73,7 +94,19 @@ class FireReportController extends APIController
                 throw $exception;
             }
 
-            return new FireReportResource($report);
+            $report->loadMissing('incident');
+
+            return (new FireReportResource($report))->additional([
+                'meta' => [
+                    'grouping' => [
+                        'verdict' => $groupingVerdict ?? null,
+                        'fireIncidentId' => $report->fire_incident_id,
+                        'fireIncidentCode' => $report->incident?->code,
+                        'duplicateFlag' => $report->duplicate_flag,
+                        'details' => $groupingMeta ?? [],
+                    ],
+                ],
+            ]);
         }
 
         return $this->notAuthorized('You are not authorized to create that resource.');

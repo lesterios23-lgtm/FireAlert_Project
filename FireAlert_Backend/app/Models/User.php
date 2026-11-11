@@ -20,6 +20,8 @@ use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
     'full_name',
     'contact_number',
     'address',
+    'home_latitude',
+    'home_longitude',
     'email',
     'password',
     'password_hash',
@@ -198,6 +200,8 @@ class User extends Authenticatable implements JWTSubject
             'email_verified_at' => 'datetime',
             'password'          => 'hashed',
             'is_manager'        => 'boolean',
+            'home_latitude'     => 'decimal:7',
+            'home_longitude'    => 'decimal:7',
         ];
     }
 }

@@ -46,8 +46,12 @@ test('selects a manual map location and submits the report with coordinates', as
   const onReportSubmitted = jest.fn();
   render(<EmergencyReportScreen onReportSubmitted={onReportSubmitted} />);
 
-  fireEvent.change(screen.getByLabelText(/Address or landmark/i), {
-    target: { value: 'Public Market, Brgy. Poblacion' },
+  fireEvent.change(screen.getByLabelText(/Incident barangay/i), {
+    target: { value: 'Poblacion' },
+  });
+  fireEvent.click(screen.getByRole('option', { name: /Brgy\. Poblacion/i }));
+  fireEvent.change(screen.getByLabelText(/Street \/ sitio \/ landmark detail/i), {
+    target: { value: 'Public Market' },
   });
   fireEvent.change(screen.getByLabelText(/Incident description/i), {
     target: { value: 'Smoke near the entrance.' },
@@ -74,7 +78,7 @@ test('selects a manual map location and submits the report with coordinates', as
   expect(request).toHaveProperty('type', 'fire_report');
   expect(request).not.toHaveProperty('data');
   expect(request.attributes).toEqual(expect.objectContaining({
-    incidentAddress: 'Public Market, Brgy. Poblacion',
+    incidentAddress: 'Public Market, Brgy. Poblacion, Mansalay, Oriental Mindoro',
     latitude: 12.3952,
     longitude: 121.4355,
     locationSource: 'manual',
@@ -90,8 +94,12 @@ test('previews and uploads optional photo evidence with the report', async () =>
   const photo = new File(['evidence'], 'incident.jpg', { type: 'image/jpeg' });
   render(<EmergencyReportScreen onReportSubmitted={onReportSubmitted} />);
 
-  fireEvent.change(screen.getByLabelText(/Address or landmark/i), {
-    target: { value: 'Public Market, Brgy. Poblacion' },
+  fireEvent.change(screen.getByLabelText(/Incident barangay/i), {
+    target: { value: 'Poblacion' },
+  });
+  fireEvent.click(screen.getByRole('option', { name: /Brgy\. Poblacion/i }));
+  fireEvent.change(screen.getByLabelText(/Street \/ sitio \/ landmark detail/i), {
+    target: { value: 'Public Market' },
   });
   fireEvent.change(screen.getByLabelText(/Incident description/i), {
     target: { value: 'Smoke near the entrance.' },
@@ -127,7 +135,6 @@ test('uses browser geolocation when available', async () => {
 
   expect(getCurrentPosition).toHaveBeenCalled();
   expect(await screen.findByText(/Selected location: 12\.40000, 121\.44000/i)).toBeInTheDocument();
-  expect(screen.getByDisplayValue('Current device location')).toBeInTheDocument();
 });
 
 test('allows placing the incident pin manually when device location is denied', async () => {
@@ -160,7 +167,11 @@ test('shows API validation errors and stays on the form when a report is rejecte
   });
 
   render(<EmergencyReportScreen onReportSubmitted={jest.fn()} />);
-  fireEvent.change(screen.getByLabelText(/Address or landmark/i), {
+  fireEvent.change(screen.getByLabelText(/Incident barangay/i), {
+    target: { value: 'Poblacion' },
+  });
+  fireEvent.click(screen.getByRole('option', { name: /Brgy\. Poblacion/i }));
+  fireEvent.change(screen.getByLabelText(/Street \/ sitio \/ landmark detail/i), {
     target: { value: 'Public Market, Brgy. Poblacion' },
   });
   fireEvent.change(screen.getByLabelText(/Incident description/i), {
@@ -173,6 +184,23 @@ test('shows API validation errors and stays on the form when a report is rejecte
   });
   expect(screen.getByRole('alert')).toHaveTextContent(/incident address field is required/i);
   expect(screen.getByRole('heading', { name: /Report a fire/i })).toBeInTheDocument();
+});
+
+test('rejects barangays outside Mansalay', () => {
+  render(<EmergencyReportScreen onReportSubmitted={jest.fn()} />);
+
+  fireEvent.change(screen.getByLabelText(/Incident description/i), {
+    target: { value: 'Smoke near the entrance.' },
+  });
+  fireEvent.change(screen.getByLabelText(/Incident barangay/i), {
+    target: { value: 'Not A Barangay' },
+  });
+
+  const form = screen.getByRole('button', { name: /Submit emergency report/i }).closest('form');
+  fireEvent.submit(form);
+
+  expect(global.fetch).not.toHaveBeenCalled();
+  expect(screen.getByRole('alert')).toHaveTextContent(/Mansalay list/i);
 });
 
 test('does not submit without the required incident description', () => {

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 const SAFETY_TABS = [
   { id: 'prevent', label: 'Prevent fires', icon: '🛡️' },
@@ -50,57 +51,93 @@ const SAFETY_CONTENT = {
 
 export default function FireSafetyTips() {
   const [activeTab, setActiveTab] = useState('prevent');
+  const [isOpen, setIsOpen] = useState(false);
   const content = SAFETY_CONTENT[activeTab];
 
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const closeOnEscape = (event) => {
+      if (event.key === 'Escape') setIsOpen(false);
+    };
+    document.addEventListener('keydown', closeOnEscape);
+    return () => document.removeEventListener('keydown', closeOnEscape);
+  }, [isOpen]);
+
   return (
-    <section className='resident-safety' aria-labelledby='safety-tips-heading'>
-      <div className='resident-safety-header'>
-        <div>
-          <p className='resident-eyebrow'>BFP Mansalay · #ThinkFireSafetyNow</p>
+    <>
+      <section className='resident-safety resident-safety-summary' aria-labelledby='safety-tips-heading'>
+        <div className='resident-safety-summary-icon' aria-hidden='true'>🔥</div>
+        <div className='resident-safety-summary-copy'>
+          <p className='resident-eyebrow'>BFP MANSALAY</p>
           <h2 id='safety-tips-heading'>Fire safety tips</h2>
+          <p>Simple ways to keep your family safe.</p>
         </div>
-        <span className='resident-safety-badge' aria-hidden='true'>🔥</span>
-      </div>
+        <button className='resident-safety-open' type='button' onClick={() => setIsOpen(true)}>
+          View tips <span aria-hidden='true'>→</span>
+        </button>
+      </section>
 
-      <div className='resident-safety-tabs' role='tablist' aria-label='Fire safety topics'>
-        {SAFETY_TABS.map((tab) => (
-          <button
-            key={tab.id}
-            type='button'
-            role='tab'
-            aria-selected={activeTab === tab.id}
-            aria-controls={`safety-panel-${tab.id}`}
-            id={`safety-tab-${tab.id}`}
-            className={activeTab === tab.id ? 'active' : ''}
-            onClick={() => setActiveTab(tab.id)}
-          >
-            <span aria-hidden='true'>{tab.icon}</span>
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      <div
-        className='resident-safety-panel'
-        role='tabpanel'
-        id={`safety-panel-${activeTab}`}
-        aria-labelledby={`safety-tab-${activeTab}`}
-      >
-        <h3 className='resident-safety-panel-heading'>{content.heading}</h3>
-        <p className='resident-safety-intro'>{content.intro}</p>
-        <ul className='resident-safety-list'>
-          {content.tips.map((tip) => (
-            <li key={tip.title}>
-              <span className='resident-safety-tip-icon' aria-hidden='true'>{tip.icon}</span>
+      {isOpen && createPortal(
+        <div
+          className='resident-safety-dialog-overlay'
+          onClick={(event) => {
+            if (event.target === event.currentTarget) setIsOpen(false);
+          }}
+        >
+          <section className='resident-safety-dialog' role='dialog' aria-modal='true' aria-labelledby='resident-safety-dialog-title'>
+            <header className='resident-safety-dialog-header'>
               <div>
-                <strong>{tip.title}</strong>
-                <p>{tip.detail}</p>
+                <p className='resident-eyebrow'>BFP MANSALAY · #ThinkFireSafetyNow</p>
+                <h2 id='resident-safety-dialog-title'>Fire safety tips</h2>
               </div>
-            </li>
-          ))}
-        </ul>
-        <p className='resident-safety-footer'>{content.footer}</p>
-      </div>
-    </section>
+              <button type='button' className='resident-safety-close' onClick={() => setIsOpen(false)} aria-label='Close fire safety tips'>
+                ×
+              </button>
+            </header>
+
+            <div className='resident-safety-tabs' role='tablist' aria-label='Fire safety topics'>
+              {SAFETY_TABS.map((tab) => (
+                <button
+                  key={tab.id}
+                  type='button'
+                  role='tab'
+                  aria-selected={activeTab === tab.id}
+                  aria-controls={`safety-panel-${tab.id}`}
+                  id={`safety-tab-${tab.id}`}
+                  className={activeTab === tab.id ? 'active' : ''}
+                  onClick={() => setActiveTab(tab.id)}
+                >
+                  <span aria-hidden='true'>{tab.icon}</span>
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            <div
+              className='resident-safety-panel'
+              role='tabpanel'
+              id={`safety-panel-${activeTab}`}
+              aria-labelledby={`safety-tab-${activeTab}`}
+            >
+              <h3 className='resident-safety-panel-heading'>{content.heading}</h3>
+              <p className='resident-safety-intro'>{content.intro}</p>
+              <ul className='resident-safety-list'>
+                {content.tips.map((tip) => (
+                  <li key={tip.title}>
+                    <span className='resident-safety-tip-icon' aria-hidden='true'>{tip.icon}</span>
+                    <div>
+                      <strong>{tip.title}</strong>
+                      <p>{tip.detail}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <p className='resident-safety-footer'>{content.footer}</p>
+            </div>
+          </section>
+        </div>,
+        document.body,
+      )}
+    </>
   );
 }

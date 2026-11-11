@@ -1292,3 +1292,465 @@
   from { opacity: 0.3; transform: scale(0.85); }
   to { opacity: 1; transform: scale(1.15); }
 }
+
+/* ===== Readability patch: larger + bolder text (no layout changes) ===== */
+.bfp-app {
+  font-size: 15px;
+  -webkit-font-smoothing: antialiased;
+}
+
+.bfp-logo small { font-size: 0.68rem; font-weight: 700; }
+.bfp-primary-nav button { font-size: 0.86rem; font-weight: 700; }
+.account-details strong { font-size: 0.85rem; font-weight: 700; }
+.account-details small { font-size: 0.72rem; font-weight: 600; }
+.bfp-signout { font-size: 0.8rem; font-weight: 700; }
+
+.bfp-page-heading p { font-size: 0.88rem; font-weight: 600; }
+.bfp-eyebrow { font-size: 0.7rem !important; font-weight: 800; }
+.bfp-connection,
+.bfp-restricted-label { font-size: 0.8rem; font-weight: 600; }
+
+.count-status { font-size: 0.85rem; font-weight: 700; }
+.bfp-count-card strong { font-size: 1.45rem; font-weight: 800; }
+
+.bfp-panel-heading h2 { font-size: 0.98rem; font-weight: 800; }
+.bfp-panel-heading p { font-size: 0.78rem; font-weight: 600; }
+.bfp-alarm-test-btn { font-size: 0.82rem; font-weight: 800; }
+
+.reference-id { font-size: 0.72rem; font-weight: 800; }
+.alert-card-top time { font-size: 0.7rem; font-weight: 600; }
+.bfp-alert-card > strong { font-size: 0.9rem; font-weight: 750; }
+.alert-description { font-size: 0.82rem; font-weight: 500; line-height: 1.5; }
+.bfp-status-badge { font-size: 0.7rem; font-weight: 800; }
+.bfp-panel-note { font-size: 0.74rem; font-weight: 500; }
+.bfp-empty-message { font-size: 0.88rem; font-weight: 600; }
+
+.bfp-incident-heading h2 { font-size: 1.1rem; font-weight: 800; }
+.bfp-incident-heading p { font-size: 0.8rem; font-weight: 600; }
+.bfp-incident-meta span,
+.resident-card-kicker { font-size: 0.66rem; font-weight: 800; }
+.bfp-incident-meta strong { font-size: 0.82rem; font-weight: 700; }
+
+.bfp-description h3,
+.detail-info h3 { font-size: 0.92rem; font-weight: 800; }
+.bfp-description p,
+.detail-info > p { font-size: 0.86rem; font-weight: 500; }
+
+.bfp-confirmation strong { font-size: 0.85rem; font-weight: 800; }
+.bfp-confirmation small { font-size: 0.74rem; font-weight: 600; }
+.bfp-dispatch-form label { font-size: 0.78rem; font-weight: 800; }
+.bfp-dispatch-form select,
+.bfp-dispatch-form input,
+.bfp-filter-select select { font-size: 0.85rem; font-weight: 600; }
+.bfp-form-help,
+.bfp-eta-help { font-size: 0.75rem; font-weight: 500; }
+.bfp-primary-button { font-size: 0.86rem; font-weight: 800; }
+
+.bfp-assignment-note strong,
+.bfp-security-note strong { font-size: 0.78rem; font-weight: 800; }
+.bfp-assignment-note p,
+.bfp-security-note p { font-size: 0.76rem; font-weight: 500; }
+
+.bfp-evidence-error { font-size: 0.78rem; font-weight: 700; }
+.bfp-incident-record-form h3 { font-size: 0.88rem; font-weight: 800; }
+.bfp-incident-record-form label { font-size: 0.78rem; font-weight: 800; }
+.bfp-incident-record-form input,
+.bfp-incident-record-form textarea { font-size: 0.85rem; font-weight: 500; }
+.bfp-text-button { font-size: 0.76rem; font-weight: 800; }
+
+.bfp-record-table { font-size: 0.78rem; }
+.bfp-record-table th { font-size: 0.68rem; font-weight: 800; }
+.bfp-record-table td strong { font-size: 0.8rem; font-weight: 700; }
+.bfp-record-table td small { font-size: 0.7rem; font-weight: 500; }
+.bfp-table-heading h2 { font-size: 0.92rem; font-weight: 800; }
+.bfp-table-heading span { font-size: 0.74rem; font-weight: 600; }
+.bfp-table-footnote { font-size: 0.7rem; font-weight: 600; }
+.bfp-search input { font-size: 0.82rem; font-weight: 500; }
+.bfp-error { font-size: 0.85rem; font-weight: 700; }
+.bfp-footer { font-size: 0.7rem; font-weight: 600; }
+.detail-info-pair { font-size: 0.76rem; }
+.detail-info-pair strong { font-weight: 700; }
+
+/* ===== BFP profile avatar + info card ===== */
+.bfp-account {
+  position: relative;
+}
+
+.bfp-profile-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.25rem 0.35rem;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.bfp-profile-trigger:hover {
+  border-color: rgb(255 255 255 / 18%);
+  background: rgb(255 255 255 / 8%);
+}
+
+.bfp-profile-avatar {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #d94f42, #8f2b23);
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  box-shadow: 0 0 0 2px rgb(255 255 255 / 22%);
+}
+
+.bfp-profile-avatar.large {
+  width: 48px;
+  height: 48px;
+  flex-basis: 48px;
+  font-size: 1.05rem;
+}
+
+.bfp-profile-card {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 60;
+  width: min(300px, 82vw);
+  border: 1px solid #e0e5e9;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 14px 36px rgb(18 36 53 / 22%);
+  overflow: hidden;
+  color: #27394b;
+  animation: bfpAlarmPopIn 0.18s ease-out;
+}
+
+.bfp-profile-card-head {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.85rem 0.9rem;
+  background: #172a3e;
+  color: #fff;
+}
+
+.bfp-profile-card-head strong {
+  display: block;
+  font-size: 0.92rem;
+  font-weight: 800;
+}
+
+.bfp-profile-card-head small {
+  display: block;
+  margin-top: 0.15rem;
+  color: #b8c2ce;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.bfp-profile-rows {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0.55rem 0.9rem 0.2rem;
+}
+
+.bfp-profile-rows > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.7rem;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid #eef0f3;
+}
+
+.bfp-profile-rows > div:last-child {
+  border-bottom: 0;
+}
+
+.bfp-profile-rows dt {
+  color: #85909d;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.bfp-profile-rows dd {
+  margin: 0;
+  color: #2b3d50;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.bfp-profile-signout {
+  display: block;
+  width: calc(100% - 1.8rem);
+  margin: 0.55rem 0.9rem 0.9rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #e5c3bd;
+  border-radius: 8px;
+  background: #fdf0ee;
+  color: #b5121f;
+  font-size: 0.84rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.bfp-profile-signout:hover {
+  background: #d93636;
+  border-color: #d93636;
+  color: #fff;
+}
+
+@media (max-width: 760px) {
+  .bfp-profile-card {
+    position: fixed;
+    top: auto;
+    bottom: 1rem;
+    right: 0.75rem;
+    left: 0.75rem;
+    width: auto;
+  }
+}
+
+/* ===== Main Incident grouping (duplicate report consolidation) ===== */
+.bfp-feed-tabs {
+  display: flex;
+  gap: 0.4rem;
+  padding: 0 0.6rem 0.55rem;
+}
+
+.bfp-feed-tabs button {
+  flex: 1;
+  padding: 0.42rem 0.5rem;
+  border: 1px solid #dfe5e9;
+  border-radius: 6px;
+  background: #f6f8fa;
+  color: #5a6e80;
+  cursor: pointer;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.bfp-feed-tabs button.active {
+  border-color: #d93636;
+  background: #fdecec;
+  color: #b5121f;
+}
+
+.bfp-incident-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  margin-top: 0.15rem;
+}
+
+.bfp-report-count {
+  color: #35485a;
+  font-size: 0.74rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.bfp-verify-flag {
+  display: block;
+  margin-top: 0.3rem;
+  padding: 0.3rem 0.45rem;
+  border-radius: 5px;
+  background: #fff7e6;
+  color: #92580a;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.bfp-alarm-verify {
+  margin: 0.45rem 0 0;
+  padding: 0.45rem 0.6rem;
+  border-radius: 6px;
+  background: #fff3cd;
+  color: #664d03;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.bfp-members {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid #edf0f3;
+}
+
+.bfp-members > h3 {
+  margin: 0;
+  color: #27394b;
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.bfp-grouping-note-label {
+  color: #647487;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.bfp-grouping-note {
+  min-height: 32px;
+  padding: 0 0.55rem;
+  border: 1px solid #dce2e8;
+  border-radius: 5px;
+  color: #33475b;
+  font-size: 0.8rem;
+}
+
+.bfp-member-card {
+  border: 1px solid #e3e7ea;
+  border-radius: 7px;
+  background: #fbfcfd;
+  overflow: hidden;
+}
+
+.bfp-member-card.needs-verify {
+  border-color: #e7a43c;
+  background: #fffdf5;
+}
+
+.bfp-member-head {
+  display: flex;
+  width: 100%;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.55rem 0.6rem 0.3rem;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.bfp-member-head .reference-id {
+  flex-shrink: 0;
+}
+
+.bfp-member-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: #27394b;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bfp-member-head time {
+  flex-shrink: 0;
+  color: #8994a0;
+  font-size: 0.68rem;
+}
+
+.bfp-member-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding: 0 0.6rem 0.45rem;
+}
+
+.bfp-duplicate-flag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.16rem 0.42rem;
+  border-radius: 4px;
+  font-size: 0.66rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.flag-anchor { background: #e8f3ec; color: #237a52; }
+.flag-grouped { background: #e9eef5; color: #37506a; }
+.flag-possible { background: #fff0d6; color: #92580a; }
+.flag-separated { background: #f3e9f5; color: #6d3a78; }
+
+.bfp-member-body {
+  padding: 0.1rem 0.6rem 0.6rem;
+  color: #526375;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.bfp-member-body p {
+  margin: 0.3rem 0;
+  overflow-wrap: anywhere;
+}
+
+.bfp-member-meta {
+  color: #85909d;
+  font-size: 0.72rem;
+}
+
+.bfp-member-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.45rem;
+  padding-top: 0.45rem;
+  border-top: 1px dashed #e0e5e9;
+}
+
+.bfp-attach-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: #647487;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.bfp-attach-control select {
+  min-height: 30px;
+  max-width: 190px;
+  padding: 0 0.4rem;
+  border: 1px solid #dce2e8;
+  border-radius: 5px;
+  color: #33475b;
+  font-size: 0.74rem;
+}
+
+.bfp-merge-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+  padding: 0.65rem;
+  border: 1px solid #e4e9ed;
+  border-radius: 7px;
+  background: #fafbfc;
+}
+
+.bfp-merge-form label {
+  color: #647487;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.bfp-merge-form select {
+  min-height: 34px;
+  padding: 0 0.55rem;
+  border: 1px solid #dce2e8;
+  border-radius: 5px;
+  color: #33475b;
+  font-size: 0.8rem;
+}

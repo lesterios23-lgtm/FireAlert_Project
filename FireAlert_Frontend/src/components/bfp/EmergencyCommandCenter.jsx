@@ -13,6 +13,14 @@ const STATUS_LABELS = {
   responding: 'En route',
   resolved: 'Incident resolved',
   rejected: 'Rejected',
+  merged: 'Merged into another incident',
+};
+
+const DUPLICATE_LABELS = {
+  anchor: 'First report',
+  grouped: 'Grouped report',
+  possible: 'Possible duplicate — verify',
+  separated: 'Separated by BFP',
 };
 
 function statusKey(value) {
@@ -62,6 +70,38 @@ function responseData(payload) {
   };
 }
 
+function normalizeIncident(raw) {
+  if (!raw) return null;
+  const attributes = raw.attributes || {};
+  const memberReports = Array.isArray(attributes.reports)
+    ? attributes.reports.map((report) => {
+      const normalized = normalizeReport(report);
+      return { ...normalized, status: statusKey(normalized?.status) };
+    })
+    : [];
+  return {
+    id: raw.id,
+    code: attributes.code || `INC-${String(raw.id).padStart(3, '0')}`,
+    incidentDescription: attributes.incidentDescription || '',
+    incidentAddress: attributes.incidentAddress || '',
+    latitude: attributes.latitude,
+    longitude: attributes.longitude,
+    status: statusKey(attributes.status),
+    firstReportedAt: attributes.firstReportedAt || null,
+    lastReportedAt: attributes.lastReportedAt || null,
+    reportCount: attributes.reportCount ?? memberReports.length,
+    reports: memberReports,
+    possibleDuplicates: Array.isArray(attributes.possibleDuplicates) ? attributes.possibleDuplicates : [],
+    dispatch: raw.dispatch || null,
+  };
+}
+
+function normalizeIncidents(payload) {
+  const data = payload?.data || {};
+  const list = Array.isArray(data.incidents) ? data.incidents : [];
+  return list.map(normalizeIncident).filter(Boolean);
+}
+
 function EvidencePreview({ reportId }) {
   const [imageUrl, setImageUrl] = useState('');
   const [loading, setLoading] = useState(false);
@@ -108,13 +148,24 @@ function EvidencePreview({ reportId }) {
   );
 }
 
+function safeCloseAudioContext(audioCtx) {
+  if (!audioCtx) return;
+  try {
+    if (audioCtx.state === 'closed' || audioCtx.state === 'closing') return;
+    const closePromise = audioCtx.close();
+    if (closePromise && typeof closePromise.catch === 'function') {
+      closePromise.catch(() => {});
+    }
+  } catch {}
+}
+
 function playEmergencyAlarmSound() {
   try {
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
     if (!AudioContextClass) return () => {};
     const audioCtx = new AudioContextClass();
     if (audioCtx.state === 'suspended') {
-      audioCtx.resume();
+      audioCtx.resume().catch(() => {});
     }
 
     let isHigh = true;
@@ -122,9 +173,9 @@ function playEmergencyAlarmSound() {
     const maxBeeps = 12;
 
     const timer = setInterval(() => {
-      if (beeps >= maxBeeps || audioCtx.state === 'closed') {
+      if (beeps >= maxBeeps || audioCtx.state === 'closed' || audioCtx.state === 'closing') {
         clearInterval(timer);
-        try { audioCtx.close(); } catch {}
+        safeCloseAudioContext(audioCtx);
         return;
       }
 
@@ -148,7 +199,7 @@ function playEmergencyAlarmSound() {
 
     return () => {
       clearInterval(timer);
-      try { audioCtx.close(); } catch {}
+      safeCloseAudioContext(audioCtx);
     };
   } catch {
     return () => {};
@@ -170,8 +221,15 @@ export default function EmergencyCommandCenter() {
   const [error, setError] = useState('');
   const [alarmReport, setAlarmReport] = useState(null);
   const [flyTrigger, setFlyTrigger] = useState(0);
+  const [incidents, setIncidents] = useState([]);
+  const [feedView, setFeedView] = useState('incidents');
+  const [selectedIncidentId, setSelectedIncidentId] = useState(null);
+  const [expandedMemberId, setExpandedMemberId] = useState(null);
+  const [groupingNote, setGroupingNote] = useState('');
+  const [mergeTargetId, setMergeTargetId] = useState('');
 
   const knownReportIdsRef = useRef(null);
+  const incidentsRef = useRef(new Set());
   const stopAlarmSoundRef = useRef(null);
 
   const dismissAlarm = useCallback(() => {
@@ -197,6 +255,14 @@ export default function EmergencyCommandCenter() {
       const data = responseData(payload);
       const incomingReports = data.reports;
 
+      let incomingIncidents = [];
+      try {
+        incomingIncidents = normalizeIncidents(await apiRequest('/incidents'));
+      } catch (incidentError) {
+        // Incident grouping endpoint unavailable: keep the flat report feed.
+        incomingIncidents = [];
+      }
+
       // Detect newly arrived report(s)
       if (knownReportIdsRef.current !== null) {
         const newReports = incomingReports.filter(
@@ -205,19 +271,33 @@ export default function EmergencyCommandCenter() {
 
         if (newReports.length > 0) {
           const newest = newReports[0];
+          const newestIncident = incomingIncidents.find(
+            (incident) => incident.reports.some((member) => String(member.id) === String(newest.id))
+          );
+          const isNewIncident = newestIncident && !incidentsRef.current.has(String(newestIncident.id));
+          // Alarm only for a brand-new Main Incident, a possible duplicate
+          // needing verification, or an ungrouped new report — not for every
+          // auto-attached supporting report.
+          const needsAlarm = isNewIncident
+            || newest.duplicateFlag === 'possible'
+            || !newestIncident;
           setSelectedId(newest.id);
-          setAlarmReport(newest);
-          setFlyTrigger((v) => v + 1);
-
-          if (stopAlarmSoundRef.current) {
-            stopAlarmSoundRef.current();
+          if (newestIncident) setSelectedIncidentId(newestIncident.id);
+          if (needsAlarm) {
+            setAlarmReport({ ...newest, incidentCode: newestIncident?.code || null });
+            setFlyTrigger((v) => v + 1);
+            if (stopAlarmSoundRef.current) {
+              stopAlarmSoundRef.current();
+            }
+            stopAlarmSoundRef.current = playEmergencyAlarmSound();
           }
-          stopAlarmSoundRef.current = playEmergencyAlarmSound();
         }
       }
 
       knownReportIdsRef.current = new Set(incomingReports.map((r) => String(r.id)));
+      incidentsRef.current = new Set(incomingIncidents.map((incident) => String(incident.id)));
 
+      setIncidents(incomingIncidents);
       setReports(incomingReports);
       setTrucks(data.trucks);
       setPersonnel(data.personnel);
@@ -241,6 +321,13 @@ export default function EmergencyCommandCenter() {
   }, [loadCommandCenter]);
 
   const selectedReport = reports.find((report) => String(report.id) === String(selectedId)) || null;
+  const selectedIncident = incidents.find((incident) => String(incident.id) === String(selectedIncidentId)) || null;
+  const activeMembers = selectedIncident?.reports || [];
+  // Dispatch + detail operate on the anchor (first) member of the open Main
+  // Incident so grouped reports share one coordinated response.
+  const focusedReport = feedView === 'incidents' && selectedIncident
+    ? (activeMembers.find((member) => String(member.id) === String(selectedId)) || activeMembers[0] || selectedReport)
+    : selectedReport;
   const availableStatuses = useMemo(() => {
     const seen = new Set();
     return statuses
@@ -253,13 +340,13 @@ export default function EmergencyCommandCenter() {
   }, [statuses]);
 
   useEffect(() => {
-    setNextStatus(selectedReport?.status || '');
-  }, [selectedReport?.id, selectedReport?.status]);
+    setNextStatus(focusedReport?.status || '');
+  }, [focusedReport?.id, focusedReport?.status]);
 
   useEffect(() => {
-    const suggestedEta = suggestArrivalMinutes(selectedReport?.latitude, selectedReport?.longitude);
+    const suggestedEta = suggestArrivalMinutes(focusedReport?.latitude, focusedReport?.longitude);
     setEta(suggestedEta === null ? '' : String(suggestedEta));
-  }, [selectedReport?.id, selectedReport?.latitude, selectedReport?.longitude]);
+  }, [focusedReport?.id, focusedReport?.latitude, focusedReport?.longitude]);
 
   const statusCounts = useMemo(
     () => availableStatuses.map(({ value, name }) => ({
@@ -269,10 +356,20 @@ export default function EmergencyCommandCenter() {
     })),
     [availableStatuses, reports]
   );
-  const stationDistanceKm = selectedReport
-    ? calculateStationDistanceKm(selectedReport.latitude, selectedReport.longitude)
+  const stationDistanceKm = focusedReport
+    ? calculateStationDistanceKm(focusedReport.latitude, focusedReport.longitude)
     : null;
-  const markers = reports
+  const incidentMarkers = (selectedIncident?.reports || [])
+    .filter((member) => member.latitude != null && member.longitude != null)
+    .map((member) => ({
+      id: member.id,
+      lat: Number(member.latitude),
+      lng: Number(member.longitude),
+      address: member.incidentAddress || `Report FA-${String(member.id).padStart(6, '0')}`,
+    }));
+  const markers = feedView === 'incidents' && selectedIncident && incidentMarkers.length > 0
+    ? incidentMarkers
+    : reports
     .filter((report) => report.latitude != null && report.longitude != null)
     .map((report) => ({
       id: report.id,
@@ -281,9 +378,69 @@ export default function EmergencyCommandCenter() {
       address: report.incidentAddress || `Incident FA-${String(report.id).padStart(6, '0')}`,
     }));
 
+  const selectIncident = (incident) => {
+    setFeedView('incidents');
+    setSelectedIncidentId(incident.id);
+    const anchor = incident.reports?.[0];
+    if (anchor) {
+      setSelectedId(anchor.id);
+      setFlyTrigger((v) => v + 1);
+    }
+  };
+
+  const runGroupingAction = async (actionLabel, requestFn) => {
+    setUpdating(true);
+    setError('');
+    try {
+      await requestFn();
+      setGroupingNote('');
+      setMergeTargetId('');
+      await loadCommandCenter(false);
+    } catch (requestError) {
+      setError(requestError.message || `Unable to ${actionLabel}.`);
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const attachMemberToIncident = (memberId, targetIncidentId) => runGroupingAction('attach the report', () =>
+    apiRequest(`/incidents/${targetIncidentId}/reports/${memberId}/attach`, {
+      method: 'POST',
+      body: JSON.stringify({ reason: groupingNote.trim() || undefined }),
+    }));
+
+  const detachMember = (memberId) => runGroupingAction('separate the report', () =>
+    apiRequest(`/reports/${memberId}/detach`, {
+      method: 'POST',
+      body: JSON.stringify({ reason: groupingNote.trim() || undefined }),
+    }));
+
+  const mergeSelectedIncident = (event) => {
+    event.preventDefault();
+    if (!selectedIncident || !mergeTargetId || String(mergeTargetId) === String(selectedIncident.id)) return;
+    return runGroupingAction('merge the incidents', () =>
+      apiRequest(`/incidents/${selectedIncident.id}/merge`, {
+        method: 'POST',
+        body: JSON.stringify({
+          into_incident_id: Number(mergeTargetId),
+          reason: groupingNote.trim() || undefined,
+        }),
+      }));
+  };
+
+  const updateIncidentStatus = (event) => {
+    event.preventDefault();
+    if (!selectedIncident || !nextStatus || nextStatus === selectedIncident.status) return;
+    return runGroupingAction('update the incident status', () =>
+      apiRequest(`/incidents/${selectedIncident.id}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: nextStatus }),
+      }));
+  };
+
   const updateStatus = async (event) => {
     event.preventDefault();
-    if (!selectedReport || !nextStatus || nextStatus === selectedReport.status) return;
+    if (!focusedReport || !nextStatus || nextStatus === focusedReport.status) return;
 
     setUpdating(true);
     setError('');
@@ -307,12 +464,12 @@ export default function EmergencyCommandCenter() {
 
   const dispatchResponse = async (event) => {
     event.preventDefault();
-    if (!selectedReport) return;
+    if (!focusedReport) return;
 
     setUpdating(true);
     setError('');
     try {
-      await apiRequest(`/reports/${selectedReport.id}/dispatch`, {
+      await apiRequest(`/reports/${focusedReport.id}/dispatch`, {
         method: 'POST',
         body: JSON.stringify({
           truck_id: Number(truckId),
@@ -359,7 +516,11 @@ export default function EmergencyCommandCenter() {
           <div className='bfp-panel-heading'>
             <div>
               <h2>Active Alerts Feed</h2>
-              <p>{reports.length} reports · newest first</p>
+              <p>
+                {feedView === 'incidents'
+                  ? `${incidents.length} main incidents · ${reports.length} resident reports`
+                  : `${reports.length} reports · newest first`}
+              </p>
             </div>
             <div className='bfp-panel-heading-actions'>
               <button
@@ -367,7 +528,7 @@ export default function EmergencyCommandCenter() {
                 className='bfp-alarm-test-btn'
                 onClick={() => {
                   if (reports.length > 0) {
-                    const target = selectedReport || reports[0];
+                    const target = focusedReport || reports[0];
                     setSelectedId(target.id);
                     setAlarmReport(target);
                     setFlyTrigger((v) => v + 1);
@@ -385,9 +546,61 @@ export default function EmergencyCommandCenter() {
             </div>
           </div>
 
+          <div className='bfp-feed-tabs' role='tablist' aria-label='Alerts feed view'>
+            <button
+              type='button'
+              role='tab'
+              aria-selected={feedView === 'incidents'}
+              className={feedView === 'incidents' ? 'active' : ''}
+              onClick={() => setFeedView('incidents')}
+            >
+              Main Incidents ({incidents.length})
+            </button>
+            <button
+              type='button'
+              role='tab'
+              aria-selected={feedView === 'reports'}
+              className={feedView === 'reports' ? 'active' : ''}
+              onClick={() => setFeedView('reports')}
+            >
+              All Reports ({reports.length})
+            </button>
+          </div>
+
           <div className='bfp-alert-list'>
             {loading ? (
               <p className='bfp-empty-message'>Loading reports…</p>
+            ) : feedView === 'incidents' ? (
+              incidents.length === 0 ? (
+                <p className='bfp-empty-message'>No fire incidents yet. Switch to All Reports to review incoming submissions.</p>
+              ) : incidents.map((incident) => (
+                <button
+                  type='button'
+                  key={incident.id}
+                  className={`bfp-alert-card bfp-incident-card${String(incident.id) === String(selectedIncidentId) ? ' selected' : ''}`}
+                  onClick={() => selectIncident(incident)}
+                >
+                  <span className='alert-card-top'>
+                    <span className='reference-id'>{incident.code}</span>
+                    <time>{formatDate(incident.lastReportedAt || incident.firstReportedAt)}</time>
+                  </span>
+                  <strong>{incident.incidentAddress || 'Location not provided'}</strong>
+                  <span className='alert-description'>{incident.incidentDescription || 'No description provided.'}</span>
+                  <span className='bfp-incident-card-foot'>
+                    <span className={`bfp-status-badge status-${incident.status || 'pending'}`}>
+                      <i /> {STATUS_LABELS[incident.status] || incident.status || 'Unknown'}
+                    </span>
+                    <span className='bfp-report-count' title='Total supporting reports'>
+                      📄 {incident.reportCount} report{incident.reportCount === 1 ? '' : 's'}
+                    </span>
+                  </span>
+                  {incident.possibleDuplicates.length > 0 && (
+                    <span className='bfp-verify-flag' role='note'>
+                      ⚠ {incident.possibleDuplicates.length} possible duplicate{incident.possibleDuplicates.length === 1 ? '' : 's'} need verification
+                    </span>
+                  )}
+                </button>
+              ))
             ) : reports.length === 0 ? (
               <p className='bfp-empty-message'>No fire reports have been submitted.</p>
             ) : reports.map((report) => (
@@ -396,6 +609,7 @@ export default function EmergencyCommandCenter() {
                 key={report.id}
                 className={`bfp-alert-card${String(report.id) === String(selectedId) ? ' selected' : ''}`}
                 onClick={() => {
+                  setFeedView('reports');
                   setSelectedId(report.id);
                   setFlyTrigger((v) => v + 1);
                 }}
@@ -416,7 +630,164 @@ export default function EmergencyCommandCenter() {
         </section>
 
         <section className='bfp-panel incident-panel'>
-          {selectedReport ? (
+          {feedView === 'incidents' ? (
+            selectedIncident ? (
+              <>
+                <div className='bfp-incident-heading'>
+                  <div>
+                    <p className='bfp-eyebrow'>Main Incident · {selectedIncident.code}</p>
+                    <h2>{selectedIncident.incidentAddress || 'Location not provided'}</h2>
+                    <p>
+                      {selectedIncident.reportCount} supporting report{selectedIncident.reportCount === 1 ? '' : 's'}
+                      {' · '}first {formatDate(selectedIncident.firstReportedAt)}
+                    </p>
+                  </div>
+                  <span className={`bfp-status-badge status-${selectedIncident.status || 'pending'}`}>
+                    <i /> {STATUS_LABELS[selectedIncident.status] || selectedIncident.status || 'Unknown'}
+                  </span>
+                </div>
+
+                <MapContainer markers={markers} selected={focusedReport} height='300px' flyTrigger={flyTrigger} />
+
+                <div className='bfp-incident-meta'>
+                  <div><span>FIRST REPORT</span><strong>{formatDate(selectedIncident.firstReportedAt)}</strong></div>
+                  <div><span>LATEST REPORT</span><strong>{formatDate(selectedIncident.lastReportedAt)}</strong></div>
+                  <div><span>RESPONSE STATUS</span><strong>{STATUS_LABELS[selectedIncident.status] || selectedIncident.status || 'Unknown'}</strong></div>
+                </div>
+
+                <div className='bfp-description'>
+                  <h3>Incident information</h3>
+                  <p>{selectedIncident.incidentDescription || 'No incident description provided.'}</p>
+                </div>
+                {selectedIncident.dispatch && (
+                  <div className='bfp-assignment-note'>
+                    <strong>Current response unit</strong>
+                    <p>{selectedIncident.dispatch.unit_name || selectedIncident.dispatch.plate_number || 'Assigned vehicle'} · {selectedIncident.dispatch.personnel_name || 'Assigned personnel'} · ETA {selectedIncident.dispatch.estimated_eta_minutes} min</p>
+                  </div>
+                )}
+
+                <div className='bfp-members'>
+                  <h3>Supporting reports ({activeMembers.length})</h3>
+                  <label className='bfp-grouping-note-label' htmlFor='grouping-note'>
+                    Note for attach / separate / merge actions (recorded in the audit log)
+                  </label>
+                  <input
+                    id='grouping-note'
+                    type='text'
+                    className='bfp-grouping-note'
+                    value={groupingNote}
+                    onChange={(event) => setGroupingNote(event.target.value)}
+                    placeholder='e.g. Confirmed same fire on site'
+                  />
+                  {activeMembers.map((member) => {
+                    const expanded = String(member.id) === String(expandedMemberId);
+                    const otherIncidents = incidents.filter((incident) => String(incident.id) !== String(selectedIncident.id));
+                    return (
+                      <article key={member.id} className={`bfp-member-card${member.duplicateFlag === 'possible' ? ' needs-verify' : ''}`}>
+                        <button
+                          type='button'
+                          className='bfp-member-head'
+                          onClick={() => {
+                            setSelectedId(member.id);
+                            setExpandedMemberId(expanded ? null : member.id);
+                            setFlyTrigger((v) => v + 1);
+                          }}
+                          aria-expanded={expanded}
+                        >
+                          <span className='reference-id'>FA-{String(member.id).padStart(6, '0')}</span>
+                          <span className='bfp-member-title'>{member.incidentAddress || member.incidentDescription || 'Report'}</span>
+                          <time>{formatDate(member.reportedAt || member.createdAt)}</time>
+                        </button>
+                        <div className='bfp-member-tags'>
+                          {member.duplicateFlag && (
+                            <span className={`bfp-duplicate-flag flag-${member.duplicateFlag}`}>
+                              {DUPLICATE_LABELS[member.duplicateFlag] || member.duplicateFlag}
+                            </span>
+                          )}
+                          <span className={`bfp-status-badge status-${member.status || 'pending'}`}>
+                            <i /> {STATUS_LABELS[member.status] || member.status || 'Unknown'}
+                          </span>
+                        </div>
+                        {expanded && (
+                          <div className='bfp-member-body'>
+                            <p><strong>Reported by:</strong> {member.residentName || 'Resident details unavailable'}</p>
+                            <p>{member.incidentDescription || 'No description provided.'}</p>
+                            <p className='bfp-member-meta'>
+                              {member.latitude != null && member.longitude != null
+                                ? `GPS: ${member.latitude}, ${member.longitude} · `
+                                : ''}
+                              {member.locationSource || 'Source unavailable'}
+                            </p>
+                            {member.hasEvidence && <EvidencePreview key={member.id} reportId={member.id} />}
+                            <div className='bfp-member-actions'>
+                              <button
+                                type='button'
+                                className='bfp-text-button'
+                                disabled={updating}
+                                onClick={() => detachMember(member.id)}
+                                title='Separate this report into its own Main Incident'
+                              >
+                                ⤴ Separate
+                              </button>
+                              {otherIncidents.length > 0 && (
+                                <label className='bfp-attach-control'>
+                                  <span>Attach to</span>
+                                  <select
+                                    defaultValue=''
+                                    disabled={updating}
+                                    onChange={(event) => {
+                                      if (event.target.value) attachMemberToIncident(member.id, event.target.value);
+                                      event.target.value = '';
+                                    }}
+                                    aria-label={`Attach report FA-${String(member.id).padStart(6, '0')} to another incident`}
+                                  >
+                                    <option value=''>Select incident…</option>
+                                    {otherIncidents.map((incident) => (
+                                      <option key={incident.id} value={incident.id}>
+                                        {incident.code} · {incident.incidentAddress || 'No address'} ({incident.reportCount})
+                                      </option>
+                                    ))}
+                                  </select>
+                                </label>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </article>
+                    );
+                  })}
+                </div>
+
+                <form className='bfp-merge-form' onSubmit={mergeSelectedIncident}>
+                  <label htmlFor='merge-target'>Merge this incident into</label>
+                  <select
+                    id='merge-target'
+                    value={mergeTargetId}
+                    onChange={(event) => setMergeTargetId(event.target.value)}
+                    required
+                  >
+                    <option value=''>Select target incident…</option>
+                    {incidents
+                      .filter((incident) => String(incident.id) !== String(selectedIncident.id))
+                      .map((incident) => (
+                        <option key={incident.id} value={incident.id}>
+                          {incident.code} · {incident.incidentAddress || 'No address'} ({incident.reportCount})
+                        </option>
+                      ))}
+                  </select>
+                  <button className='bfp-primary-button' type='submit' disabled={updating || !mergeTargetId}>
+                    {updating ? 'Merging…' : 'Confirm merge'}
+                  </button>
+                </form>
+              </>
+            ) : (
+              <div className='bfp-no-selection'>
+                <span aria-hidden='true'>⌖</span>
+                <h2>{loading ? 'Loading incidents…' : 'Select a Main Incident'}</h2>
+                <p>Select a Main Incident from the feed to view all its supporting reports.</p>
+              </div>
+            )
+          ) : selectedReport ? (
             <>
               <div className='bfp-incident-heading'>
                 <div>
@@ -441,15 +812,15 @@ export default function EmergencyCommandCenter() {
                 <h3>Incident information</h3>
                 <p>{selectedReport.incidentDescription || 'No incident description provided.'}</p>
               </div>
-              {selectedReport.hasEvidence && (
-                <EvidencePreview key={selectedReport.id} reportId={selectedReport.id} />
+              {focusedReport.hasEvidence && (
+                <EvidencePreview key={focusedReport.id} reportId={focusedReport.id} />
               )}
-              {selectedReport.dispatch && (
-                <div className='bfp-assignment-note'>
-                  <strong>Current response unit</strong>
-                  <p>{selectedReport.dispatch.unit_name || selectedReport.dispatch.plate_number || 'Assigned vehicle'} · {selectedReport.dispatch.personnel_name || 'Assigned personnel'} · ETA {selectedReport.dispatch.estimated_eta_minutes} min</p>
-                </div>
-              )}
+              {focusedReport.dispatch && (
+                  <div className='bfp-assignment-note'>
+                    <strong>Current response unit</strong>
+                    <p>{focusedReport.dispatch.unit_name || focusedReport.dispatch.plate_number || 'Assigned vehicle'} · {focusedReport.dispatch.personnel_name || 'Assigned personnel'} · ETA {focusedReport.dispatch.estimated_eta_minutes} min</p>
+                  </div>
+                )}
               {selectedReport.incidentRecord && (
                 <div className='bfp-assignment-note'>
                   <strong>Incident record</strong>
@@ -475,17 +846,21 @@ export default function EmergencyCommandCenter() {
             </div>
           </div>
 
-          {selectedReport ? (
+          {focusedReport ? (
             <div className='bfp-dispatch-form'>
               <div className='bfp-confirmation'>
                 <span aria-hidden='true'>✓</span>
                 <div>
-                  <strong>Report received</strong>
-                  <small>Submitted {formatDate(selectedReport.reportedAt || selectedReport.createdAt)}</small>
+                  <strong>
+                    {feedView === 'incidents' && selectedIncident
+                      ? `Coordinating ${selectedIncident.code} (${selectedIncident.reportCount} reports)`
+                      : 'Report received'}
+                  </strong>
+                  <small>Submitted {formatDate(focusedReport.reportedAt || focusedReport.createdAt)}</small>
                 </div>
               </div>
-              <form onSubmit={updateStatus}>
-                <label htmlFor='bfp-status'>Response status</label>
+              <form onSubmit={feedView === 'incidents' && selectedIncident ? updateIncidentStatus : updateStatus}>
+                <label htmlFor='bfp-status'>Response status{feedView === 'incidents' && selectedIncident ? ' — applies to the whole Main Incident' : ''}</label>
                 <select id='bfp-status' value={nextStatus} onChange={(event) => setNextStatus(event.target.value)}>
                   {availableStatuses.map(({ value, name }) => (
                     <option value={value} key={name}>{STATUS_LABELS[value] || name}</option>
@@ -494,7 +869,7 @@ export default function EmergencyCommandCenter() {
                 <button
                   className='bfp-primary-button'
                   type='submit'
-                  disabled={updating || !nextStatus || nextStatus === selectedReport.status}
+                  disabled={updating || !nextStatus || nextStatus === (feedView === 'incidents' && selectedIncident ? selectedIncident.status : focusedReport.status)}
                 >
                   {updating ? 'Saving…' : 'Update response status'}
                 </button>
@@ -576,11 +951,14 @@ export default function EmergencyCommandCenter() {
 
             <div className='bfp-alarm-body'>
               <div className='bfp-alarm-hero'>
-                <span className='bfp-alarm-ref'>FA-{String(alarmReport.id).padStart(6, '0')}</span>
+                <span className='bfp-alarm-ref'>FA-{String(alarmReport.id).padStart(6, '0')}{alarmReport.incidentCode ? ` · ${alarmReport.incidentCode}` : ''}</span>
                 <h3 className='bfp-alarm-location'>{alarmReport.incidentAddress || 'Location not specified'}</h3>
                 <p className='bfp-alarm-time'>
                   Reported: {formatDate(alarmReport.reportedAt || alarmReport.createdAt)}
                 </p>
+                {alarmReport.duplicateFlag === 'possible' && (
+                  <p className='bfp-alarm-verify' role='note'>⚠ Possible duplicate — verify against {alarmReport.incidentCode || 'the open incident'} before dispatching a second unit.</p>
+                )}
               </div>
 
               <div className='bfp-alarm-meta-grid'>

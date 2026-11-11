@@ -23,6 +23,7 @@ class FireReport extends Model
     protected $fillable = [
         'resident_id',
         'user_id',
+        'fire_incident_id',
         'incident_description',
         'incident_address',
         'landmark_address',
@@ -36,6 +37,9 @@ class FireReport extends Model
     protected $appends = [
         'id',
         'resident_id',
+        'fire_incident_id',
+        'duplicate_flag',
+        'duplicate_of_report_id',
         'incident_description',
         'incident_address',
         'latitude',
@@ -187,6 +191,20 @@ class FireReport extends Model
     public function getResidentIdAttribute(): mixed
     {
         return $this->attributes[static::residentForeignKey()] ?? null;
+    }
+
+    public function getDuplicateFlagAttribute(?string $value): ?string
+    {
+        return array_key_exists('duplicate_flag', $this->attributes)
+            ? $this->attributes['duplicate_flag']
+            : $value;
+    }
+
+    public function getDuplicateOfReportIdAttribute(mixed $value): mixed
+    {
+        return array_key_exists('duplicate_of_report_id', $this->attributes)
+            ? $this->attributes['duplicate_of_report_id']
+            : $value;
     }
 
     public function setResidentIdAttribute(mixed $value): void
@@ -361,6 +379,15 @@ class FireReport extends Model
             ->first(['latitude', 'longitude']);
 
         return $location ? (array) $location : [];
+    }
+
+    public function incident(): BelongsTo
+    {
+        return $this->belongsTo(
+            FireIncident::class,
+            'fire_incident_id',
+            (new FireIncident())->getKeyName(),
+        );
     }
 
     public function resident(): BelongsTo

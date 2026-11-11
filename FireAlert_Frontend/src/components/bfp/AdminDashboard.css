@@ -131,32 +131,51 @@
 
 .admin-stat-card {
   display: flex;
-  min-height: 95px;
+  min-height: 118px;
   flex-direction: column;
-  justify-content: space-between;
-  padding: 1rem;
-  border: 1px solid #e4e8ed;
-  border-left: 3px solid #304a63;
-  border-radius: 7px;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 0.15rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid #e8ecf1;
+  border-radius: 12px;
   background: #fff;
-  box-shadow: 0 2px 6px rgb(22 39 56 / 3%);
+  box-shadow: 0 1px 3px rgb(22 39 56 / 5%);
+}
+
+.admin-stat-icon {
+  color: #5f7288;
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.admin-stat-card strong {
+  margin-top: 0.35rem;
+  color: #16283c;
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1;
 }
 
 .admin-stat-card span {
   color: #748396;
-  font-size: 0.68rem;
-  font-weight: 650;
+  font-size: 0.78rem;
+  font-weight: 500;
 }
 
-.admin-stat-card strong {
-  color: #20354a;
-  font-size: 1.65rem;
-  line-height: 1;
+.admin-stat-hint {
+  margin-top: 0.3rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.3;
 }
 
-.admin-stat-card.amber { border-left-color: #df9b32; }
-.admin-stat-card.blue { border-left-color: #4787bb; }
-.admin-stat-card.green { border-left-color: #2b9b70; }
+.admin-stat-card.navy .admin-stat-icon { color: #5f7288; }
+.admin-stat-card.navy .admin-stat-hint { color: #3f7a4e; }
+.admin-stat-card.amber .admin-stat-icon { color: #d08a1d; }
+.admin-stat-card.amber .admin-stat-hint { color: #b25a09; }
+.admin-stat-card.blue .admin-stat-icon { color: #2b6cb0; }
+.admin-stat-card.blue .admin-stat-hint { color: #748396; }
 
 .admin-panel {
   min-width: 0;
@@ -444,4 +463,35 @@
   }
   .admin-content { padding: 1rem; }
   .admin-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+
+.admin-login-security-panel {
+  margin-bottom: 0.85rem;
+  border-color: #dce5ed;
+  background: linear-gradient(135deg, #fff 0%, #f7fafc 100%);
+}
+
+.admin-login-security-form {
+  grid-template-columns: repeat(2, minmax(150px, 220px)) auto;
+  align-items: end;
+  gap: 0.85rem;
+}
+
+.admin-login-security-form .admin-form-actions {
+  margin: 0;
+}
+
+.admin-login-security-form input {
+  min-height: 40px;
+}
+
+@media (max-width: 680px) {
+  .admin-login-security-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-login-security-form .admin-form-actions {
+    grid-column: 1 / -1;
+  }
 }

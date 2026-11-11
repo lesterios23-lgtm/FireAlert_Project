@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import MapContainer from '../shared/MapContainer';
+import BarangaySuggestInput from '../shared/BarangaySuggestInput';
+import { buildResidentAddress, matchMansalayBarangay } from '../shared/mansalayBarangays';
 import { apiRequest, normalizeReport } from '../../sharedApi';
 
 const INITIAL_FORM = {
-  incidentAddress: '',
+  incidentBarangay: '',
+  landmark: '',
   incidentDescription: '',
   accessNotes: '',
   latitude: '',
@@ -32,7 +35,8 @@ export default function EmergencyReportScreen({ onReportSubmitted }) {
   }, [evidencePhoto]);
 
   const updateForm = (event) => {
-    setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
+    const { name, value } = event.target;
+    setForm((current) => ({ ...current, [name]: value }));
   };
 
   const selectMapLocation = ({ latitude, longitude }) => {
@@ -42,6 +46,10 @@ export default function EmergencyReportScreen({ onReportSubmitted }) {
       longitude: String(longitude),
       locationSource: 'manual',
     }));
+  };
+
+  const selectBarangay = (value) => {
+    setForm((current) => ({ ...current, incidentBarangay: value }));
   };
 
   const selectEvidencePhoto = (event) => {
@@ -105,14 +113,27 @@ export default function EmergencyReportScreen({ onReportSubmitted }) {
       setError('Describe what is happening before submitting the report.');
       return;
     }
+    const incidentBarangay = matchMansalayBarangay(form.incidentBarangay);
+    if (!incidentBarangay) {
+      setError('Choose the incident barangay from the Mansalay list.');
+      return;
+    }
+    const { address: composedAddress } = buildResidentAddress({
+      houseDetail: form.landmark,
+      barangay: incidentBarangay,
+    });
+    const incidentAddress = composedAddress;
+    // composedAddress always includes "Brgy. <Mansalay barangay>, Mansalay, Oriental Mindoro".
     if (hasLatitude !== hasLongitude) {
       setError('Enter both latitude and longitude, or use an incident address.');
       return;
     }
-    if (!form.incidentAddress.trim() && !hasLatitude) {
+    if (!hasLatitude && !hasLongitude && incidentAddress.trim() === '') {
       setError('Enter an incident address or select a location.');
       return;
     }
+    // When the user drops the map pin, the composed barangay address is still
+    // required so responders always know which Mansalay barangay it is in.
     if (hasLatitude && (
       Number(form.latitude) < -90 || Number(form.latitude) > 90
       || Number(form.longitude) < -180 || Number(form.longitude) > 180
@@ -139,7 +160,7 @@ export default function EmergencyReportScreen({ onReportSubmitted }) {
         type: 'fire_report',
         attributes: {
           incidentDescription: description,
-          incidentAddress: form.incidentAddress.trim() || null,
+          incidentAddress,
           ...(form.latitude && form.longitude ? {
             latitude: Number(form.latitude),
             longitude: Number(form.longitude),
@@ -173,6 +194,10 @@ export default function EmergencyReportScreen({ onReportSubmitted }) {
   const mapSelection = form.latitude && form.longitude
     ? { latitude: form.latitude, longitude: form.longitude }
     : null;
+  const matchedPreviewBarangay = matchMansalayBarangay(form.incidentBarangay);
+  const composedAddressPreview = matchedPreviewBarangay
+    ? buildResidentAddress({ houseDetail: form.landmark, barangay: matchedPreviewBarangay }).address
+    : '';
 
   return (
     <div className='resident-page'>
@@ -203,15 +228,33 @@ export default function EmergencyReportScreen({ onReportSubmitted }) {
             {geolocationLoading ? 'Getting location…' : '◎  Use my location'}
           </button>
 
+          <BarangaySuggestInput
+            id='incident-barangay'
+            label='Incident barangay'
+            value={form.incidentBarangay}
+            onChange={selectBarangay}
+            required
+          />
+
           <label className='resident-field'>
-            <span>Address or landmark <em>*</em></span>
+            <span>Street / sitio / landmark detail</span>
+            <input
+              type='text'
+              name='landmark'
+              value={form.landmark}
+              onChange={updateForm}
+              placeholder='e.g. Purok 3, near the chapel'
+            />
+          </label>
+
+          <label className='resident-field'>
+            <span>Full incident address (auto-filled)</span>
             <input
               type='text'
               name='incidentAddress'
-              value={form.incidentAddress}
-              onChange={updateForm}
-              placeholder='Enter a street, barangay, or nearby landmark'
-              required={!form.latitude || !form.longitude}
+              value={composedAddressPreview}
+              placeholder='Auto-filled from barangay + landmark'
+              readOnly
             />
           </label>
 
@@ -235,7 +278,7 @@ export default function EmergencyReportScreen({ onReportSubmitted }) {
             height='195px'
             onLocationSelect={selectMapLocation}
           />
-          <p className='resident-map-help'>Use my location or tap the map to place the pin. Drag the pin to adjust it; you can also enter coordinates manually.</p>
+          <p className='resident-map-help'>Tap <strong>⛶ Full Screen</strong> on the map for an easy, unrestricted mobile view. Tap anywhere on the map or drag the pin to set the exact fire location.</p>
           {form.latitude && form.longitude && (
             <p className='resident-coordinate-caption'>Selected location: {Number(form.latitude).toFixed(5)}, {Number(form.longitude).toFixed(5)}</p>
           )}

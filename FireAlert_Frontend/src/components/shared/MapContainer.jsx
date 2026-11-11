@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import mansalayBoundary from './mansalayBoundary.json';
@@ -50,6 +50,8 @@ export default function MapContainer({
   height = '420px',
   onLocationSelect,
   flyTrigger = 0,
+  allowFullscreen = true,
+  title = 'Mansalay Fire Map',
 }) {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
@@ -57,9 +59,54 @@ export default function MapContainer({
   const markersLayerRef = useRef(null);
   const onLocationSelectRef = useRef(onLocationSelect);
   const isFirstLoadRef = useRef(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
   const selectedPosition = coordinatesOf(selected);
   const selectedLatitude = selectedPosition ? selectedPosition[0] : null;
   const selectedLongitude = selectedPosition ? selectedPosition[1] : null;
+
+  const toggleFullscreen = () => {
+    setIsFullscreen((prev) => !prev);
+  };
+
+  useEffect(() => {
+    if (isFullscreen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+
+    const t1 = setTimeout(() => mapRef.current?.invalidateSize(), 60);
+    const t2 = setTimeout(() => mapRef.current?.invalidateSize(), 240);
+
+    return () => {
+      document.body.style.overflow = '';
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [isFullscreen]);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && isFullscreen) {
+        setIsFullscreen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFullscreen]);
+
+  const centerOnPin = () => {
+    if (!mapRef.current) return;
+    if (selectedLatitude != null && selectedLongitude != null) {
+      mapRef.current.flyTo([selectedLatitude, selectedLongitude], 16, {
+        animate: true,
+        duration: 1.2,
+      });
+    } else if (boundaryBoundsRef.current) {
+      mapRef.current.fitBounds(boundaryBoundsRef.current, { padding: [20, 20], maxZoom: 13 });
+    }
+  };
 
   useEffect(() => {
     onLocationSelectRef.current = onLocationSelect;
@@ -185,12 +232,79 @@ export default function MapContainer({
   }, [markers, onLocationSelect, selectedPosition]);
 
   return (
-    <div
-      ref={containerRef}
-      className='fire-map-container'
-      style={{ height }}
-      role='application'
-      aria-label='OpenStreetMap showing fire incident locations and the Mansalay municipal boundary'
-    />
+    <div className={`fire-map-wrapper${isFullscreen ? ' is-fullscreen' : ''}`}>
+      {allowFullscreen && !isFullscreen && (
+        <button
+          type='button'
+          className='fire-map-fullscreen-btn'
+          onClick={toggleFullscreen}
+          aria-label='View map in full screen'
+          title='Full screen map view'
+        >
+          <span className='fire-map-fullscreen-icon' aria-hidden='true'>⛶</span>
+          <span>Full Screen</span>
+        </button>
+      )}
+
+      {isFullscreen && (
+        <div className='fire-map-fullscreen-header'>
+          <div className='fire-map-fullscreen-title'>
+            <strong>
+              <span aria-hidden='true'>{onLocationSelect ? '📍' : '🗺️'}</span>
+              {onLocationSelect ? 'Pin Fire Location' : title}
+            </strong>
+            <small>
+              {onLocationSelect
+                ? 'Tap anywhere on the map or drag the pin to set the location'
+                : 'Pinch and drag to explore Mansalay area'}
+            </small>
+          </div>
+          <div className='fire-map-fullscreen-actions'>
+            {onLocationSelect && (
+              <button
+                type='button'
+                className='fire-map-fullscreen-btn-done'
+                onClick={() => setIsFullscreen(false)}
+              >
+                ✓ Done
+              </button>
+            )}
+            <button
+              type='button'
+              className='fire-map-fullscreen-btn-close'
+              onClick={() => setIsFullscreen(false)}
+              aria-label='Exit full screen'
+            >
+              ✕ Exit
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div
+        ref={containerRef}
+        className='fire-map-container'
+        style={{ height: isFullscreen ? '100%' : height }}
+        role='application'
+        aria-label='OpenStreetMap showing fire incident locations and the Mansalay municipal boundary'
+      />
+
+      {isFullscreen && (
+        <div className='fire-map-fullscreen-bottom-bar'>
+          <button
+            type='button'
+            className='fire-map-fullscreen-center-btn'
+            onClick={centerOnPin}
+          >
+            <span aria-hidden='true'>🎯</span> Center on Pin
+          </button>
+          {selectedLatitude != null && selectedLongitude != null && (
+            <span className='fire-map-fullscreen-coord-pill'>
+              {selectedLatitude.toFixed(5)}, {selectedLongitude.toFixed(5)}
+            </span>
+          )}
+        </div>
+      )}
+    </div>
   );
 }

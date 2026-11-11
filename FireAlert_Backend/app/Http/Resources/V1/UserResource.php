@@ -23,6 +23,8 @@ class UserResource extends JsonResource
                 'name' => $user->name,
                 'contactNumber' => $user->contact_number,
                 'address' => $user->address,
+                'homeLatitude' => $user->home_latitude,
+                'homeLongitude' => $user->home_longitude,
                 'email' => $user->email,
                 'role' => $user->role,
                 'createdAt' => $user->created_at,

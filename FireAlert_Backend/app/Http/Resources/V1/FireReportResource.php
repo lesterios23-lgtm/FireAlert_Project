@@ -29,6 +29,9 @@ class FireReportResource extends JsonResource
                 'updatedAt' => $report->updated_at,
                 'hasEvidence' => $report->evidence()->exists(),
                 'fireSeverity' => $report->fire_severity ?? null,
+                'fireIncidentId' => $report->fire_incident_id,
+                'duplicateFlag' => $report->duplicate_flag,
+                'duplicateOfReportId' => $report->duplicate_of_report_id,
             ],
             'relationships' => [
                 'resident' => [

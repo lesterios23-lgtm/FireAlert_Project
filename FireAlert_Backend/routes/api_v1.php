@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\AdminDashboardController;
 use App\Http\Controllers\Api\V1\BfpCommandCenterController;
+use App\Http\Controllers\Api\V1\FireIncidentController;
 use App\Http\Controllers\Api\V1\FireReportController;
 use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Controllers\Api\V1\UserReportsController;
@@ -19,6 +20,7 @@ Route::middleware('auth:api')->group(function () {
     Route::post('/auth/refresh', [AuthController::class, 'refresh']);
     Route::patch('/auth/profile', [AuthController::class, 'updateProfile']);
     Route::get('admin/dashboard', [AdminDashboardController::class, 'index']);
+    Route::put('admin/login-attempt-settings', [AdminDashboardController::class, 'updateLoginAttemptSettings']);
     Route::post('admin/users', [AdminDashboardController::class, 'storeUser']);
     Route::patch('admin/users/{user}', [AdminDashboardController::class, 'updateUser']);
     Route::delete('admin/users/{user}', [AdminDashboardController::class, 'destroyUser']);
@@ -26,6 +28,12 @@ Route::middleware('auth:api')->group(function () {
     Route::patch('admin/firetrucks/{truckId}', [AdminDashboardController::class, 'updateFiretruck']);
     Route::delete('admin/firetrucks/{truckId}', [AdminDashboardController::class, 'destroyFiretruck']);
     Route::get('command-center', [BfpCommandCenterController::class, 'index']);
+    Route::get('incidents', [FireIncidentController::class, 'index']);
+    Route::get('incidents/{incident}', [FireIncidentController::class, 'show']);
+    Route::post('incidents/{incident}/reports/{report}/attach', [FireIncidentController::class, 'attach']);
+    Route::post('incidents/{incident}/merge', [FireIncidentController::class, 'merge']);
+    Route::post('reports/{report}/detach', [FireIncidentController::class, 'detach']);
+    Route::patch('incidents/{incident}/status', [FireIncidentController::class, 'updateStatus']);
     Route::post('reports/{report}/dispatch', [BfpCommandCenterController::class, 'dispatch']);
     Route::put('reports/{report}/incident-record', [BfpCommandCenterController::class, 'saveIncidentRecord']);
 

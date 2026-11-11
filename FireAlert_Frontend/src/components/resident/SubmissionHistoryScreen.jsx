@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiRequest, normalizeReports } from '../../sharedApi';
+import { SkeletonHistoryList } from './SkeletonLoaders';
 
 const isResolved = (report) => ['resolved', 'rejected'].includes(report.status);
 
@@ -81,7 +82,7 @@ export default function SubmissionHistoryScreen({ onViewReport, onReportNew, use
 
       <div className='resident-history-list'>
         {loading ? (
-          <p className='resident-empty-state'>Loading your reports…</p>
+          <SkeletonHistoryList count={3} />
         ) : filteredReports.length === 0 ? (
           <p className='resident-empty-state'>
             {filter === 'all' ? 'You have not submitted any reports yet.' : `No ${filter} reports.`}

@@ -386,3 +386,141 @@
     align-self: flex-end;
   }
 }
+/* ===== Barangay auto-suggest + home drag-pin map ===== */
+.resident-address-autosuggest {
+  position: relative;
+}
+
+.resident-address-scope {
+  margin-left: 0.4rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  background: #eef4ff;
+  color: #274b73;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.resident-barangay-suggestions {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  max-height: 220px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0.3rem;
+  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: 0 12px 28px rgb(20 40 63 / 18%);
+}
+
+.resident-barangay-suggestions li {
+  margin: 0;
+  padding: 0;
+}
+
+.resident-barangay-suggestions button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.55rem 0.65rem;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.resident-barangay-suggestions button.active,
+.resident-barangay-suggestions button:hover {
+  background: #f3f7ff;
+}
+
+.resident-address-field input.is-valid {
+  border-color: #2e9e6b;
+  box-shadow: 0 0 0 2px rgba(46, 158, 107, 0.15);
+}
+
+.resident-address-field input.is-invalid {
+  border-color: var(--red);
+  box-shadow: 0 0 0 2px rgba(217, 54, 54, 0.12);
+}
+
+.resident-address-valid {
+  margin: 0;
+  color: #237a52;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.resident-address-hint {
+  margin: 0;
+  color: var(--text-2);
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.resident-address-field input:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.resident-address-map-field {
+  gap: 0.5rem;
+}
+
+.resident-address-map-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.resident-address-map-label small {
+  color: var(--text-2);
+  font-weight: 500;
+}
+
+.resident-home-map-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.resident-home-locate-btn,
+.resident-home-map-toggle {
+  flex: 1;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--radius);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.resident-home-locate-btn {
+  border: 1px solid var(--navy);
+  background: var(--navy);
+  color: #fff;
+}
+
+.resident-home-locate-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.resident-home-map-toggle {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+}

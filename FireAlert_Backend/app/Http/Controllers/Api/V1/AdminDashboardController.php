@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Resources\V1\FireReportResource;
 use App\Models\FireReport;
 use App\Models\User;
+use App\Services\LoginAttemptSettings;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -26,6 +27,7 @@ class AdminDashboardController extends APIController
         return $this->ok('System administrator data retrieved', [
             'reports' => $reports,
             'users' => $this->users(),
+            'login_attempt_settings' => app(LoginAttemptSettings::class)->get(),
             'firetrucks' => DB::table('firetrucks as trucks')
                 ->orderBy('trucks.unit_name')
                 ->get([
@@ -35,6 +37,20 @@ class AdminDashboardController extends APIController
                     'trucks.status',
                 ]),
         ]);
+    }
+
+    public function updateLoginAttemptSettings(Request $request): JsonResponse
+    {
+        $this->authorizeAdmin($request);
+        $settings = $request->validate([
+            'max_attempts' => ['required', 'integer', 'min:1', 'max:20'],
+            'lockout_minutes' => ['required', 'integer', 'min:1', 'max:1440'],
+        ]);
+
+        return $this->ok(
+            'Login attempt settings updated',
+            app(LoginAttemptSettings::class)->update($settings),
+        );
     }
 
     public function storeUser(Request $request): JsonResponse

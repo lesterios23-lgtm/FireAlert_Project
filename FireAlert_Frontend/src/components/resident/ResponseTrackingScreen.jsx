@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import TrackingTimeline from '../shared/TrackingTimeline';
 import MapContainer from '../shared/MapContainer';
 import { apiRequest, normalizeReport, normalizeReports } from '../../sharedApi';
+import { SkeletonTrackingScreen } from './SkeletonLoaders';
 
 const STATUS_LABELS = {
   pending: 'Report submitted',
@@ -20,6 +21,7 @@ function formatDate(value) {
 export default function ResponseTrackingScreen({ report }) {
   const [trackingReport, setTrackingReport] = useState(report || null);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(!report);
 
   useEffect(() => {
     setTrackingReport(report || null);
@@ -27,6 +29,7 @@ export default function ResponseTrackingScreen({ report }) {
   }, [report]);
 
   const refreshReport = useCallback(async () => {
+    setLoading(true);
     try {
       if (report?.id) {
         const payload = await apiRequest(`/reports/${report.id}`);
@@ -39,6 +42,8 @@ export default function ResponseTrackingScreen({ report }) {
       setTrackingReport(reports.find((item) => !['resolved', 'rejected'].includes(item.status)) || reports[0] || null);
     } catch (requestError) {
       setError(requestError.message || 'Unable to refresh your response status.');
+    } finally {
+      setLoading(false);
     }
   }, [report]);
 
@@ -47,6 +52,10 @@ export default function ResponseTrackingScreen({ report }) {
     const timer = window.setInterval(refreshReport, 30000);
     return () => window.clearInterval(timer);
   }, [refreshReport]);
+
+  if (loading && !trackingReport) {
+    return <SkeletonTrackingScreen />;
+  }
 
   if (!trackingReport) {
     return (
@@ -105,6 +114,7 @@ export default function ResponseTrackingScreen({ report }) {
           markers={markers}
           selected={trackingReport}
           height='210px'
+          title='Incident Tracking Map'
         />
       </section>
 

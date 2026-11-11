@@ -11,7 +11,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 object ApiClient {
 
-    private const val BASE_URL = "http://10.0.2.2:8000/api/v1/" // Android emulator localhost
+    private const val BASE_URL = "http://192.168.1.24:8000/api/v1/" // Host PC on the same Wi-Fi
     private const val PREF_NAME = "firealert_prefs"
     private const val KEY_TOKEN = "auth_token"
 

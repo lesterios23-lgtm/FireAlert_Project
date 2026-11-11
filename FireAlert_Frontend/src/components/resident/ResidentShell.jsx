@@ -1,10 +1,15 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import EmergencyReportScreen from './EmergencyReportScreen';
 import ResponseTrackingScreen from './ResponseTrackingScreen';
 import SubmissionHistoryScreen from './SubmissionHistoryScreen';
 import FireAlertLogoMark from '../shared/FireAlertLogoMark';
 import FireSafetyTips from './FireSafetyTips';
 import LogoutConfirmModal from '../shared/LogoutConfirmModal';
+import {
+  buildResidentAddress,
+  matchMansalayBarangay,
+  suggestMansalayBarangays,
+} from '../shared/mansalayBarangays';
 import { apiRequest } from '../../sharedApi';
 
 export default function ResidentShell({ user, onLogout, onUserUpdate }) {
@@ -83,20 +88,35 @@ export default function ResidentShell({ user, onLogout, onUserUpdate }) {
       />
 
       <nav className='resident-bottom-nav' aria-label='Resident navigation'>
-        <button type='button' className={screen === 'home' ? 'active' : ''} aria-current={screen === 'home' ? 'page' : undefined} onClick={() => setScreen('home')}>
-          <span aria-hidden='true'>⌂</span><small>Home</small>
-        </button>
-        <button type='button' className={screen === 'tracking' ? 'active' : ''} aria-current={screen === 'tracking' ? 'page' : undefined} onClick={() => setScreen('tracking')}>
-          <span aria-hidden='true'>⌖</span><small>Track</small>
-        </button>
         <button
           type='button'
-          className={`resident-nav-report${screen === 'report' ? ' active' : ''}`}
+          className={`resident-nav-item${screen === 'home' ? ' active' : ''}`}
+          aria-current={screen === 'home' ? 'page' : undefined}
+          onClick={() => setScreen('home')}
+        >
+          <span className='resident-nav-icon' aria-hidden='true'>⌂</span>
+          <small>Home</small>
+        </button>
+
+        <button
+          type='button'
+          className={`resident-nav-item${screen === 'tracking' ? ' active' : ''}`}
+          aria-current={screen === 'tracking' ? 'page' : undefined}
+          onClick={() => setScreen('tracking')}
+        >
+          <span className='resident-nav-icon' aria-hidden='true'>⌖</span>
+          <small>Track</small>
+        </button>
+
+        <button
+          type='button'
+          className={`resident-nav-report resident-nav-cab${screen === 'report' ? ' active' : ''}`}
           aria-label='Report fire'
           aria-current={screen === 'report' ? 'page' : undefined}
           onClick={handleReportNavClick}
         >
           <span className='resident-nav-fire' aria-hidden='true'>
+            <span className='resident-nav-fire-pulse' />
             <svg viewBox='0 0 100 120' focusable='false'>
               <path d='M58 4c4 28-15 37-6 55 5 10 16 13 15 29 0 15-10 26-23 27-16 1-27-11-27-27 0-14 8-24 17-34-1 14 2 21 9 23 9 2 15-6 11-16C45 43 40 26 58 4Z' />
               <ellipse cx='50' cy='116' rx='31' ry='3' />
@@ -104,11 +124,25 @@ export default function ResidentShell({ user, onLogout, onUserUpdate }) {
           </span>
           <small>Report Fire</small>
         </button>
-        <button type='button' className={screen === 'history' ? 'active' : ''} aria-current={screen === 'history' ? 'page' : undefined} onClick={() => setScreen('history')}>
-          <span aria-hidden='true'>▤</span><small>My reports</small>
+
+        <button
+          type='button'
+          className={`resident-nav-item${screen === 'history' ? ' active' : ''}`}
+          aria-current={screen === 'history' ? 'page' : undefined}
+          onClick={() => setScreen('history')}
+        >
+          <span className='resident-nav-icon' aria-hidden='true'>▤</span>
+          <small>My reports</small>
         </button>
-        <button type='button' className={screen === 'profile' ? 'active' : ''} aria-current={screen === 'profile' ? 'page' : undefined} onClick={() => setScreen('profile')}>
-          <span aria-hidden='true'>♙</span><small>Profile</small>
+
+        <button
+          type='button'
+          className={`resident-nav-item${screen === 'profile' ? ' active' : ''}`}
+          aria-current={screen === 'profile' ? 'page' : undefined}
+          onClick={() => setScreen('profile')}
+        >
+          <span className='resident-nav-icon' aria-hidden='true'>♙</span>
+          <small>Profile</small>
         </button>
       </nav>
     </div>
@@ -121,9 +155,8 @@ function ResidentHomeScreen({ user, onNavigate, onUserUpdate, showAddressPrompt,
   return (
     <div className='resident-page resident-home'>
       <div className='resident-home-welcome'>
-        <p className='resident-eyebrow'>Resident dashboard</p>
-        <h1>Welcome, {user?.name || 'Resident'}</h1>
-        <p>FireAlert connects your report with BFP Mansalay.</p>
+        <p className='resident-eyebrow'>RESIDENT DASHBOARD · MANSALAY</p>
+        <h1>Hi, {user?.name || 'Resident'}</h1>
       </div>
 
       {!hasAddress && (
@@ -138,35 +171,89 @@ function ResidentHomeScreen({ user, onNavigate, onUserUpdate, showAddressPrompt,
       <section className='resident-home-emergency' aria-labelledby='home-emergency-heading'>
         <span className='resident-home-emergency-icon' aria-hidden='true'>!</span>
         <div>
-          <h2 id='home-emergency-heading'>In case of fire</h2>
-          <p>Move to safety first. Submit an incident report when it is safe to do so.</p>
+          <h2 id='home-emergency-heading'>May sunog?</h2>
+          <p>Unahin ang kaligtasan. Tumawag sa 911.</p>
         </div>
       </section>
 
       <FireSafetyTips />
-      <p className='resident-home-privacy'>Your incident reports and account details are private.</p>
     </div>
   );
 }
 
 function AddressSetupCard({ user, onUserUpdate, showPrompt, onDismissPrompt }) {
-  const [purok, setPurok] = useState('');
+  const [houseDetail, setHouseDetail] = useState('');
   const [barangay, setBarangay] = useState('');
-  const [municipality, setMunicipality] = useState('Mansalay');
+  const [municipality] = useState('Mansalay');
+  const [barangayTouched, setBarangayTouched] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [activeSuggestion, setActiveSuggestion] = useState(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+  const suggestBoxRef = useRef(null);
+
+  const matchedBarangay = matchMansalayBarangay(barangay);
+  const suggestions = useMemo(() => suggestMansalayBarangays(barangay), [barangay]);
+  const barangayValid = Boolean(matchedBarangay);
+  const showBarangayError = barangayTouched && barangay.trim() !== '' && !matchedBarangay;
+
+  useEffect(() => {
+    if (showPrompt) setIsEditing(true);
+  }, [showPrompt]);
+
+  useEffect(() => {
+    if (!isEditing) return undefined;
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') setIsEditing(false);
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isEditing]);
+
+  useEffect(() => {
+    if (!showSuggestions) return undefined;
+    const handlePointerDown = (event) => {
+      if (suggestBoxRef.current && !suggestBoxRef.current.contains(event.target)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => document.removeEventListener('mousedown', handlePointerDown);
+  }, [showSuggestions]);
+
+  const chooseSuggestion = (name) => {
+    setBarangay(name);
+    setBarangayTouched(true);
+    setShowSuggestions(false);
+  };
+
+  const handleBarangayKeyDown = (event) => {
+    if (event.key === 'ArrowDown' && suggestions.length > 0) {
+      event.preventDefault();
+      setActiveSuggestion((current) => (current + 1) % suggestions.length);
+    } else if (event.key === 'ArrowUp' && suggestions.length > 0) {
+      event.preventDefault();
+      setActiveSuggestion((current) => (current - 1 + suggestions.length) % suggestions.length);
+    } else if (event.key === 'Enter' && showSuggestions && suggestions.length > 0) {
+      event.preventDefault();
+      chooseSuggestion(suggestions[Math.min(activeSuggestion, suggestions.length - 1)]);
+    } else if (event.key === 'Escape') {
+      setShowSuggestions(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!barangay.trim() || !municipality.trim()) {
-      setError('Barangay and municipality are required.');
+    if (!matchedBarangay) {
+      setBarangayTouched(true);
+      setError('Choose your barangay from the Mansalay list.');
       return;
     }
     setSaving(true);
     setError('');
     try {
-      const addressParts = [purok.trim(), barangay.trim(), municipality.trim()].filter(Boolean);
-      const address = addressParts.join(', ');
+      const { address } = buildResidentAddress({ houseDetail, barangay: matchedBarangay });
       const payload = await apiRequest('/auth/profile', {
         method: 'PATCH',
         body: JSON.stringify({ address }),
@@ -191,67 +278,124 @@ function AddressSetupCard({ user, onUserUpdate, showPrompt, onDismissPrompt }) {
       <div className='resident-address-setup-header'>
         <span className='resident-address-setup-icon' aria-hidden='true'>📍</span>
         <div>
-          <h2 id='address-setup-heading'>Complete your profile</h2>
-          <p>Your home address is required to submit incident reports.</p>
+          <h2 id='address-setup-heading'>Add your home address</h2>
+          <p>Needed before you can submit a report.</p>
         </div>
       </div>
 
       {showPrompt && (
         <div className='resident-address-setup-alert' role='alert'>
           <span aria-hidden='true'>⚠️</span>
-          <strong>Address required</strong> — Please fill in your home address before reporting a fire incident.
+          <strong>Address required to report a fire.</strong>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} noValidate>
-        <div className='resident-address-fields'>
-          <div className='resident-address-field'>
-            <label htmlFor='addr-purok'>House No. / Street / Purok</label>
-            <input
-              id='addr-purok'
-              type='text'
-              value={purok}
-              onChange={(e) => setPurok(e.target.value)}
-              placeholder='e.g. Purok 3, Sitio Mababang Lupa'
-              autoComplete='address-line1'
-            />
-          </div>
-          <div className='resident-address-field'>
-            <label htmlFor='addr-barangay'>
-              Barangay <span aria-hidden='true' className='resident-address-required'>*</span>
-            </label>
-            <input
-              id='addr-barangay'
-              type='text'
-              value={barangay}
-              onChange={(e) => setBarangay(e.target.value)}
-              placeholder='e.g. Barangay Poblacion'
-              required
-              autoComplete='address-level3'
-            />
-          </div>
-          <div className='resident-address-field'>
-            <label htmlFor='addr-municipality'>
-              Municipality <span aria-hidden='true' className='resident-address-required'>*</span>
-            </label>
-            <input
-              id='addr-municipality'
-              type='text'
-              value={municipality}
-              onChange={(e) => setMunicipality(e.target.value)}
-              placeholder='e.g. Mansalay'
-              required
-              autoComplete='address-level2'
-            />
-          </div>
+      <button type='button' className='resident-address-submit' onClick={() => setIsEditing(true)}>
+        {showPrompt ? 'Complete address' : 'Add home address'}
+      </button>
+
+      {isEditing && (
+        <div
+          className='resident-address-modal-overlay'
+          onClick={(event) => {
+            if (event.target === event.currentTarget) setIsEditing(false);
+          }}
+        >
+          <section className='resident-address-modal' role='dialog' aria-modal='true' aria-labelledby='address-modal-heading'>
+            <div className='resident-address-modal-header'>
+              <div>
+                <p className='resident-eyebrow'>PROFILE SETUP</p>
+                <h2 id='address-modal-heading'>Your home address</h2>
+              </div>
+              <button type='button' className='resident-address-modal-close' onClick={() => setIsEditing(false)} aria-label='Close address form'>×</button>
+            </div>
+
+            <form onSubmit={handleSubmit} noValidate>
+              <div className='resident-address-fields'>
+                <div className='resident-address-field'>
+                  <label htmlFor='addr-purok'>House No. / Street / Purok</label>
+                  <input
+                    id='addr-purok'
+                    type='text'
+                    value={houseDetail}
+                    onChange={(e) => setHouseDetail(e.target.value)}
+                    placeholder='e.g. Purok 3, Sitio Maligaya'
+                    autoComplete='address-line1'
+                  />
+                </div>
+                <div className='resident-address-field resident-address-autosuggest' ref={suggestBoxRef}>
+                  <label htmlFor='addr-barangay'>
+                    Barangay <span aria-hidden='true' className='resident-address-required'>*</span>
+                    <small className='resident-address-scope'>Mansalay only</small>
+                  </label>
+                  <input
+                    id='addr-barangay'
+                    type='text'
+                    role='combobox'
+                    aria-expanded={showSuggestions}
+                    aria-autocomplete='list'
+                    aria-controls='addr-barangay-suggestions'
+                    aria-activedescendant={showSuggestions && suggestions.length > 0 ? `mansalay-brgy-${activeSuggestion}` : undefined}
+                    value={barangay}
+                    onChange={(e) => {
+                      setBarangay(e.target.value);
+                      setBarangayTouched(true);
+                      setShowSuggestions(true);
+                      setActiveSuggestion(0);
+                    }}
+                    onFocus={() => setShowSuggestions(true)}
+                    onKeyDown={handleBarangayKeyDown}
+                    onBlur={() => setBarangayTouched(true)}
+                    placeholder='Type to search 17 Mansalay barangays…'
+                    required
+                    autoComplete='off'
+                    className={showBarangayError ? 'is-invalid' : matchedBarangay ? 'is-valid' : ''}
+                  />
+                  {showSuggestions && suggestions.length > 0 && (
+                    <ul id='addr-barangay-suggestions' role='listbox' aria-label='Mansalay barangays' className='resident-barangay-suggestions'>
+                      {suggestions.map((name, index) => (
+                        <li key={name} role='option' id={`mansalay-brgy-${index}`} aria-selected={index === activeSuggestion}>
+                          <button
+                            type='button'
+                            className={index === activeSuggestion ? 'active' : ''}
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => chooseSuggestion(name)}
+                            onMouseEnter={() => setActiveSuggestion(index)}
+                          >
+                            <span aria-hidden='true'>📍</span> Brgy. {name}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {matchedBarangay ? (
+                    <p className='resident-address-valid' role='status'>✓ Brgy. {matchedBarangay}, Mansalay</p>
+                  ) : (
+                    <p className='resident-address-hint'>Only the 17 barangays of Mansalay are accepted.</p>
+                  )}
+                </div>
+                <div className='resident-address-field'>
+                  <label htmlFor='addr-municipality'>Municipality</label>
+                  <input
+                    id='addr-municipality'
+                    type='text'
+                    value={municipality}
+                    readOnly
+                    disabled
+                    autoComplete='address-level2'
+                  />
+                </div>
+              </div>
+
+              {error && <p className='resident-address-error' role='alert'>{error}</p>}
+
+              <button type='submit' className='resident-address-submit' disabled={saving || !barangayValid}>
+                {saving ? 'Saving…' : 'Save Address'}
+              </button>
+            </form>
+          </section>
         </div>
-
-        {error && <p className='resident-address-error' role='alert'>{error}</p>}
-
-        <button type='submit' className='resident-address-submit' disabled={saving}>
-          {saving ? 'Saving…' : 'Save Address'}
-        </button>
-      </form>
+      )}
     </section>
   );
 }

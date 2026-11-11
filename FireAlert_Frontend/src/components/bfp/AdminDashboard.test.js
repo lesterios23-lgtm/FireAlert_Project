@@ -17,6 +17,7 @@ const dashboardData = {
     },
     includes: { resident: { attributes: { name: 'Resident One' } } },
   }],
+  login_attempt_settings: { max_attempts: 5, lockout_minutes: 15 },
   users: [],
   firetrucks: [],
 };
@@ -35,7 +36,27 @@ test('shows incident analytics from database records', async () => {
   expect(await screen.findByText('Recent incidents')).toBeInTheDocument();
   expect(screen.getByText('Mansalay Poblacion')).toBeInTheDocument();
   expect(screen.getByText('Resident One')).toBeInTheDocument();
-  expect(screen.getByText('Awaiting response')).toBeInTheDocument();
+  expect(screen.getByText('Total reports*')).toBeInTheDocument();
+  expect(screen.getByText('Active reports*')).toBeInTheDocument();
+  expect(screen.getByText('Units assigned*')).toBeInTheDocument();
+  expect(screen.getByText('High-risk areas*')).toBeInTheDocument();
+});
+
+test('lets an administrator update failed-login threshold and lockout duration', async () => {
+  render(<AdminDashboard />);
+  await screen.findByText('Recent incidents');
+  fireEvent.click(screen.getByRole('button', { name: /user management/i }));
+
+  expect(screen.getByLabelText('Failed attempts before lockout')).toHaveValue(5);
+  expect(screen.getByLabelText('Lockout duration (minutes)')).toHaveValue(15);
+  fireEvent.change(screen.getByLabelText('Failed attempts before lockout'), { target: { value: '3' } });
+  fireEvent.change(screen.getByLabelText('Lockout duration (minutes)'), { target: { value: '10' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Save security settings' }));
+
+  await waitFor(() => expect(apiRequest).toHaveBeenCalledWith('/admin/login-attempt-settings', expect.objectContaining({
+    method: 'PUT',
+    body: JSON.stringify({ max_attempts: 3, lockout_minutes: 10 }),
+  })));
 });
 
 test('opens account and prediction sections from the administration sidebar', async () => {

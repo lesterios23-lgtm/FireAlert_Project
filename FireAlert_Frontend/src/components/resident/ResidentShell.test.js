@@ -24,13 +24,20 @@ const user = {
 test('opens the resident dashboard as the landing tab', () => {
   render(<ResidentShell user={user} onLogout={jest.fn()} />);
 
-  expect(screen.getByRole('heading', { name: 'Welcome, Resident Example' })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Hi, Resident Example' })).toBeInTheDocument();
+  expect(screen.queryByRole('heading', { name: 'Fire prevention tips' })).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Add home address' })).toBeInTheDocument();
+  expect(screen.queryByRole('dialog', { name: 'Your home address' })).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /View tips/i })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Add home address' }));
+  expect(screen.getByRole('dialog', { name: 'Your home address' })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Close address form' }));
   expect(screen.getByRole('button', { name: 'Home' })).toHaveAttribute('aria-current', 'page');
   expect(screen.getByRole('button', { name: 'Report fire' })).toBeInTheDocument();
 });
 
 test('uses the centered report action and profile tab for resident navigation', () => {
-  render(<ResidentShell user={user} onLogout={jest.fn()} />);
+  render(<ResidentShell user={{ ...user, address: 'Purok 1, Barangay Poblacion' }} onLogout={jest.fn()} />);
 
   fireEvent.click(screen.getByRole('button', { name: 'Report fire' }));
   expect(screen.getByRole('heading', { name: 'Report fire screen' })).toBeInTheDocument();
