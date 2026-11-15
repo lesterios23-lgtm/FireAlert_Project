@@ -6,11 +6,11 @@ use App\Http\Resources\V1\FireIncidentResource;
 use App\Http\Resources\V1\FireReportResource;
 use App\Models\FireIncident;
 use App\Models\FireReport;
+use App\Services\DispatchLocationService;
 use App\Services\IncidentGroupingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 /**
  * BFP-only incident grouping: the Main Incident list, report attachments,
@@ -18,6 +18,10 @@ use Illuminate\Support\Facades\Schema;
  */
 class FireIncidentController extends APIController
 {
+    public function __construct(private readonly DispatchLocationService $dispatchLocations)
+    {
+    }
+
     public function index(Request $request): JsonResponse
     {
         $this->authorizeBfp($request);
@@ -43,27 +47,7 @@ class FireIncidentController extends APIController
                     ->values()
                     ->all();
                 $reportIds = $incident->reports->map(fn ($r) => $r->getKey())->all() ?: [0];
-                $data['dispatch'] = null;
-                if (Schema::hasTable('response_dispatches')) {
-                    $data['dispatch'] = DB::table('response_dispatches as dispatches')
-                        ->leftJoin('firetrucks as trucks', 'trucks.truck_id', '=', 'dispatches.truck_id')
-                        ->leftJoin('bfp_personnel as personnel', 'personnel.personnel_id', '=', 'dispatches.personnel_id')
-                        ->leftJoin('users as personnel_users', 'personnel_users.user_id', '=', 'personnel.user_id')
-                        ->whereIn('dispatches.report_id', $reportIds)
-                        ->orderByDesc('dispatches.dispatched_at')
-                        ->first([
-                            'dispatches.dispatch_id as id',
-                            'dispatches.report_id',
-                            'dispatches.personnel_id',
-                            'dispatches.truck_id',
-                            'dispatches.dispatched_at',
-                            'dispatches.arrived_at',
-                            'dispatches.estimated_eta_minutes',
-                            'trucks.unit_name',
-                            'trucks.plate_number',
-                            'personnel_users.full_name as personnel_name',
-                        ]);
-                }
+                $data['dispatch'] = $this->dispatchLocations->latestForReports($reportIds);
 
                 return $data;
             })->values()->all(),

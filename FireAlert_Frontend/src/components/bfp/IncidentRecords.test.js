@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import IncidentRecords from './IncidentRecords';
 import { apiRequest } from '../../sharedApi';
 
-jest.mock('../shared/MapContainer', () => function MockMapContainer() {
+jest.mock('../shared/GoogleMap', () => function MockGoogleMap() {
   return <div aria-label='Map' />;
 });
 

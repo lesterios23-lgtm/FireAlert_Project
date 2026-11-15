@@ -11,6 +11,7 @@ use App\Models\FireIncident;
 use App\Models\FireReport;
 use App\Models\User;
 use App\Services\IncidentGroupingService;
+use App\Services\DispatchLocationService;
 use App\Models\ReportEvidence;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -21,6 +22,10 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class FireReportController extends APIController
 {
+    public function __construct(private readonly DispatchLocationService $dispatchLocations)
+    {
+    }
+
     /**
      * @group Fire Reports
      *
@@ -180,7 +185,12 @@ class FireReportController extends APIController
 
         $ownedReport = $query->findOrFail($report->getKey());
 
-        return new FireReportResource($ownedReport);
+        // Residents can follow the assigned unit's latest GPS fix, but only
+        // for their own report. The dispatch lookup expands to the whole Main
+        // Incident so grouped reports show the same response unit.
+        return (new FireReportResource($ownedReport))->additional([
+            'dispatch' => $this->dispatchLocations->latestForReport($ownedReport),
+        ]);
     }
 
     /**

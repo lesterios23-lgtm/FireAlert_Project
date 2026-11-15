@@ -5,12 +5,18 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Resources\V1\FireReportResource;
 use App\Models\FireReport;
 use App\Models\User;
+use App\Services\DispatchLocationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class BfpCommandCenterController extends APIController
 {
+    public function __construct(private readonly DispatchLocationService $dispatchLocations)
+    {
+    }
+
     public function index(Request $request): JsonResponse
     {
         $this->authorizeBfp($request);
@@ -22,23 +28,7 @@ class BfpCommandCenterController extends APIController
             ->get()
             ->map(function (FireReport $report) use ($request): array {
                 $data = (new FireReportResource($report))->resolve($request);
-                $data['dispatch'] = DB::table('response_dispatches as dispatches')
-                    ->leftJoin('firetrucks as trucks', 'trucks.truck_id', '=', 'dispatches.truck_id')
-                    ->leftJoin('bfp_personnel as personnel', 'personnel.personnel_id', '=', 'dispatches.personnel_id')
-                    ->leftJoin('users as personnel_users', 'personnel_users.user_id', '=', 'personnel.user_id')
-                    ->where('dispatches.report_id', $report->getKey())
-                    ->orderByDesc('dispatches.dispatched_at')
-                    ->first([
-                        'dispatches.dispatch_id as id',
-                        'dispatches.personnel_id',
-                        'dispatches.truck_id',
-                        'dispatches.dispatched_at',
-                        'dispatches.arrived_at',
-                        'dispatches.estimated_eta_minutes',
-                        'trucks.unit_name',
-                        'trucks.plate_number',
-                        'personnel_users.full_name as personnel_name',
-                    ]);
+                $data['dispatch'] = $this->dispatchLocations->latestForReport($report);
                 $data['incidentRecord'] = DB::table('incident_records')
                     ->where('report_id', $report->getKey())
                     ->first([
@@ -103,6 +93,19 @@ class BfpCommandCenterController extends APIController
                 'estimated_eta_minutes' => $attributes['estimated_eta_minutes'],
             ];
 
+            if (Schema::hasColumn('response_dispatches', 'current_latitude')) {
+                // A different unit starts from its own position; never carry
+                // the previous unit's live pin across a fresh dispatch.
+                $dispatchAttributes['current_latitude'] = null;
+                $dispatchAttributes['current_longitude'] = null;
+                if (Schema::hasColumn('response_dispatches', 'location_accuracy_meters')) {
+                    $dispatchAttributes['location_accuracy_meters'] = null;
+                }
+                if (Schema::hasColumn('response_dispatches', 'location_updated_at')) {
+                    $dispatchAttributes['location_updated_at'] = null;
+                }
+            }
+
             if ($dispatch) {
                 DB::table('response_dispatches')
                     ->where('dispatch_id', $dispatch->dispatch_id)
@@ -120,6 +123,34 @@ class BfpCommandCenterController extends APIController
         return $this->ok('Response unit dispatched', [
             'report_id' => $report->getKey(),
         ]);
+    }
+
+    /**
+     * Persist the live GPS fix sent by the dispatched responder's device.
+     * Used by both the command center and the resident tracking view.
+     */
+    public function updateDispatchLocation(Request $request, FireReport $report): JsonResponse
+    {
+        $this->authorizeBfp($request);
+
+        $attributes = $request->validate([
+            'latitude' => ['required', 'numeric', 'between:-90,90'],
+            'longitude' => ['required', 'numeric', 'between:-180,180'],
+            'accuracy_meters' => ['nullable', 'numeric', 'between:0,100000'],
+        ]);
+
+        $dispatch = $this->dispatchLocations->updateForReport(
+            $report,
+            (float) $attributes['latitude'],
+            (float) $attributes['longitude'],
+            isset($attributes['accuracy_meters']) ? (float) $attributes['accuracy_meters'] : null,
+        );
+
+        if ($dispatch === null) {
+            return $this->error('No active dispatch is assigned to this incident.', 422);
+        }
+
+        return $this->ok('Responder location updated', ['dispatch' => $dispatch]);
     }
 
     public function saveIncidentRecord(Request $request, FireReport $report): JsonResponse

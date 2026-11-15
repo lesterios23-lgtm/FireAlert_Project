@@ -10,6 +10,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 
 class AdminDashboardController extends APIController
@@ -28,6 +29,7 @@ class AdminDashboardController extends APIController
             'reports' => $reports,
             'users' => $this->users(),
             'login_attempt_settings' => app(LoginAttemptSettings::class)->get(),
+            'high_risk_summary' => $this->highRiskSummary(),
             'firetrucks' => DB::table('firetrucks as trucks')
                 ->orderBy('trucks.unit_name')
                 ->get([
@@ -37,6 +39,19 @@ class AdminDashboardController extends APIController
                     'trucks.status',
                 ]),
         ]);
+    }
+
+    /**
+     * Historical incident analysis used for the "High Risk Location Prediction"
+     * requirement. Risk is computed from recorded incidents (frequency,
+     * recency, and severity) — never fabricated when no data exists.
+     */
+    public function highRiskAreas(Request $request): JsonResponse
+    {
+        $this->authorizeAdmin($request);
+        $period = $this->normalizeRiskPeriod($request->query('period'));
+
+        return $this->ok('High-risk location analysis retrieved', $this->buildHighRiskAnalysis($period));
     }
 
     public function updateLoginAttemptSettings(Request $request): JsonResponse
@@ -248,6 +263,278 @@ class AdminDashboardController extends APIController
                 'trucks.plate_number',
                 'trucks.status',
             ]);
+    }
+
+    /**
+     * @return array{areas:int,high:int,model_available:bool,generated_at:string}
+     */
+    private function highRiskSummary(): array
+    {
+        $analysis = $this->buildHighRiskAnalysis('365');
+
+        $high = 0;
+        foreach ($analysis['areas'] as $area) {
+            if (($area['risk_level'] ?? null) === 'High') {
+                $high++;
+            }
+        }
+
+        return [
+            'areas' => count($analysis['areas']),
+            'high' => $high,
+            'model_available' => $analysis['model_available'],
+            'generated_at' => $analysis['generated_at'],
+            'period_days' => $analysis['period_days'],
+        ];
+    }
+
+    private function normalizeRiskPeriod(mixed $period): string
+    {
+        $value = (string) $period;
+
+        return in_array($value, ['30', '90', '365', 'all'], true) ? $value : '365';
+    }
+
+    /**
+     * Builds explainable high-risk predictions from historical incident data.
+     *
+     * @return array<string, mixed>
+     */
+    private function buildHighRiskAnalysis(string $period = '365'): array
+    {
+        $rows = $this->incidentRowsForAnalysis();
+        $periodDays = $period === 'all' ? null : (int) $period;
+        $cutoff = $periodDays ? now()->copy()->subDays($periodDays) : null;
+
+        if ($cutoff) {
+            $rows = array_values(array_filter($rows, function (object $row) use ($cutoff): bool {
+                if (empty($row->reported_at)) {
+                    return true;
+                }
+
+                try {
+                    return \Illuminate\Support\Carbon::parse($row->reported_at)->gte($cutoff);
+                } catch (\Throwable) {
+                    return true;
+                }
+            }));
+        }
+
+        if ($rows === []) {
+            return [
+                'model_available' => false,
+                'generated_at' => now()->toIso8601String(),
+                'methodology' => 'Historical incident frequency, recency, and reported severity.',
+                'total_incidents_analyzed' => 0,
+                'period' => $period,
+                'period_days' => $periodDays,
+                'areas' => [],
+            ];
+        }
+
+        $groups = [];
+        foreach ($rows as $row) {
+            $key = $this->riskAreaKey($row);
+            if (! isset($groups[$key])) {
+                $groups[$key] = [
+                    'area' => $key,
+                    'incident_count' => 0,
+                    'recent_count' => 0,
+                    'severity_score' => 0.0,
+                    'last_reported_at' => null,
+                    'lat_sum' => 0.0,
+                    'lng_sum' => 0.0,
+                    'coord_count' => 0,
+                    'sample_address' => null,
+                ];
+            }
+
+            $groups[$key]['incident_count']++;
+
+            $severity = strtolower((string) ($row->fire_severity ?? ''));
+            $groups[$key]['severity_score'] += match ($severity) {
+                'large' => 3.0,
+                'medium' => 2.0,
+                'small' => 1.0,
+                default => 1.5,
+            };
+
+            $reportedAt = $row->reported_at ? \Illuminate\Support\Carbon::parse($row->reported_at) : null;
+            if ($reportedAt) {
+                $days = $reportedAt->diffInDays(now());
+                if ($days <= 30) {
+                    $groups[$key]['recent_count'] += 2;
+                } elseif ($days <= 90) {
+                    $groups[$key]['recent_count'] += 1;
+                }
+
+                if ($groups[$key]['last_reported_at'] === null
+                    || $reportedAt->gt(\Illuminate\Support\Carbon::parse($groups[$key]['last_reported_at']))) {
+                    $groups[$key]['last_reported_at'] = $reportedAt->toIso8601String();
+                }
+            }
+
+            if (is_numeric($row->latitude) && is_numeric($row->longitude)) {
+                $groups[$key]['lat_sum'] += (float) $row->latitude;
+                $groups[$key]['lng_sum'] += (float) $row->longitude;
+                $groups[$key]['coord_count']++;
+            }
+
+            if ($groups[$key]['sample_address'] === null && ! empty($row->address)) {
+                $groups[$key]['sample_address'] = $row->address;
+            }
+        }
+
+        $areas = [];
+        foreach ($groups as $group) {
+            $count = $group['incident_count'];
+            $avgSeverity = $count > 0 ? $group['severity_score'] / $count : 0.0;
+            $score = ($count * 12) + ($group['recent_count'] * 8) + ($avgSeverity * 6);
+            $score = (int) round(min(100, $score));
+
+            $riskLevel = match (true) {
+                $score >= 45 || $count >= 3 => 'High',
+                $score >= 22 || $count >= 2 => 'Moderate',
+                default => 'Low',
+            };
+
+            $latitude = $group['coord_count'] > 0 ? round($group['lat_sum'] / $group['coord_count'], 7) : null;
+            $longitude = $group['coord_count'] > 0 ? round($group['lng_sum'] / $group['coord_count'], 7) : null;
+
+            $areas[] = [
+                'area' => $group['area'],
+                'address' => $group['sample_address'],
+                'risk_level' => $riskLevel,
+                'risk_score' => $score,
+                'incident_count' => $count,
+                'average_severity' => round($avgSeverity, 2),
+                'last_reported_at' => $group['last_reported_at'],
+                'latitude' => $latitude,
+                'longitude' => $longitude,
+                'factors' => [
+                    'frequency' => $count,
+                    'recent_activity' => $group['recent_count'],
+                    'severity_weight' => round($avgSeverity, 2),
+                ],
+            ];
+        }
+
+        usort($areas, function (array $a, array $b): int {
+            $rank = ['High' => 3, 'Moderate' => 2, 'Low' => 1];
+            $levelCmp = ($rank[$b['risk_level']] ?? 0) <=> ($rank[$a['risk_level']] ?? 0);
+            if ($levelCmp !== 0) {
+                return $levelCmp;
+            }
+
+            return ($b['risk_score'] ?? 0) <=> ($a['risk_score'] ?? 0);
+        });
+
+        $periodLabel = $periodDays ? "last {$periodDays} days" : 'all recorded time';
+
+        return [
+            'model_available' => true,
+            'generated_at' => now()->toIso8601String(),
+            'methodology' => "Risk score is computed from historical fire report frequency, recent activity, and reported fire severity for {$periodLabel}. It is an analytical prediction to guide preparedness, not an automatic dispatch trigger.",
+            'total_incidents_analyzed' => count($rows),
+            'period' => $period,
+            'period_days' => $periodDays,
+            'areas' => array_values($areas),
+        ];
+    }
+
+    /**
+     * @return list<object>
+     */
+    private function incidentRowsForAnalysis(): array
+    {
+        $query = DB::table('fire_reports as r');
+
+        $addressColumn = Schema::hasColumn('fire_reports', 'landmark_address') ? 'r.landmark_address' : 'r.incident_address';
+        $dateColumn = Schema::hasColumn('fire_reports', 'submitted_at') ? 'r.submitted_at' : 'r.reported_at';
+        $reportKey = Schema::hasColumn('fire_reports', 'report_id') ? 'r.report_id' : 'r.id';
+
+        $select = [
+            DB::raw($reportKey.' as report_id'),
+            DB::raw($addressColumn.' as address'),
+            DB::raw($dateColumn.' as reported_at'),
+        ];
+
+        if (Schema::hasColumn('fire_reports', 'fire_severity')) {
+            $select[] = 'r.fire_severity';
+        } else {
+            $select[] = DB::raw('NULL as fire_severity');
+        }
+
+        if (Schema::hasColumn('fire_reports', 'latitude') && Schema::hasColumn('fire_reports', 'longitude')) {
+            $select[] = 'r.latitude';
+            $select[] = 'r.longitude';
+        } elseif (Schema::hasTable('report_locations')) {
+            $locationKey = Schema::hasColumn('report_locations', 'report_id') ? 'l.report_id' : 'l.fire_report_id';
+            $query->leftJoin('report_locations as l', $locationKey, '=', $reportKey);
+            $select[] = 'l.latitude';
+            $select[] = 'l.longitude';
+            if (Schema::hasColumn('report_locations', 'barangay_name')) {
+                $select[] = 'l.barangay_name';
+            }
+        } else {
+            $select[] = DB::raw('NULL as latitude');
+            $select[] = DB::raw('NULL as longitude');
+        }
+
+        return $query->orderByDesc(DB::raw($dateColumn))->get($select)->all();
+    }
+
+    private function riskAreaKey(object $row): string
+    {
+        $address = trim((string) ($row->address ?? ''));
+        if ($address !== '') {
+            $normalized = preg_replace('/\s+/', ' ', $address) ?? $address;
+
+            if (preg_match('/\b(?:brgys?\.?|barangays?|bgry\.?|bgy\.?|bry\.?)\s*([^,]+)/iu', $normalized, $matches)) {
+                $name = $this->normalizeAreaLabel($matches[1]);
+                if ($name !== '') {
+                    return 'Brgy. '.$name;
+                }
+            }
+
+            $parts = array_values(array_filter(array_map('trim', explode(',', $normalized))));
+            foreach (array_reverse($parts) as $part) {
+                if ($part === '' || stripos($part, 'mansalay') !== false || stripos($part, 'oriental mindoro') !== false) {
+                    continue;
+                }
+                if (preg_match('/^(current device location)$/i', $part)) {
+                    continue;
+                }
+
+                return $this->normalizeAreaLabel($part);
+            }
+
+            return $this->normalizeAreaLabel($parts[0] ?? $normalized);
+        }
+
+        if (is_numeric($row->latitude ?? null) && is_numeric($row->longitude ?? null)) {
+            return 'Vicinity '.round((float) $row->latitude, 3).', '.round((float) $row->longitude, 3);
+        }
+
+        return 'Unknown location';
+    }
+
+    private function normalizeAreaLabel(string $value): string
+    {
+        $label = trim(preg_replace('/\s+/', ' ', $value) ?? $value);
+        $label = preg_replace('/^(sitio|stio|sto\.?|purok)\s+/iu', '', $label) ?? $label;
+        $label = trim($label, " \t\n\r\0\x0B.-");
+
+        if ($label === '') {
+            return 'Unknown location';
+        }
+
+        $collapsed = strtolower(preg_replace('/[^a-z0-9]+/i', '', $label) ?? $label);
+        if ($collapsed === 'bdelmundo' || $collapsed === 'budelmundo') {
+            return 'B. Del Mundo';
+        }
+
+        return mb_convert_case(mb_strtolower($label), MB_CASE_TITLE, 'UTF-8');
     }
 
     private function authorizeAdmin(Request $request): void

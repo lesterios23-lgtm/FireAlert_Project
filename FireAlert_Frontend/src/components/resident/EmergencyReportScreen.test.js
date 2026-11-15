@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import EmergencyReportScreen from './EmergencyReportScreen';
 
-jest.mock('../shared/MapContainer', () => function MockMapContainer({ onLocationSelect }) {
+jest.mock('../shared/GoogleMap', () => function MockGoogleMap({ onLocationSelect }) {
   return (
     <button
       type='button'

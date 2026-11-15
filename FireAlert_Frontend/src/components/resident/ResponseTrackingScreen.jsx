@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import TrackingTimeline from '../shared/TrackingTimeline';
-import MapContainer from '../shared/MapContainer';
+import RouteNavigationMap from '../shared/RouteNavigationMap';
 import { apiRequest, normalizeReport, normalizeReports } from '../../sharedApi';
 import { SkeletonTrackingScreen } from './SkeletonLoaders';
 
@@ -39,7 +39,13 @@ export default function ResponseTrackingScreen({ report }) {
 
       const payload = await apiRequest('/reports?sort=-reportedAt');
       const reports = normalizeReports(payload);
-      setTrackingReport(reports.find((item) => !['resolved', 'rejected'].includes(item.status)) || reports[0] || null);
+      const active = reports.find((item) => !['resolved', 'rejected'].includes(item.status)) || reports[0] || null;
+      if (active?.id) {
+        const detail = await apiRequest(`/reports/${active.id}`);
+        setTrackingReport(normalizeReport(detail));
+        return;
+      }
+      setTrackingReport(active);
     } catch (requestError) {
       setError(requestError.message || 'Unable to refresh your response status.');
     } finally {
@@ -49,9 +55,10 @@ export default function ResponseTrackingScreen({ report }) {
 
   useEffect(() => {
     refreshReport();
-    const timer = window.setInterval(refreshReport, 30000);
+    const intervalMs = trackingReport?.status === 'responding' ? 15000 : 30000;
+    const timer = window.setInterval(refreshReport, intervalMs);
     return () => window.clearInterval(timer);
-  }, [refreshReport]);
+  }, [refreshReport, trackingReport?.status]);
 
   if (loading && !trackingReport) {
     return <SkeletonTrackingScreen />;
@@ -77,6 +84,16 @@ export default function ResponseTrackingScreen({ report }) {
     ? [{ id: trackingReport.id, lat: trackingReport.latitude, lng: trackingReport.longitude }]
     : [];
   const submittedAt = trackingReport.reportedAt || trackingReport.createdAt;
+  const dispatch = trackingReport.dispatch || null;
+  const liveLocation = dispatch?.current_location || null;
+  const responder = liveLocation
+    ? {
+      ...liveLocation,
+      unit_name: dispatch.unit_name || dispatch.plate_number || null,
+    }
+    : null;
+  const unitName = dispatch?.unit_name || dispatch?.plate_number || 'Response unit';
+  const personnelName = dispatch?.personnel_name || 'BFP personnel';
 
   return (
     <div className='resident-page'>
@@ -103,17 +120,38 @@ export default function ResponseTrackingScreen({ report }) {
         </div>
         <div className='resident-response-unit'>
           <span aria-hidden='true'>♧</span>
-          <div><strong>{trackingReport.status === 'responding' ? 'Response en route' : 'Awaiting BFP response'}</strong><small>Unit assignment and ETA are not available in the report service.</small></div>
-          <b>{trackingReport.status === 'responding' ? 'En route' : '—'}</b>
+          <div>
+            <strong>
+              {dispatch
+                ? `${unitName} dispatched`
+                : trackingReport.status === 'responding'
+                  ? 'Response en route'
+                  : 'Awaiting BFP response'}
+            </strong>
+            <small>
+              {dispatch
+                ? `${personnelName} · ETA ${dispatch.estimated_eta_minutes ?? '—'} min${liveLocation ? ' · live GPS available' : ' · GPS pending'}`
+                : 'BFP personnel will assign a unit and estimated arrival time after verification.'}
+            </small>
+          </div>
+          <b>{dispatch ? `${dispatch.estimated_eta_minutes ?? '—'} min` : trackingReport.status === 'responding' ? 'En route' : '—'}</b>
         </div>
       </section>
 
       <section className='resident-track-section'>
-        <div className='resident-section-heading'><div><h2>Incident location</h2><p>The pin is shown when coordinates were included in the report.</p></div></div>
-        <MapContainer
+        <div className='resident-section-heading'>
+          <div>
+            <h2>Route &amp; responder map</h2>
+            <p>Suggested firetruck route, estimated arrival, and the latest live unit position.</p>
+          </div>
+        </div>
+        <RouteNavigationMap
+          destination={trackingReport}
           markers={markers}
           selected={trackingReport}
-          height='210px'
+          height='230px'
+          existingResponder={responder}
+          readOnly
           title='Incident Tracking Map'
         />
       </section>

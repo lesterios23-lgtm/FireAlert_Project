@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import MapContainer from '../shared/MapContainer';
+import GoogleMap from '../shared/GoogleMap';
 import { apiRequest, normalizeReport } from '../../sharedApi';
 
 const STATUS_LABELS = {
@@ -254,7 +254,7 @@ export default function IncidentRecords({ onOpenCommand }) {
                 </span>
               </div>
 
-              <MapContainer
+              <GoogleMap
                 markers={markers}
                 selected={selectedReport}
                 height='205px'

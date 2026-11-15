@@ -20,6 +20,7 @@ Route::middleware('auth:api')->group(function () {
     Route::post('/auth/refresh', [AuthController::class, 'refresh']);
     Route::patch('/auth/profile', [AuthController::class, 'updateProfile']);
     Route::get('admin/dashboard', [AdminDashboardController::class, 'index']);
+    Route::get('admin/high-risk-areas', [AdminDashboardController::class, 'highRiskAreas']);
     Route::put('admin/login-attempt-settings', [AdminDashboardController::class, 'updateLoginAttemptSettings']);
     Route::post('admin/users', [AdminDashboardController::class, 'storeUser']);
     Route::patch('admin/users/{user}', [AdminDashboardController::class, 'updateUser']);
@@ -35,6 +36,7 @@ Route::middleware('auth:api')->group(function () {
     Route::post('reports/{report}/detach', [FireIncidentController::class, 'detach']);
     Route::patch('incidents/{incident}/status', [FireIncidentController::class, 'updateStatus']);
     Route::post('reports/{report}/dispatch', [BfpCommandCenterController::class, 'dispatch']);
+    Route::post('reports/{report}/dispatch-location', [BfpCommandCenterController::class, 'updateDispatchLocation']);
     Route::put('reports/{report}/incident-record', [BfpCommandCenterController::class, 'saveIncidentRecord']);
 
     Route::apiResource('users', UserController::class)

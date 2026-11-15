@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import MapContainer from '../shared/MapContainer';
+import RouteNavigationMap from '../shared/RouteNavigationMap';
 import {
   calculateStationDistanceKm,
   ESTIMATED_RESPONSE_SPEED_KMH,
@@ -328,6 +328,29 @@ export default function EmergencyCommandCenter() {
   const focusedReport = feedView === 'incidents' && selectedIncident
     ? (activeMembers.find((member) => String(member.id) === String(selectedId)) || activeMembers[0] || selectedReport)
     : selectedReport;
+  const dispatchInfo = (
+    feedView === 'incidents' && selectedIncident ? selectedIncident.dispatch : null
+  ) || focusedReport?.dispatch || null;
+  const dispatchReportId = dispatchInfo?.report_id || focusedReport?.id || null;
+  const responderPosition = dispatchInfo?.current_location
+    ? {
+      ...dispatchInfo.current_location,
+      unit_name: dispatchInfo.unit_name || dispatchInfo.plate_number || null,
+    }
+    : null;
+
+  const shareResponderLocation = useCallback(async (position) => {
+    if (!dispatchReportId) return;
+    await apiRequest(`/reports/${dispatchReportId}/dispatch-location`, {
+      method: 'POST',
+      body: JSON.stringify({
+        latitude: position.latitude,
+        longitude: position.longitude,
+        accuracy_meters: Number.isFinite(position.accuracy) ? position.accuracy : undefined,
+      }),
+    });
+  }, [dispatchReportId]);
+
   const availableStatuses = useMemo(() => {
     const seen = new Set();
     return statuses
@@ -647,7 +670,17 @@ export default function EmergencyCommandCenter() {
                   </span>
                 </div>
 
-                <MapContainer markers={markers} selected={focusedReport} height='300px' flyTrigger={flyTrigger} />
+                <RouteNavigationMap
+                  destination={focusedReport}
+                  markers={markers}
+                  selected={focusedReport}
+                  height='300px'
+                  flyTrigger={flyTrigger}
+                  canTrack={Boolean(dispatchInfo)}
+                  existingResponder={responderPosition}
+                  onShareLocation={shareResponderLocation}
+                  title='Response route map'
+                />
 
                 <div className='bfp-incident-meta'>
                   <div><span>FIRST REPORT</span><strong>{formatDate(selectedIncident.firstReportedAt)}</strong></div>
@@ -659,10 +692,16 @@ export default function EmergencyCommandCenter() {
                   <h3>Incident information</h3>
                   <p>{selectedIncident.incidentDescription || 'No incident description provided.'}</p>
                 </div>
-                {selectedIncident.dispatch && (
+                {dispatchInfo && (
                   <div className='bfp-assignment-note'>
                     <strong>Current response unit</strong>
-                    <p>{selectedIncident.dispatch.unit_name || selectedIncident.dispatch.plate_number || 'Assigned vehicle'} · {selectedIncident.dispatch.personnel_name || 'Assigned personnel'} · ETA {selectedIncident.dispatch.estimated_eta_minutes} min</p>
+                    <p>{dispatchInfo.unit_name || dispatchInfo.plate_number || 'Assigned vehicle'} · {dispatchInfo.personnel_name || 'Assigned personnel'} · ETA {dispatchInfo.estimated_eta_minutes} min</p>
+                    {dispatchInfo.current_location && (
+                      <p className='bfp-live-location-note'>
+                        Live GPS {Number(dispatchInfo.current_location.latitude).toFixed(5)}, {Number(dispatchInfo.current_location.longitude).toFixed(5)}
+                        {' · '}updated {formatDate(dispatchInfo.location_updated_at)}
+                      </p>
+                    )}
                   </div>
                 )}
 
@@ -800,7 +839,17 @@ export default function EmergencyCommandCenter() {
                 </span>
               </div>
 
-              <MapContainer markers={markers} selected={selectedReport} height='340px' flyTrigger={flyTrigger} />
+              <RouteNavigationMap
+                destination={focusedReport}
+                markers={markers}
+                selected={selectedReport}
+                height='340px'
+                flyTrigger={flyTrigger}
+                canTrack={Boolean(dispatchInfo)}
+                existingResponder={responderPosition}
+                onShareLocation={shareResponderLocation}
+                title='Response route map'
+              />
 
               <div className='bfp-incident-meta'>
                 <div><span>REPORTED</span><strong>{formatDate(selectedReport.reportedAt || selectedReport.createdAt)}</strong></div>
@@ -815,10 +864,16 @@ export default function EmergencyCommandCenter() {
               {focusedReport.hasEvidence && (
                 <EvidencePreview key={focusedReport.id} reportId={focusedReport.id} />
               )}
-              {focusedReport.dispatch && (
+              {dispatchInfo && (
                   <div className='bfp-assignment-note'>
                     <strong>Current response unit</strong>
-                    <p>{focusedReport.dispatch.unit_name || focusedReport.dispatch.plate_number || 'Assigned vehicle'} · {focusedReport.dispatch.personnel_name || 'Assigned personnel'} · ETA {focusedReport.dispatch.estimated_eta_minutes} min</p>
+                    <p>{dispatchInfo.unit_name || dispatchInfo.plate_number || 'Assigned vehicle'} · {dispatchInfo.personnel_name || 'Assigned personnel'} · ETA {dispatchInfo.estimated_eta_minutes} min</p>
+                    {dispatchInfo.current_location && (
+                      <p className='bfp-live-location-note'>
+                        Live GPS {Number(dispatchInfo.current_location.latitude).toFixed(5)}, {Number(dispatchInfo.current_location.longitude).toFixed(5)}
+                        {' · '}updated {formatDate(dispatchInfo.location_updated_at)}
+                      </p>
+                    )}
                   </div>
                 )}
               {selectedReport.incidentRecord && (

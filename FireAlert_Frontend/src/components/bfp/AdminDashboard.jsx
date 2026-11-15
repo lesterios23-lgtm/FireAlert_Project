@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import GoogleMap from '../shared/GoogleMap';
 import { apiRequest } from '../../sharedApi';
 import './AdminDashboard.css';
 
@@ -47,7 +48,7 @@ function reportFromResource(report) {
 
 export default function AdminDashboard() {
   const [section, setSection] = useState('analytics');
-  const [dashboard, setDashboard] = useState({ reports: [], users: [], firetrucks: [] });
+  const [dashboard, setDashboard] = useState({ reports: [], users: [], firetrucks: [], high_risk_summary: null });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -60,6 +61,11 @@ export default function AdminDashboard() {
   const [truckForm, setTruckForm] = useState(EMPTY_TRUCK);
   const [loginAttemptSettings, setLoginAttemptSettings] = useState(DEFAULT_LOGIN_ATTEMPT_SETTINGS);
   const [savingLoginSettings, setSavingLoginSettings] = useState(false);
+  const [riskAnalysis, setRiskAnalysis] = useState(null);
+  const [riskLoading, setRiskLoading] = useState(false);
+  const [riskError, setRiskError] = useState('');
+  const [selectedRiskArea, setSelectedRiskArea] = useState(null);
+  const [riskPeriod, setRiskPeriod] = useState('365');
 
   const refresh = useCallback(async () => {
     setError('');
@@ -71,6 +77,7 @@ export default function AdminDashboard() {
         reports: (data.reports || []).map(reportFromResource),
         users: data.users || [],
         firetrucks: data.firetrucks || [],
+        high_risk_summary: data.high_risk_summary || null,
       });
       setLoginAttemptSettings({
         ...DEFAULT_LOGIN_ATTEMPT_SETTINGS,
@@ -83,9 +90,29 @@ export default function AdminDashboard() {
     }
   }, []);
 
+  const loadRiskAnalysis = useCallback(async (period = riskPeriod) => {
+    setRiskLoading(true);
+    setRiskError('');
+    try {
+      const response = await apiRequest(`/admin/high-risk-areas?period=${encodeURIComponent(period)}`);
+      setRiskAnalysis(response.data || null);
+      setSelectedRiskArea(null);
+    } catch (requestError) {
+      setRiskError(requestError.message || 'Unable to load high-risk analysis.');
+    } finally {
+      setRiskLoading(false);
+    }
+  }, [riskPeriod]);
+
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    if (section === 'predictions' && !riskAnalysis && !riskLoading) {
+      loadRiskAnalysis(riskPeriod);
+    }
+  }, [section, riskAnalysis, riskLoading, loadRiskAnalysis, riskPeriod]);
 
   const reports = dashboard.reports;
   const filteredUsers = useMemo(() => {
@@ -117,13 +144,17 @@ export default function AdminDashboard() {
     const assignedUnits = dashboard.firetrucks.filter((truck) =>
       String(truck.status || '').toLowerCase() !== 'available'
     ).length;
+    const summary = dashboard.high_risk_summary;
     return {
       total: reports.length,
       active: activeReports,
       assigned: assignedUnits,
-      highRisk: null,
+      highRisk: summary?.model_available ? summary.high : null,
+      highRiskHint: summary?.model_available
+        ? `${summary.areas} areas analyzed from historical incidents`
+        : 'No historical data available yet',
     };
-  }, [reports, dashboard.firetrucks]);
+  }, [reports, dashboard.firetrucks, dashboard.high_risk_summary]);
 
   async function submitUser(event) {
     event.preventDefault();
@@ -250,7 +281,7 @@ export default function AdminDashboard() {
             value={stats.highRisk === null ? '––' : String(stats.highRisk).padStart(2, '0')}
             tone='amber'
             icon='◍'
-            hint='Model output pending validation'
+            hint={stats.highRiskHint}
           />
         </div>
         <section className='admin-panel'>
@@ -485,7 +516,21 @@ export default function AdminDashboard() {
             {section === 'analytics' && renderAnalytics()}
             {section === 'users' && renderUsers()}
             {section === 'firetrucks' && renderTrucks()}
-            {section === 'predictions' && <PredictionUnavailable />}
+            {section === 'predictions' && (
+              <HighRiskPredictionPanel
+                analysis={riskAnalysis}
+                loading={riskLoading}
+                error={riskError}
+                selectedArea={selectedRiskArea}
+                onSelectArea={setSelectedRiskArea}
+                period={riskPeriod}
+                onPeriodChange={(value) => {
+                  setRiskPeriod(value);
+                  loadRiskAnalysis(value);
+                }}
+                onRefresh={() => loadRiskAnalysis(riskPeriod)}
+              />
+            )}
           </>
         )}
       </section>
@@ -504,13 +549,155 @@ function StatCard({ label, value, tone, icon, hint }) {
   );
 }
 
-function PredictionUnavailable() {
+const RISK_PERIODS = [
+  { value: '30', label: 'Last 30 days' },
+  { value: '90', label: 'Last 90 days' },
+  { value: '365', label: 'Last 365 days' },
+  { value: 'all', label: 'All time' },
+];
+
+function riskTone(level) {
+  const value = String(level || '').toLowerCase();
+  if (value === 'high') return 'high';
+  if (value === 'moderate') return 'moderate';
+  return 'low';
+}
+
+function periodLabel(period) {
+  return RISK_PERIODS.find((item) => item.value === String(period))?.label || 'Last 365 days';
+}
+
+function HighRiskPredictionPanel({ analysis, loading, error, selectedArea, onSelectArea, onRefresh, period, onPeriodChange }) {
+  if (loading) {
+    return <div className='admin-loading'>Analyzing historical incident records...</div>;
+  }
+
+  if (error) {
+    return (
+      <section className='admin-panel admin-prediction-state'>
+        <div className='admin-prediction-icon' aria-hidden='true'>!</div>
+        <h2>Unable to load analysis</h2>
+        <p>{error}</p>
+        <button type='button' className='admin-primary-button' onClick={onRefresh} style={{ marginTop: '1rem' }}>Try again</button>
+      </section>
+    );
+  }
+
+  if (!analysis || !analysis.model_available || (analysis.areas || []).length === 0) {
+    return (
+      <section className='admin-panel admin-prediction-state'>
+        <div className='admin-prediction-icon' aria-hidden='true'>!</div>
+        <h2>Prediction unavailable</h2>
+        <p>No historical incident records with usable location data are available for {periodLabel(analysis?.period || period).toLowerCase()}. This analysis is computed from recorded fire incidents and does not fabricate risk estimates.</p>
+        <div className='admin-risk-period' style={{ marginTop: '0.9rem', justifyContent: 'center' }}>
+          <label htmlFor='risk-period-empty'>Analysis period</label>
+          <select id='risk-period-empty' value={period} onChange={(event) => onPeriodChange(event.target.value)}>
+            {RISK_PERIODS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+          </select>
+        </div>
+      </section>
+    );
+  }
+
+  const areas = analysis.areas || [];
+  const counts = areas.reduce((acc, area) => {
+    const key = riskTone(area.risk_level);
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, { high: 0, moderate: 0, low: 0 });
+
+  const selected = selectedArea && areas.find((area) => area.area === selectedArea.area)
+    ? areas.find((area) => area.area === selectedArea.area)
+    : areas[0];
+
+  const markers = areas
+    .filter((area) => area.latitude != null && area.longitude != null)
+    .map((area) => ({
+      id: area.area,
+      lat: area.latitude,
+      lng: area.longitude,
+      address: `${area.area} · ${area.risk_level} risk (${area.incident_count} incident${area.incident_count === 1 ? '' : 's'})`,
+    }));
+
   return (
-    <section className='admin-panel admin-prediction-state'>
-      <div className='admin-prediction-icon' aria-hidden='true'>!</div>
-      <h2>Prediction model unavailable</h2>
-      <p>No trained high-risk prediction model is connected. This page will show predictions when verified model output becomes available; it does not generate or invent risk estimates.</p>
-    </section>
+    <div className='admin-risk-layout'>
+      <div className='admin-stat-grid admin-risk-stats'>
+        <StatCard label='Incidents analyzed' value={String(analysis.total_incidents_analyzed || 0).padStart(2, '0')} tone='navy' icon='▤' hint={periodLabel(analysis.period || period)} />
+        <StatCard label='High-risk areas' value={String(counts.high).padStart(2, '0')} tone='amber' icon='◍' hint='Prioritize preparedness' />
+        <StatCard label='Moderate-risk areas' value={String(counts.moderate).padStart(2, '0')} tone='blue' icon='◌' hint='Monitor and review' />
+        <StatCard label='Low-risk areas' value={String(counts.low).padStart(2, '0')} tone='navy' icon='○' hint='Lower recent activity' />
+      </div>
+
+      <section className='admin-panel admin-risk-method'>
+        <div className='admin-panel-heading admin-risk-heading'>
+          <div>
+            <h2>High-risk location analysis</h2>
+            <p>Generated {formatDate(analysis.generated_at)} · {periodLabel(analysis.period || period)} · Based on historical incident records</p>
+          </div>
+          <div className='admin-risk-controls'>
+            <div className='admin-risk-period'>
+              <label htmlFor='risk-period'>Period</label>
+              <select id='risk-period' value={analysis.period || period} onChange={(event) => onPeriodChange(event.target.value)}>
+                {RISK_PERIODS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+              </select>
+            </div>
+            <button type='button' className='admin-refresh' onClick={onRefresh}>Refresh analysis</button>
+          </div>
+        </div>
+        <p className='admin-risk-note'>{analysis.methodology}</p>
+      </section>
+
+      <div className='admin-risk-grid'>
+        <section className='admin-panel admin-risk-map-panel'>
+          <div className='admin-panel-heading'>
+            <div><h2>Predicted high-risk map</h2><p>Areas ranked by historical frequency, recency, and severity</p></div>
+          </div>
+          {markers.length > 0 ? (
+            <GoogleMap
+              markers={markers}
+              selected={selected && selected.latitude != null ? { latitude: selected.latitude, longitude: selected.longitude } : null}
+              height='360px'
+              title='High-Risk Location Prediction Map'
+            />
+          ) : (
+            <p className='admin-empty'>No mapped coordinates are available for analyzed areas.</p>
+          )}
+          <div className='admin-risk-legend' aria-label='Risk level legend'>
+            <span><i className='high' /> High risk</span>
+            <span><i className='moderate' /> Moderate risk</span>
+            <span><i className='low' /> Low risk</span>
+          </div>
+        </section>
+
+        <section className='admin-panel admin-risk-list-panel'>
+          <div className='admin-panel-heading'>
+            <div><h2>Ranked locations</h2><p>Select an area to focus it on the map</p></div>
+          </div>
+          <div className='admin-risk-list'>
+            {areas.map((area, index) => (
+              <button
+                type='button'
+                key={area.area}
+                className={`admin-risk-item ${riskTone(area.risk_level)}${selected?.area === area.area ? ' selected' : ''}`}
+                onClick={() => onSelectArea(area)}
+              >
+                <div className='admin-risk-item-head'>
+                  <span className='admin-risk-rank'>#{index + 1}</span>
+                  <strong>{area.area}</strong>
+                  <span className={`admin-risk-badge ${riskTone(area.risk_level)}`}>{area.risk_level}</span>
+                </div>
+                <div className='admin-risk-item-meta'>
+                  <span>Score {area.risk_score}</span>
+                  <span>{area.incident_count} incident{area.incident_count === 1 ? '' : 's'}</span>
+                  <span>Severity avg {area.average_severity}</span>
+                </div>
+                <small>Last incident: {formatDate(area.last_reported_at)} · {area.address || 'Location details unavailable'}</small>
+              </button>
+            ))}
+          </div>
+        </section>
+      </div>
+    </div>
   );
 }
 

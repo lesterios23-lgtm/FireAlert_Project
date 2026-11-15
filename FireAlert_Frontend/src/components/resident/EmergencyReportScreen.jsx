@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import MapContainer from '../shared/MapContainer';
+import GoogleMap from '../shared/GoogleMap';
 import BarangaySuggestInput from '../shared/BarangaySuggestInput';
 import { buildResidentAddress, matchMansalayBarangay } from '../shared/mansalayBarangays';
 import { apiRequest, normalizeReport } from '../../sharedApi';
@@ -272,7 +272,7 @@ export default function EmergencyReportScreen({ onReportSubmitted }) {
             </div>
           </details>
 
-          <MapContainer
+          <GoogleMap
             markers={locationMarkers}
             selected={mapSelection}
             height='195px'

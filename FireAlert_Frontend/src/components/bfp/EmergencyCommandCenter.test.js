@@ -3,7 +3,7 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import EmergencyCommandCenter from './EmergencyCommandCenter';
 import { apiRequest } from '../../sharedApi';
 
-jest.mock('../shared/MapContainer', () => function MockMapContainer() {
+jest.mock('../shared/GoogleMap', () => function MockGoogleMap() {
   return <div aria-label='Map' />;
 });
 
