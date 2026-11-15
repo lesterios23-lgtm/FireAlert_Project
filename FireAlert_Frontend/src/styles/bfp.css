@@ -599,6 +599,11 @@
   line-height: 1.45;
 }
 
+.bfp-assignment-note p.bfp-live-location-note {
+  color: #3b7f62;
+  font-weight: 650;
+}
+
 .bfp-security-note {
   background: #f1f5f8;
 }

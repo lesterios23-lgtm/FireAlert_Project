@@ -193,14 +193,17 @@ export default function LoginPage({ onLogin }) {
   return (
     <div className='auth-app'>
       <header className='auth-topbar'>
-        <div className='auth-brand'>
-          <FireAlertLogoMark className='auth-brand-mark' />
-          <span><strong>FireAlert</strong><small>BFP MANSALAY</small></span>
+        <div className='auth-topbar-inner'>
+          <div className='auth-brand'>
+            <FireAlertLogoMark className='auth-brand-mark' />
+            <span><strong>FireAlert</strong><small>BFP MANSALAY</small></span>
+          </div>
+          <span className='auth-portal-label'>{mode === 'register' ? 'Resident portal' : `${roleChoice === 'resident' ? 'Resident' : 'BFP personnel'} portal`}</span>
         </div>
-        <span className='auth-portal-label'>{mode === 'register' ? 'Resident portal' : `${roleChoice === 'resident' ? 'Resident' : 'BFP personnel'} portal`}</span>
       </header>
 
       <main className={`auth-content${mode === 'register' ? ' is-registering' : ''}`}>
+        <div className='auth-panel'>
         {mode === 'login' ? (
           <section className='auth-hero'>
             <p className='auth-hero-location'>Mansalay, Oriental Mindoro</p>
@@ -409,11 +412,30 @@ export default function LoginPage({ onLogin }) {
           </div>
         ) : (
           <div className='auth-emergency-note'>
-            <strong>For fire emergencies only</strong>
-            <p>Stay at a safe distance. If you cannot connect to FireAlert, call 911.</p>
+            <span className='auth-emergency-icon' aria-hidden='true'>
+              <svg viewBox='0 0 24 24' focusable='false'>
+                <path
+                  fill='currentColor'
+                  d='M12 2.6a1.8 1.8 0 0 1 1.56.9l8.2 14.2a1.8 1.8 0 0 1-1.56 2.7H3.8a1.8 1.8 0 0 1-1.56-2.7l8.2-14.2A1.8 1.8 0 0 1 12 2.6Zm0 4.9a1 1 0 0 0-1 1v4.9a1 1 0 1 0 2 0V8.5a1 1 0 0 0-1-1Zm0 9.7a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5Z'
+                />
+              </svg>
+            </span>
+            <div className='auth-emergency-copy'>
+              <strong>For fire emergencies only</strong>
+              <p>Stay at a safe distance. If you cannot connect to FireAlert, call 911.</p>
+            </div>
           </div>
         )}
-        <p className='auth-security-note'>Secure access · Your information stays private</p>
+        <p className='auth-security-note'>
+          <svg viewBox='0 0 24 24' aria-hidden='true' focusable='false'>
+            <path
+              fill='currentColor'
+              d='M12 2a4.2 4.2 0 0 0-4.2 4.2v2H7a2 2 0 0 0-2 2V19a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8.8a2 2 0 0 0-2-2h-.8v-2A4.2 4.2 0 0 0 12 2Zm-2.4 6.2V6.2a2.4 2.4 0 1 1 4.8 0v2H9.6Zm2.4 5a1.5 1.5 0 0 1 .9 2.7v1a.9.9 0 0 1-1.8 0v-1a1.5 1.5 0 0 1 .9-2.7Z'
+            />
+          </svg>
+          <span>Secure access · Your information stays private</span>
+        </p>
+        </div>
       </main>
     </div>
   );

@@ -74,9 +74,9 @@ class LoginActivity : AppCompatActivity() {
                     val authResponse = response.body()!!
                     val token = authResponse.data?.accessToken
                     if (token != null) {
-                        ApiClient.setToken("Bearer $token")
+                        ApiClient.setToken(token)
                         // Save to SharedPreferences
-                        ApiClient.saveToken(applicationContext, "Bearer $token")
+                        ApiClient.saveToken(applicationContext, token)
                         Toast.makeText(this@LoginActivity, getString(R.string.msg_login_success), Toast.LENGTH_SHORT).show()
                         navigateToHome()
                     } else {

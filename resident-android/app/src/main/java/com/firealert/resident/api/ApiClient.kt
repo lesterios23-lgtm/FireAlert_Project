@@ -2,16 +2,16 @@ package com.firealert.resident.api
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.firealert.resident.BuildConfig
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 object ApiClient {
 
-    private const val BASE_URL = "http://192.168.1.24:8000/api/v1/" // Host PC on the same Wi-Fi
+    private const val BASE_URL = BuildConfig.FIREALERT_API_BASE_URL
     private const val PREF_NAME = "firealert_prefs"
     private const val KEY_TOKEN = "auth_token"
 
@@ -19,12 +19,7 @@ object ApiClient {
         .setLenient()
         .create()
 
-    private val loggingInterceptor = HttpLoggingInterceptor().apply {
-        level = HttpLoggingInterceptor.Level.BODY
-    }
-
     private val okHttpClient = OkHttpClient.Builder()
-        .addInterceptor(loggingInterceptor)
         .addInterceptor { chain ->
             val originalRequest = chain.request()
             val token = getToken()
@@ -46,9 +41,16 @@ object ApiClient {
 
     val apiService: FireAlertApi by lazy { retrofit.create(FireAlertApi::class.java) }
 
+    private fun normalizedToken(token: String?): String? =
+        token
+            ?.removePrefix("Bearer ")
+            ?.removePrefix("bearer ")
+            ?.trim()
+            ?.takeIf { it.isNotEmpty() }
+
     fun saveToken(context: Context, token: String) {
         val prefs: SharedPreferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
-        prefs.edit().putString(KEY_TOKEN, token).apply()
+        prefs.edit().putString(KEY_TOKEN, normalizedToken(token)).apply()
     }
 
     fun getToken(): String? {
@@ -57,7 +59,7 @@ object ApiClient {
     }
 
     fun setToken(token: String?) {
-        TokenHolder.token = token
+        TokenHolder.token = normalizedToken(token)
     }
 
     fun clearToken() {

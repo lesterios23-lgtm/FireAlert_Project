@@ -67,6 +67,21 @@ php artisan jwt:secret
 php artisan migrate
 ```
 
+### Local network / phone testing
+
+The development server listens on `127.0.0.1` by default, so a phone cannot
+reach it. Start it on all interfaces instead:
+
+```bash
+php artisan serve --host=0.0.0.0 --port=8000
+```
+
+The framework's default CORS configuration already allows every origin on
+`api/*`, and JWT bearer tokens avoid cookie/CORS-credential complications, so
+no CORS file is needed for LAN testing. Keep this HTTP setup to development;
+production must use HTTPS. See [LAN testing](../docs/LAN-Testing.md) for the
+frontend, firewall, and Android steps.
+
 Keep `.env` private and never commit either secret. Public registration always creates a `resident`; the submitted request cannot assign a privileged role. The new role column is nullable so existing accounts are not automatically assigned or downgraded. After verifying the existing authorized BFP account, assign its `bfp` role through a trusted administrative process before enabling role-based access.
 
 Authentication endpoints:

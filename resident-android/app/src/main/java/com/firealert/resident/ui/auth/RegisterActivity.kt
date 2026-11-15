@@ -82,8 +82,8 @@ class RegisterActivity : AppCompatActivity() {
                     val authResponse = response.body()!!
                     val token = authResponse.data?.accessToken
                     if (token != null) {
-                        ApiClient.setToken("Bearer $token")
-                        ApiClient.saveToken(applicationContext, "Bearer $token")
+                        ApiClient.setToken(token)
+                        ApiClient.saveToken(applicationContext, token)
                         Toast.makeText(this@RegisterActivity, getString(R.string.msg_registration_success), Toast.LENGTH_SHORT).show()
                         navigateToHome()
                     } else {
