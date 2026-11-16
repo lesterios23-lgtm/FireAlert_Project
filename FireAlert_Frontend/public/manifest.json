@@ -21,7 +21,7 @@
       "type": "image/x-icon"
     }
   ],
-  "start_url": "/?source=pwa",
+  "start_url": "/#/login",
   "display": "standalone",
   "orientation": "portrait-primary",
   "theme_color": "#172a40",

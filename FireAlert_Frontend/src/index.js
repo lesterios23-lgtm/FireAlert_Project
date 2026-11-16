@@ -11,21 +11,23 @@ root.render(
   </React.StrictMode>
 );
 
-// Remove the preview service worker so old frontend bundles are not served.
+const removeSplash = () => {
+  const splash = document.getElementById('app-splash');
+  if (!splash) return;
+  splash.style.opacity = '0';
+  window.setTimeout(() => splash.remove(), 260);
+};
+// Keep splash briefly so the app opens with a logo/loading moment, then reveal the app.
+window.setTimeout(() => {
+  window.requestAnimationFrame(() => window.requestAnimationFrame(removeSplash));
+}, 700);
+
+// Register the service worker for PWA installability (works over HTTPS / localhost).
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker
-      .getRegistrations()
-      .then((registrations) => {
-        registrations.forEach((registration) => registration.unregister());
-        return caches.keys();
-      })
-      .then((cacheNames) => Promise.all(
-        cacheNames
-          .filter((name) => name.startsWith('firealert-'))
-          .map((name) => caches.delete(name))
-      ))
-      .catch((error) => console.error('Unable to clear the old FireAlert cache.', error));
+      .register('/service-worker.js')
+      .catch((error) => console.error('Service worker registration failed.', error));
   });
 }
 

@@ -16,10 +16,22 @@ import { apiRequest, normalizeReports, API_BASE_URL } from './sharedApi';
 // Public routes only work for path-based URLs (e.g. /, /login) served from a
 // static host or dev server. When opened from file:// (no path routing), a
 // hash fallback keeps the same behavior: #/login shows the sign-in screen.
+function isStandaloneApp() {
+  if (typeof window === 'undefined') return false;
+  return (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    window.navigator.standalone === true ||
+    new URLSearchParams(window.location.search).get('source') === 'pwa'
+  );
+}
+
 function readPublicLocation() {
-  const { pathname, hash } = window.location;
+  const { pathname, hash, search } = window.location;
   if (pathname === '/' || pathname === '/index.html') {
-    return /^#\/login\b/.test(hash) ? '/login' : '/';
+    if (/^#\/login\b/.test(hash)) return '/login';
+    // Installed/PWA launches should open the app (login), not the marketing landing page.
+    if (isStandaloneApp() || new URLSearchParams(search).get('app') === '1') return '/login';
+    return '/';
   }
   if (/^\/login\b/.test(pathname)) return '/login';
   return '/';
@@ -90,7 +102,7 @@ export default function App() {
   }
 
   if (!user) {
-    if (publicPath === '/') {
+    if (publicPath === '/' && !isStandaloneApp()) {
       return <LandingPage />;
     }
     return <LoginPage onLogin={handleLogin} />;

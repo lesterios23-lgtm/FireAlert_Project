@@ -76,16 +76,45 @@ const SAFETY_STEPS = [
 export default function LandingPage() {
   const reportHref = '/login';
   const signInHref = '/login';
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState(null);
+  const [installNotice, setInstallNotice] = useState('');
+  const [isInstalled, setIsInstalled] = useState(false);
 
   useEffect(() => {
-    if (!menuOpen) return undefined;
-    const onKeyDown = (event) => {
-      if (event.key === 'Escape') setMenuOpen(false);
+    const standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    if (standalone) setIsInstalled(true);
+
+    const onBeforeInstallPrompt = (event) => {
+      event.preventDefault();
+      setInstallPrompt(event);
     };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [menuOpen]);
+    const onAppInstalled = () => {
+      setIsInstalled(true);
+      setInstallPrompt(null);
+      setInstallNotice('FireAlert installed.');
+    };
+
+    window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt);
+    window.addEventListener('appinstalled', onAppInstalled);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', onBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', onAppInstalled);
+    };
+  }, []);
+
+  const handleInstall = async () => {
+    if (installPrompt) {
+      installPrompt.prompt();
+      try {
+        await installPrompt.userChoice;
+      } catch {
+        // ignore prompt outcome errors
+      }
+      setInstallPrompt(null);
+      return;
+    }
+    setInstallNotice('To install: open your browser menu and choose “Add to Home screen” or “Install app”. (Install works when the site is served over HTTPS.)');
+  };
 
   return (
     <div className='landing-page'>
@@ -126,25 +155,15 @@ export default function LandingPage() {
                 <a key={link.label} href={link.href}>{link.label}</a>
               ))}
             </nav>
-            <div className={`landing-header-actions${menuOpen ? ' is-open' : ''}`}>
-              <a className='landing-button landing-button-outline' href={signInHref} onClick={() => setMenuOpen(false)}>SignIn</a>
-              <button
-                type='button'
-                className='landing-menu-toggle'
-                aria-expanded={menuOpen}
-                aria-controls='landing-header-menu'
-                aria-label='Menu'
-                onClick={() => setMenuOpen((open) => !open)}
-              >
-                <svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' aria-hidden='true'>
-                  <path d='M4 6h16' />
-                  <path d='M4 12h16' />
-                  <path d='M4 18h16' />
-                </svg>
-              </button>
-              <div id='landing-header-menu' className='landing-header-menu'>
-                <a className='landing-button landing-button-red' href={reportHref} onClick={() => setMenuOpen(false)}>Report a fire</a>
-              </div>
+            <div className='landing-header-actions'>
+              <a className='landing-button landing-button-outline' href={signInHref}>SignIn</a>
+              {!isInstalled ? (
+                <button type='button' className='landing-button landing-button-outline' onClick={handleInstall}>
+                  Install app
+                </button>
+              ) : (
+                <span className='landing-button landing-button-outline landing-header-installed' aria-label='App installed'>Installed</span>
+              )}
             </div>
           </div>
         </header>
@@ -175,8 +194,9 @@ export default function LandingPage() {
                 </a>
               </div>
               <p className='landing-hero-note'>
-                Works in your phone's browser. No app store. Add it to your home screen to install it like an app.
+                Works in your phone's browser. No app store. Install it like an app from here.
               </p>
+              {installNotice && <p className='landing-install-notice' role='status'>{installNotice}</p>}
             </div>
 
             {/* phone mockup */}

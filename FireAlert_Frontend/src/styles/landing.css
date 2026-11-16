@@ -342,6 +342,47 @@
   color: #b8c7d6;
 }
 
+.landing-install {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.landing-install-button {
+  min-height: 44px;
+  padding: 0 16px;
+  font-size: 14px;
+}
+
+.landing-install-button.is-placeholder {
+  border-style: dashed;
+  opacity: 0.9;
+}
+
+.landing-install-installed {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 22px;
+  border: 1.5px solid rgb(23 116 90 / 70%);
+  color: #d9f5e9;
+  background: rgb(23 116 90 / 25%);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.landing-install-notice {
+  margin: 0;
+  font-size: 13px;
+  color: #e7eff8;
+}
+
+.landing-header-installed {
+  cursor: default;
+}
+
 /* outline buttons on dark top background */
 .landing-top .landing-button-outline {
   border-color: #e9eff6;
