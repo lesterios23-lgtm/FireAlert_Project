@@ -8,14 +8,40 @@ import './styles/bfp.css';
 import './styles/portal.css';
 
 import LoginPage from './components/shared/LoginPage';
+import LandingPage from './pages/LandingPage';
 import ResidentShell from './components/resident/ResidentShell';
 import BFPShell from './components/bfp/BFPShell';
 import { apiRequest, normalizeReports, API_BASE_URL } from './sharedApi';
+
+// Public routes only work for path-based URLs (e.g. /, /login) served from a
+// static host or dev server. When opened from file:// (no path routing), a
+// hash fallback keeps the same behavior: #/login shows the sign-in screen.
+function readPublicLocation() {
+  const { pathname, hash } = window.location;
+  if (pathname === '/' || pathname === '/index.html') {
+    return /^#\/login\b/.test(hash) ? '/login' : '/';
+  }
+  if (/^\/login\b/.test(pathname)) return '/login';
+  return '/';
+}
 
 export default function App() {
   const [user, setUser] = useState(null);
   const [userRole, setUserRole] = useState(null);
   const [initialized, setInitialized] = useState(false);
+  const [publicPath, setPublicPath] = useState(() =>
+    typeof window !== 'undefined' ? readPublicLocation() : '/'
+  );
+
+  useEffect(() => {
+    const onNavigate = () => setPublicPath(readPublicLocation());
+    window.addEventListener('popstate', onNavigate);
+    window.addEventListener('hashchange', onNavigate);
+    return () => {
+      window.removeEventListener('popstate', onNavigate);
+      window.removeEventListener('hashchange', onNavigate);
+    };
+  }, []);
 
   useEffect(() => {
     const storedUser = localStorage.getItem('firealert_user');
@@ -64,6 +90,9 @@ export default function App() {
   }
 
   if (!user) {
+    if (publicPath === '/') {
+      return <LandingPage />;
+    }
     return <LoginPage onLogin={handleLogin} />;
   }
 
