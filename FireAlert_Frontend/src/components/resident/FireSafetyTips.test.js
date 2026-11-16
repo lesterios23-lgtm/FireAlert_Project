@@ -9,7 +9,7 @@ test('keeps the dashboard safety preview compact and opens the complete tips on 
   expect(screen.queryByRole('heading', { name: 'Fire prevention tips' })).not.toBeInTheDocument();
   expect(screen.queryByText('Never leave cooking unattended')).not.toBeInTheDocument();
 
-  fireEvent.click(screen.getByRole('button', { name: /View tips/i }));
+  fireEvent.click(screen.getByRole('button', { name: /View All Safety Tips/i }));
   const dialog = screen.getByRole('dialog', { name: 'Fire safety tips' });
   expect(within(dialog).getByRole('heading', { name: 'Fire prevention tips' })).toBeInTheDocument();
   expect(within(dialog).getByText('Never leave cooking unattended')).toBeInTheDocument();
@@ -18,7 +18,7 @@ test('keeps the dashboard safety preview compact and opens the complete tips on 
 
 test('switches between warning signs and first aid tabs in the tips dialog', () => {
   render(<FireSafetyTips />);
-  fireEvent.click(screen.getByRole('button', { name: /View tips/i }));
+  fireEvent.click(screen.getByRole('button', { name: /View All Safety Tips/i }));
   const panel = screen.getByRole('tabpanel');
 
   fireEvent.click(screen.getByRole('tab', { name: /Warning signs/i }));

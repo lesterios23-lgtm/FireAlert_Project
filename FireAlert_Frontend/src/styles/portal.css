@@ -1826,40 +1826,6 @@
   background: linear-gradient(90deg, #e2493c 0%, #b32222 100%);
 }
 
-.auth-role-switch {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.25rem;
-  padding: 0.25rem;
-  border-radius: 10px;
-  background: #eef1f4;
-}
-
-.auth-role-switch button {
-  min-height: 40px;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  background: transparent;
-  color: #62758a;
-  cursor: pointer;
-  font: inherit;
-  font-size: 0.875rem;
-  font-weight: 600;
-  transition: background 0.16s ease, color 0.16s ease, box-shadow 0.16s ease;
-}
-
-.auth-role-switch button.active {
-  border-color: #e3e7ea;
-  background: #fff;
-  box-shadow: 0 1px 2px rgb(16 32 48 / 8%);
-  color: #20364c;
-}
-
-.auth-role-switch button:focus-visible {
-  outline: 2px solid #d93636;
-  outline-offset: 2px;
-}
-
 .auth-card-heading {
   margin: 0.8rem 0 0.75rem;
 }
@@ -2209,10 +2175,6 @@
     left: 1.4rem;
   }
 
-  .auth-role-switch button {
-    min-height: 42px;
-  }
-
   .auth-card-heading {
     margin: 0.95rem 0 0.9rem;
   }
@@ -2283,10 +2245,6 @@
     width: 64px;
   }
 
-  .auth-role-switch button {
-    min-height: 42px;
-  }
-
   .auth-card-heading {
     margin: 1.15rem 0 1.05rem;
   }
@@ -2345,10 +2303,6 @@
 
   .auth-card::before {
     left: 1.45rem;
-  }
-
-  .auth-role-switch button {
-    min-height: 36px;
   }
 
   .auth-card-heading {
@@ -2970,3 +2924,44 @@
     border-radius: 14px;
   }
 }
+/* ===== Resident home additions (contact, announcements) ===== */
+.resident-home-card {
+  background: #fff;
+  border: 1px solid #e7ebef;
+  border-radius: 14px;
+  padding: 0.9rem 1rem;
+}
+.resident-home-card-head h2 { margin: 0.15rem 0 0; font-size: 1rem; color: #24384c; }
+.resident-home-card-head p { margin: 0.2rem 0 0; color: #758596; font-size: 0.78rem; }
+.resident-contact-list, .resident-announcements-list { list-style: none; margin: 0.7rem 0 0; padding: 0; display: grid; gap: 0.55rem; }
+.resident-contact-item { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.55rem 0.65rem; border: 1px solid #eef1f4; border-radius: 10px; background: #fafbfc; }
+.resident-contact-number { font-weight: 700; color: #24384c; letter-spacing: 0.01em; }
+.resident-copy-button { border: 1px solid #d9c2be; background: #fff6f4; color: #b53b31; border-radius: 8px; padding: 0.35rem 0.7rem; font: inherit; font-size: 0.78rem; font-weight: 700; cursor: pointer; }
+.resident-copy-button:hover { background: #fdecea; }
+.resident-link-button { margin-top: 0.7rem; border: 0; background: transparent; color: #c73a2e; font: inherit; font-size: 0.82rem; font-weight: 700; cursor: pointer; padding: 0; }
+.resident-link-button:disabled { color: #9aa8b6; cursor: default; }
+.resident-announcement-item { padding: 0.55rem 0.1rem; border-bottom: 1px solid #eef1f4; }
+.resident-announcement-item:last-child { border-bottom: 0; }
+.resident-announcement-item strong { display: block; color: #24384c; font-size: 0.88rem; }
+.resident-announcement-item p { margin: 0.2rem 0 0; color: #6b7b8a; font-size: 0.8rem; line-height: 1.4; }
+.resident-announcements-empty { margin: 0.7rem 0 0; color: #758596; font-size: 0.82rem; }
+
+/* ===== Resident profile editable ===== */
+.resident-profile { overflow: hidden; }
+.resident-profile img, .resident-profile-avatar img, .resident-nav-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
+.resident-profile-form { display: grid; gap: 0.75rem; width: 100%; }
+.resident-profile-photo-block { display: grid; justify-items: center; gap: 0.5rem; margin-bottom: 0.25rem; }
+.resident-profile-avatar--large { width: 84px; height: 84px; font-size: 1.6rem; overflow: hidden; }
+.resident-profile-photo-actions { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; justify-content: center; }
+.resident-upload-button { position: relative; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; padding: 0.45rem 0.8rem; border-radius: 10px; border: 1px solid #e3d3cf; background: #fff; color: #b53b31; font-size: 0.8rem; font-weight: 700; cursor: pointer; }
+.resident-upload-button input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.resident-text-button { border: 0; background: transparent; color: #7a8896; font: inherit; font-size: 0.8rem; font-weight: 600; cursor: pointer; text-decoration: underline; }
+.resident-profile-field { display: grid; gap: 0.25rem; text-align: left; }
+.resident-profile-field span { font-size: 0.78rem; font-weight: 700; color: #4d5e70; }
+.resident-profile-field input, .resident-profile-field textarea { width: 100%; border: 1px solid #dce3e9; border-radius: 10px; padding: 0.6rem 0.7rem; font: inherit; font-size: 0.88rem; color: #24384c; background: #fff; box-sizing: border-box; }
+.resident-profile-field input:disabled { background: #f3f5f7; color: #6d7b8a; }
+.resident-profile-success { margin: 0; color: #1f7a4d; font-size: 0.82rem; font-weight: 600; }
+.resident-nav-avatar { width: 22px; height: 22px; border-radius: 50%; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: 700; background: #e7edf3; color: #24384c; }
+.resident-nav-profile-icon { display: inline-flex; align-items: center; justify-content: center; }
+.resident-nav-icon svg { display: block; }
+.resident-profile-edit-card { align-items: stretch; }

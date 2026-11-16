@@ -12,6 +12,53 @@ import {
 } from '../shared/mansalayBarangays';
 import { apiRequest } from '../../sharedApi';
 
+function ResidentAvatar({ user, className = '' }) {
+  const photoUrl = user?.profile_photo_url || user?.profilePhotoUrl;
+  const initial = (user?.name || 'R').charAt(0).toUpperCase();
+  return (
+    <span className={className} aria-hidden='true'>
+      {photoUrl ? <img src={photoUrl} alt='' /> : initial}
+    </span>
+  );
+}
+
+function NavIcon({ name }) {
+  const common = { width: 22, height: 22, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true, focusable: 'false' };
+  if (name === 'home') {
+    return (
+      <svg {...common}>
+        <path d='M3 10.5 12 3l9 7.5' />
+        <path d='M5.5 9.5V20h13V9.5' />
+        <path d='M10 20v-5h4v5' />
+      </svg>
+    );
+  }
+  if (name === 'track') {
+    return (
+      <svg {...common}>
+        <circle cx='12' cy='12' r='7' />
+        <circle cx='12' cy='12' r='2' fill='currentColor' stroke='none' />
+        <path d='M12 2v3M12 19v3M2 12h3M19 12h3' />
+      </svg>
+    );
+  }
+  if (name === 'history') {
+    return (
+      <svg {...common}>
+        <path d='M7 3h7l5 5v13H7z' />
+        <path d='M14 3v5h5' />
+        <path d='M10 13h6M10 17h6' />
+      </svg>
+    );
+  }
+  return (
+    <svg {...common}>
+      <circle cx='12' cy='8' r='3.5' />
+      <path d='M5 20a7 7 0 0 1 14 0' />
+    </svg>
+  );
+}
+
 export default function ResidentShell({ user, onLogout, onUserUpdate }) {
   const [screen, setScreen] = useState('home');
   const [trackingReport, setTrackingReport] = useState(null);
@@ -47,7 +94,7 @@ export default function ResidentShell({ user, onLogout, onUserUpdate }) {
           <span><strong>FireAlert</strong><small>BFP MANSALAY</small></span>
         </div>
         <button type='button' className='resident-profile' aria-label='Open profile' onClick={() => setScreen('profile')}>
-          <span>{(user?.name || 'R').charAt(0).toUpperCase()}</span>
+          <ResidentAvatar user={user} />
         </button>
       </header>
 
@@ -74,7 +121,7 @@ export default function ResidentShell({ user, onLogout, onUserUpdate }) {
             user={user}
           />
         )}
-        {screen === 'profile' && <ResidentProfileScreen user={user} onLogout={() => setShowLogoutConfirm(true)} />}
+        {screen === 'profile' && <ResidentProfileScreen user={user} onLogout={() => setShowLogoutConfirm(true)} onUserUpdate={onUserUpdate} />}
       </main>
 
       <LogoutConfirmModal
@@ -94,7 +141,7 @@ export default function ResidentShell({ user, onLogout, onUserUpdate }) {
           aria-current={screen === 'home' ? 'page' : undefined}
           onClick={() => setScreen('home')}
         >
-          <span className='resident-nav-icon' aria-hidden='true'>⌂</span>
+          <span className='resident-nav-icon' aria-hidden='true'><NavIcon name='home' /></span>
           <small>Home</small>
         </button>
 
@@ -104,7 +151,7 @@ export default function ResidentShell({ user, onLogout, onUserUpdate }) {
           aria-current={screen === 'tracking' ? 'page' : undefined}
           onClick={() => setScreen('tracking')}
         >
-          <span className='resident-nav-icon' aria-hidden='true'>⌖</span>
+          <span className='resident-nav-icon' aria-hidden='true'><NavIcon name='track' /></span>
           <small>Track</small>
         </button>
 
@@ -131,7 +178,7 @@ export default function ResidentShell({ user, onLogout, onUserUpdate }) {
           aria-current={screen === 'history' ? 'page' : undefined}
           onClick={() => setScreen('history')}
         >
-          <span className='resident-nav-icon' aria-hidden='true'>▤</span>
+          <span className='resident-nav-icon' aria-hidden='true'><NavIcon name='history' /></span>
           <small>My reports</small>
         </button>
 
@@ -141,7 +188,9 @@ export default function ResidentShell({ user, onLogout, onUserUpdate }) {
           aria-current={screen === 'profile' ? 'page' : undefined}
           onClick={() => setScreen('profile')}
         >
-          <span className='resident-nav-icon' aria-hidden='true'>♙</span>
+          <span className='resident-nav-icon resident-nav-profile-icon' aria-hidden='true'>
+            {user?.profile_photo_url || user?.profilePhotoUrl ? <ResidentAvatar user={user} className='resident-nav-avatar' /> : <NavIcon name='profile' />}
+          </span>
           <small>Profile</small>
         </button>
       </nav>
@@ -149,7 +198,7 @@ export default function ResidentShell({ user, onLogout, onUserUpdate }) {
   );
 }
 
-function ResidentHomeScreen({ user, onNavigate, onUserUpdate, showAddressPrompt, onDismissAddressPrompt }) {
+function ResidentHomeScreen({ user, onUserUpdate, showAddressPrompt, onDismissAddressPrompt }) {
   const hasAddress = !!(user?.address && user.address.trim());
 
   return (
@@ -171,13 +220,133 @@ function ResidentHomeScreen({ user, onNavigate, onUserUpdate, showAddressPrompt,
       <section className='resident-home-emergency' aria-labelledby='home-emergency-heading'>
         <span className='resident-home-emergency-icon' aria-hidden='true'>!</span>
         <div>
-          <h2 id='home-emergency-heading'>May sunog?</h2>
-          <p>Unahin ang kaligtasan. Tumawag sa 911.</p>
+          <h2 id='home-emergency-heading'>Emergency Reminder</h2>
+          <p>May sunog? Unahin ang kaligtasan. Lumayo sa panganib at tumawag sa 911.</p>
         </div>
       </section>
 
+      <BfpContactSection />
+
       <FireSafetyTips />
+
+      <BfpAnnouncementsSection />
     </div>
+  );
+}
+
+function BfpContactSection() {
+  const numbers = ['0915-603-1507', '0921-850-7600'];
+  const [copied, setCopied] = useState('');
+
+  const copyNumber = async (number) => {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(number);
+      } else {
+        const area = document.createElement('textarea');
+        area.value = number;
+        area.setAttribute('readonly', '');
+        area.style.position = 'absolute';
+        area.style.left = '-9999px';
+        document.body.appendChild(area);
+        area.select();
+        document.execCommand('copy');
+        document.body.removeChild(area);
+      }
+      setCopied(number);
+      window.setTimeout(() => setCopied((current) => (current === number ? '' : current)), 1800);
+    } catch {
+      setCopied('');
+    }
+  };
+
+  return (
+    <section className='resident-home-card resident-contact-card' aria-labelledby='bfp-contact-heading'>
+      <div className='resident-home-card-head'>
+        <div>
+          <p className='resident-eyebrow'>BFP MANSALAY</p>
+          <h2 id='bfp-contact-heading'>Contact Information</h2>
+        </div>
+      </div>
+      <ul className='resident-contact-list'>
+        {numbers.map((number) => (
+          <li key={number} className='resident-contact-item'>
+            <span className='resident-contact-number'>{number}</span>
+            <button type='button' className='resident-copy-button' onClick={() => copyNumber(number)}>
+              {copied === number ? 'Copied' : 'Copy'}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function BfpAnnouncementsSection() {
+  const [announcements, setAnnouncements] = useState([]);
+  const [expanded, setExpanded] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const payload = await apiRequest('/announcements');
+        const items = Array.isArray(payload?.data) ? payload.data : Array.isArray(payload) ? payload : [];
+        if (!cancelled) setAnnouncements(items);
+      } catch {
+        if (!cancelled) setAnnouncements([]);
+      } finally {
+        if (!cancelled) setLoaded(true);
+      }
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const visible = expanded ? announcements : announcements.slice(0, 2);
+  const hasAnnouncements = announcements.length > 0;
+
+  return (
+    <section className='resident-home-card resident-announcements-card' aria-labelledby='bfp-announcements-heading'>
+      <div className='resident-home-card-head'>
+        <div>
+          <p className='resident-eyebrow'>BFP MANSALAY</p>
+          <h2 id='bfp-announcements-heading'>BFP Announcements</h2>
+          <p>Fire prevention reminders and public safety announcements.</p>
+        </div>
+      </div>
+      {!loaded ? (
+        <p className='resident-announcements-empty'>Loading announcements…</p>
+      ) : hasAnnouncements ? (
+        <>
+          <ul className='resident-announcements-list'>
+            {visible.map((item, index) => {
+              const title = item?.title || item?.attributes?.title || 'Announcement';
+              const body = item?.body || item?.content || item?.attributes?.body || item?.attributes?.content || '';
+              return (
+                <li key={item?.id || index} className='resident-announcement-item'>
+                  <strong>{title}</strong>
+                  {body ? <p>{body}</p> : null}
+                </li>
+              );
+            })}
+          </ul>
+          <button type='button' className='resident-link-button' onClick={() => setExpanded((value) => !value)}>
+            {expanded ? 'Show fewer announcements' : 'View All Announcements'} <span aria-hidden='true'>→</span>
+          </button>
+        </>
+      ) : (
+        <>
+          <p className='resident-announcements-empty'>No announcements available at this time.</p>
+          <button type='button' className='resident-link-button' onClick={() => setExpanded(true)} disabled>
+            View All Announcements <span aria-hidden='true'>→</span>
+          </button>
+        </>
+      )}
+    </section>
   );
 }
 
@@ -400,8 +569,85 @@ function AddressSetupCard({ user, onUserUpdate, showPrompt, onDismissPrompt }) {
   );
 }
 
-function ResidentProfileScreen({ user, onLogout }) {
-  const contactNumber = user?.contact_number || user?.contactNumber;
+function ResidentProfileScreen({ user, onLogout, onUserUpdate }) {
+  const [form, setForm] = useState({
+    name: user?.name || '',
+    contact_number: user?.contact_number || user?.contactNumber || '',
+    address: user?.address || '',
+  });
+  const [photoFile, setPhotoFile] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState('');
+  const [removePhoto, setRemovePhoto] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+
+  useEffect(() => {
+    setForm({
+      name: user?.name || '',
+      contact_number: user?.contact_number || user?.contactNumber || '',
+      address: user?.address || '',
+    });
+  }, [user?.name, user?.contact_number, user?.contactNumber, user?.address]);
+
+  useEffect(() => {
+    if (!photoFile) {
+      setPhotoPreview('');
+      return undefined;
+    }
+    const url = URL.createObjectURL(photoFile);
+    setPhotoPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [photoFile]);
+
+  const currentPhoto = !removePhoto ? (photoPreview || user?.profile_photo_url || user?.profilePhotoUrl || '') : '';
+
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setForm((current) => ({ ...current, [name]: value }));
+  };
+
+  const handlePhotoChange = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setPhotoFile(file);
+    setRemovePhoto(false);
+    setError('');
+    setNotice('');
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setSaving(true);
+    setError('');
+    setNotice('');
+    try {
+      const body = new FormData();
+      body.append('name', form.name.trim());
+      body.append('contact_number', form.contact_number.trim());
+      body.append('address', form.address.trim());
+      if (photoFile) body.append('profile_photo', photoFile);
+      if (removePhoto) body.append('remove_profile_photo', '1');
+      const payload = await apiRequest('/auth/profile', { method: 'PATCH', body });
+      const returned = payload?.data || {};
+      const updatedUser = {
+        ...user,
+        ...returned,
+        name: returned.name ?? form.name.trim(),
+        contact_number: returned.contact_number ?? form.contact_number.trim(),
+        address: returned.address ?? form.address.trim(),
+        profile_photo_url: returned.profile_photo_url ?? (removePhoto ? null : user?.profile_photo_url),
+      };
+      if (onUserUpdate) onUserUpdate(updatedUser);
+      setPhotoFile(null);
+      setRemovePhoto(false);
+      setNotice('Profile updated.');
+    } catch (err) {
+      setError(err.message || 'Unable to update profile.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className='resident-page resident-profile-page'>
@@ -411,19 +657,49 @@ function ResidentProfileScreen({ user, onLogout }) {
           <h1>Profile</h1>
         </div>
       </div>
-      <section className='resident-profile-card' aria-label='Resident profile details'>
-        <div className='resident-profile-avatar' aria-hidden='true'>
-          {(user?.name || 'R').charAt(0).toUpperCase()}
-        </div>
-        <h2>{user?.name || 'Resident'}</h2>
-        <p>Resident account · Mansalay</p>
-        <dl>
-          <div><dt>Full name</dt><dd>{user?.name || 'Not provided'}</dd></div>
-          <div><dt>Email address</dt><dd>{user?.email || 'Not provided'}</dd></div>
-          <div><dt>Contact number</dt><dd>{contactNumber || 'Not provided'}</dd></div>
-          <div><dt>Home address</dt><dd>{user?.address || 'Not provided'}</dd></div>
-        </dl>
-        <p className='resident-profile-note'>For changes to your account information, contact your system administrator.</p>
+      <section className='resident-profile-card resident-profile-edit-card' aria-label='Resident profile details'>
+        <form className='resident-profile-form' onSubmit={handleSubmit}>
+          <div className='resident-profile-photo-block'>
+            <div className='resident-profile-avatar resident-profile-avatar--large' aria-hidden='true'>
+              {currentPhoto ? <img src={currentPhoto} alt='' /> : (form.name || user?.name || 'R').charAt(0).toUpperCase()}
+            </div>
+            <div className='resident-profile-photo-actions'>
+              <label className='resident-upload-button'>
+                <input type='file' accept='image/jpeg,image/png,image/webp' onChange={handlePhotoChange} />
+                {currentPhoto ? 'Change photo' : 'Add profile photo'}
+              </label>
+              {(currentPhoto || photoFile) && (
+                <button type='button' className='resident-text-button' onClick={() => { setPhotoFile(null); setRemovePhoto(true); }}>
+                  Remove photo
+                </button>
+              )}
+            </div>
+          </div>
+
+          {error && <p className='resident-address-error' role='alert'>{error}</p>}
+          {notice && <p className='resident-profile-success' role='status'>{notice}</p>}
+
+          <label className='resident-profile-field'>
+            <span>Full name</span>
+            <input name='name' type='text' value={form.name} onChange={handleChange} required />
+          </label>
+          <label className='resident-profile-field'>
+            <span>Email address</span>
+            <input type='email' value={user?.email || ''} disabled readOnly />
+          </label>
+          <label className='resident-profile-field'>
+            <span>Contact number</span>
+            <input name='contact_number' type='text' value={form.contact_number} onChange={handleChange} />
+          </label>
+          <label className='resident-profile-field'>
+            <span>Home address</span>
+            <textarea name='address' rows={3} value={form.address} onChange={handleChange} />
+          </label>
+
+          <button type='submit' className='resident-address-submit' disabled={saving}>
+            {saving ? 'Saving…' : 'Save profile'}
+          </button>
+        </form>
         <button type='button' className='resident-signout-button' onClick={onLogout}>Sign out</button>
       </section>
     </div>

@@ -73,7 +73,7 @@ export default function FireSafetyTips() {
           <p>Simple ways to keep your family safe.</p>
         </div>
         <button className='resident-safety-open' type='button' onClick={() => setIsOpen(true)}>
-          View tips <span aria-hidden='true'>→</span>
+          View All Safety Tips <span aria-hidden='true'>→</span>
         </button>
       </section>
 

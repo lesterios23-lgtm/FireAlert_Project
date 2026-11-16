@@ -10,17 +10,18 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-test('switches between resident and BFP sign-in guidance', () => {
+test('shows a single sign-in form without role selection', () => {
   render(<LoginPage onLogin={jest.fn()} />);
 
-  expect(screen.getByText('Sign in to your resident account.')).toBeInTheDocument();
-  fireEvent.click(screen.getByRole('button', { name: /BFP Personnel/i }));
-
-  expect(screen.getByText('Sign in with your authorized BFP account.')).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: /BFP Personnel/i })).toHaveAttribute('aria-pressed', 'true');
+  expect(screen.queryByRole('button', { name: /BFP Personnel/i })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: /Resident/i })).not.toBeInTheDocument();
+  expect(screen.getByText('Sign in with your email address and password.')).toBeInTheDocument();
+  expect(screen.getByLabelText(/Email address/i)).toBeInTheDocument();
+  expect(screen.getByLabelText(/^Password$/i)).toBeInTheDocument();
 });
 
-test('does not open a BFP account from the resident sign-in option', async () => {
+test('signs in a BFP account and routes based on account role', async () => {
+  const onLogin = jest.fn();
   global.fetch = jest.fn()
     .mockResolvedValueOnce({
       ok: true,
@@ -33,13 +34,16 @@ test('does not open a BFP account from the resident sign-in option', async () =>
       }),
     });
 
-  render(<LoginPage onLogin={jest.fn()} />);
+  render(<LoginPage onLogin={onLogin} />);
   fireEvent.change(screen.getByLabelText(/Email address/i), { target: { value: 'officer@example.com' } });
   fireEvent.change(screen.getByLabelText(/^Password$/i), { target: { value: 'password1' } });
   fireEvent.click(screen.getByRole('button', { name: /Sign in/i }));
 
-  expect(await screen.findByRole('alert')).toHaveTextContent(/Select BFP Personnel to sign in/i);
-  expect(localStorage.getItem('firealert_token')).toBeNull();
+  await waitFor(() => expect(onLogin).toHaveBeenCalledWith(
+    { id: 12, name: 'BFP Officer', email: 'officer@example.com', contact_number: '', address: '', role: 'bfp', is_manager: false },
+    12
+  ));
+  expect(localStorage.getItem('firealert_token')).toBe('bfp-token');
 });
 
 test('requires agreement before sending a resident registration request', () => {
@@ -120,7 +124,7 @@ test('opens the account only after successful sign-in', async () => {
   fireEvent.click(screen.getByRole('button', { name: /Sign in/i }));
 
   await waitFor(() => expect(onLogin).toHaveBeenCalledWith(
-    { id: 5, name: 'Renz Montana', email: 'renz@example.com', contact_number: '+639171234567', role: 'resident', is_manager: false },
+    { id: 5, name: 'Renz Montana', email: 'renz@example.com', contact_number: '+639171234567', address: '', role: 'resident', is_manager: false },
     5
   ));
   expect(localStorage.getItem('firealert_token')).toBe('resident-token');

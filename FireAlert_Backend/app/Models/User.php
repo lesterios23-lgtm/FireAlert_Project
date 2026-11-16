@@ -22,6 +22,7 @@ use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
     'address',
     'home_latitude',
     'home_longitude',
+    'profile_photo_path',
     'email',
     'password',
     'password_hash',
@@ -29,13 +30,13 @@ use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
     'role_id',
     'is_manager',
 ])]
-#[Hidden(['password', 'password_hash', 'remember_token'])]
+#[Hidden(['password', 'password_hash', 'remember_token', 'profile_photo_path'])]
 class User extends Authenticatable implements JWTSubject
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
-    protected $appends = ['id', 'name', 'role', 'is_manager'];
+    protected $appends = ['id', 'name', 'role', 'is_manager', 'profile_photo_url'];
 
     public const ROLE_RESIDENT = 'resident';
 
@@ -138,6 +139,20 @@ class User extends Authenticatable implements JWTSubject
         return Schema::hasColumn($this->getTable(), 'is_manager')
             ? (bool) ($this->attributes['is_manager'] ?? false)
             : false;
+    }
+
+    public function getProfilePhotoUrlAttribute(): ?string
+    {
+        $path = $this->attributes['profile_photo_path'] ?? null;
+        if (! is_string($path) || trim($path) === '') {
+            return null;
+        }
+
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://') || str_starts_with($path, 'data:')) {
+            return $path;
+        }
+
+        return asset('storage/'.ltrim($path, '/'));
     }
 
     public function getUpdatedAtColumn()

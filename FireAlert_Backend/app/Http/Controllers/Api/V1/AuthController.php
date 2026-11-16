@@ -112,7 +112,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Update the authenticated resident's own profile (address, etc.).
+     * Update the authenticated user's own profile.
      */
     public function updateProfile(Request $request): JsonResponse
     {
@@ -120,9 +120,13 @@ class AuthController extends Controller
         $user = Auth::guard('api')->user();
 
         $validated = $request->validate([
+            'name' => 'sometimes|string|max:255',
+            'contact_number' => 'sometimes|nullable|string|max:20',
             'address' => 'sometimes|nullable|string|max:500',
             'home_latitude' => 'sometimes|nullable|numeric|between:-90,90',
             'home_longitude' => 'sometimes|nullable|numeric|between:-180,180',
+            'profile_photo' => 'sometimes|file|image|mimes:jpeg,png,webp|max:5120',
+            'remove_profile_photo' => 'sometimes|boolean',
         ]);
 
         // Keep the address text in sync when only coordinates are supplied.
@@ -140,6 +144,21 @@ class AuthController extends Controller
             $validated['address'] = "Home location: {$latitude}, {$longitude}, Mansalay, Oriental Mindoro";
         }
 
+        $removePhoto = $request->boolean('remove_profile_photo');
+        if ($removePhoto && ! empty($user->profile_photo_path)) {
+            Storage::disk('public')->delete($user->profile_photo_path);
+            $validated['profile_photo_path'] = null;
+        }
+
+        if ($request->hasFile('profile_photo')) {
+            if (! empty($user->profile_photo_path)) {
+                Storage::disk('public')->delete($user->profile_photo_path);
+            }
+            $path = $request->file('profile_photo')->store('profile-photos', 'public');
+            $validated['profile_photo_path'] = $path;
+        }
+
+        unset($validated['profile_photo'], $validated['remove_profile_photo']);
         $user->update($validated);
 
         return $this->ok('Profile updated', $user->fresh());

@@ -4,7 +4,6 @@ import FireAlertLogoMark from './FireAlertLogoMark';
 
 export default function LoginPage({ onLogin }) {
   const [mode, setMode] = useState('login');
-  const [roleChoice, setRoleChoice] = useState('resident');
   const [form, setForm] = useState({ email: '', password: '' });
   const [registrationForm, setRegistrationForm] = useState({
     name: '',
@@ -76,7 +75,6 @@ export default function LoginPage({ onLogin }) {
       localStorage.removeItem('firealert_user_id');
       setForm({ email: registrationForm.email.trim(), password: '' });
       setMode('login');
-      setRoleChoice('resident');
       setRegistrationForm({
         name: '',
         contact_number: '',
@@ -153,14 +151,6 @@ export default function LoginPage({ onLogin }) {
         role: payload.role,
         is_manager: Boolean(payload.is_manager),
       };
-      const isBfpUser = ['bfp', 'admin', 'manager'].includes(authUser.role) || authUser.is_manager;
-      if (isBfpUser !== (roleChoice === 'bfp')) {
-        throw new Error(
-          isBfpUser
-            ? 'This is a BFP personnel account. Select BFP Personnel to sign in.'
-            : 'This is a resident account. Select Resident to sign in.'
-        );
-      }
 
       localStorage.setItem('firealert_token', accessToken);
       localStorage.setItem('firealert_user', JSON.stringify(authUser));
@@ -179,7 +169,6 @@ export default function LoginPage({ onLogin }) {
 
   const openRegistration = () => {
     setMode('register');
-    setRoleChoice('resident');
     setError('');
     setNotice('');
   };
@@ -198,7 +187,7 @@ export default function LoginPage({ onLogin }) {
             <FireAlertLogoMark className='auth-brand-mark' />
             <span><strong>FireAlert</strong><small>BFP MANSALAY</small></span>
           </div>
-          <span className='auth-portal-label'>{mode === 'register' ? 'Resident portal' : `${roleChoice === 'resident' ? 'Resident' : 'BFP personnel'} portal`}</span>
+          <span className='auth-portal-label'>{mode === 'register' ? 'Resident portal' : 'Portal'}</span>
         </div>
       </header>
 
@@ -218,36 +207,10 @@ export default function LoginPage({ onLogin }) {
 
         <section className='auth-card'>
           {mode === 'login' ? (
-            <>
-              <div className='auth-role-switch' role='group' aria-label='Choose account type'>
-                <button
-                  type='button'
-                  aria-pressed={roleChoice === 'resident'}
-                  className={roleChoice === 'resident' ? 'active' : ''}
-                  onClick={() => {
-                    setRoleChoice('resident');
-                    setNotice('');
-                  }}
-                >
-                  Resident
-                </button>
-                <button
-                  type='button'
-                  aria-pressed={roleChoice === 'bfp'}
-                  className={roleChoice === 'bfp' ? 'active' : ''}
-                  onClick={() => {
-                    setRoleChoice('bfp');
-                    setNotice('');
-                  }}
-                >
-                  BFP Personnel
-                </button>
-              </div>
-              <div className='auth-card-heading'>
-                <h2>Welcome back</h2>
-                <p>{roleChoice === 'resident' ? 'Sign in to your resident account.' : 'Sign in with your authorized BFP account.'}</p>
-              </div>
-            </>
+            <div className='auth-card-heading'>
+              <h2>Welcome back</h2>
+              <p>Sign in with your email address and password.</p>
+            </div>
           ) : (
             <>
               <div className='auth-card-heading'>
