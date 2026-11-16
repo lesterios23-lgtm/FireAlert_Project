@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import FireAlertLogoMark from '../components/shared/FireAlertLogoMark';
 import '../styles/landing.css';
 
@@ -76,6 +76,16 @@ const SAFETY_STEPS = [
 export default function LandingPage() {
   const reportHref = '/login';
   const signInHref = '/login';
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') setMenuOpen(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [menuOpen]);
 
   return (
     <div className='landing-page'>
@@ -83,45 +93,62 @@ export default function LandingPage() {
         Skip to main content
       </a>
 
-      {/* emergency strip */}
-      <div className='landing-strip'>
-        <div className='landing-container landing-strip-inner'>
-          <svg width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='#c92a2a' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' aria-hidden='true'>
-            <path d='M12 3 2 21h20L12 3z' />
-            <path d='M12 10v5' />
-            <path d='M12 18h.01' />
-          </svg>
-          <span>
-            <strong>Fire happening now?</strong> Get to safety and call 911 first. FireAlert is for reporting and tracking. It does not replace calling for help.
-          </span>
-        </div>
-      </div>
-
-      {/* header */}
-      <header className='landing-header'>
-        <div className='landing-container landing-header-inner'>
-          <a href='/#top' className='landing-brand'>
-            <span className='landing-brand-mark'>
-              <FireAlertLogoMark className='landing-brand-logo' />
+      {/* first page: shared background (strip + header + hero) */}
+      <div className='landing-top'>
+        {/* emergency strip */}
+        <div className='landing-strip'>
+          <div className='landing-container landing-strip-inner'>
+            <svg width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='#c92a2a' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' aria-hidden='true'>
+              <path d='M12 3 2 21h20L12 3z' />
+              <path d='M12 10v5' />
+              <path d='M12 18h.01' />
+            </svg>
+            <span>
+              <strong>Fire happening now?</strong> Get to safety and call 911 first. FireAlert is for reporting and tracking. It does not replace calling for help.
             </span>
-            <span className='landing-brand-text'>
-              <span className='landing-brand-name'>FireAlert</span>
-              <span className='landing-brand-sub'>BFP Mansalay</span>
-            </span>
-          </a>
-          <nav aria-label='Main' className='landing-nav'>
-            {NAV_LINKS.map((link) => (
-              <a key={link.label} href={link.href}>{link.label}</a>
-            ))}
-          </nav>
-          <div className='landing-header-actions'>
-            <a className='landing-button landing-button-outline' href={signInHref}>BFP login</a>
-            <a className='landing-button landing-button-red' href={reportHref}>Report a fire</a>
           </div>
         </div>
-      </header>
 
-      <main id='landing-main'>
+        {/* header */}
+        <header className='landing-header'>
+          <div className='landing-container landing-header-inner'>
+            <a href='/#top' className='landing-brand'>
+              <span className='landing-brand-mark'>
+                <FireAlertLogoMark className='landing-brand-logo' />
+              </span>
+              <span className='landing-brand-text'>
+                <span className='landing-brand-name'>FireAlert</span>
+                <span className='landing-brand-sub'>BFP Mansalay</span>
+              </span>
+            </a>
+            <nav aria-label='Main' className='landing-nav'>
+              {NAV_LINKS.map((link) => (
+                <a key={link.label} href={link.href}>{link.label}</a>
+              ))}
+            </nav>
+            <div className={`landing-header-actions${menuOpen ? ' is-open' : ''}`}>
+              <a className='landing-button landing-button-outline' href={signInHref} onClick={() => setMenuOpen(false)}>SignIn</a>
+              <button
+                type='button'
+                className='landing-menu-toggle'
+                aria-expanded={menuOpen}
+                aria-controls='landing-header-menu'
+                aria-label='Menu'
+                onClick={() => setMenuOpen((open) => !open)}
+              >
+                <svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' aria-hidden='true'>
+                  <path d='M4 6h16' />
+                  <path d='M4 12h16' />
+                  <path d='M4 18h16' />
+                </svg>
+              </button>
+              <div id='landing-header-menu' className='landing-header-menu'>
+                <a className='landing-button landing-button-red' href={reportHref} onClick={() => setMenuOpen(false)}>Report a fire</a>
+              </div>
+            </div>
+          </div>
+        </header>
+
         {/* hero */}
         <section id='top' className='landing-hero'>
           <div className='landing-container landing-hero-inner'>
@@ -195,6 +222,9 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
+      </div>
+
+      <main id='landing-main'>
 
         {/* how it works */}
         <section id='how' className='landing-how'>
@@ -309,7 +339,7 @@ export default function LandingPage() {
             </span>
           </div>
           <div className='landing-footer-meta'>
-            <span>Capstone project, Mindoro State University, Bongabong Campus</span>
+            <span>System project, Mindoro State University, Bongabong Campus</span>
             <span>Rios, Lester Jhon M. · Guray, Piolo E. · Casihan, John Avril</span>
           </div>
         </div>

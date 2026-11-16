@@ -150,6 +150,7 @@ export default function LoginPage({ onLogin }) {
         address: payload.address || payload.attributes?.address || '',
         role: payload.role,
         is_manager: Boolean(payload.is_manager),
+        profile_photo_url: payload.profile_photo_url || payload.profilePhotoUrl || null,
       };
 
       localStorage.setItem('firealert_token', accessToken);
@@ -218,6 +219,7 @@ export default function LoginPage({ onLogin }) {
                 <p>A resident account lets you report fires and review your own incident updates.</p>
               </div>
               {error && <div className='auth-error' role='alert'>{error}</div>}
+              {notice && <div className='auth-notice' role='status'>{notice}</div>}
               <form onSubmit={handleRegistrationSubmit} className='auth-form'>
                 <label className='auth-field' htmlFor='register-name'>
                   <span>Full name</span>
@@ -313,6 +315,17 @@ export default function LoginPage({ onLogin }) {
                   {loading ? 'Please wait…' : 'Create resident account'}
                 </button>
               </form>
+              <div className='auth-divider'><span>or</span></div>
+              <button
+                type='button'
+                className='auth-google-button'
+                onClick={() => setNotice('Google sign-in is not available yet. Please create your account with email and password for now.')}
+              >
+                <svg viewBox='0 0 24 24' aria-hidden='true' focusable='false'>
+                  <path fill='#EA4335' d='M12 10.2v3.9h5.5c-.2 1.2-1.4 3.6-5.5 3.6-3.3 0-6-2.7-6-6s2.7-6 6-6c1.9 0 3.2.8 3.9 1.5l2.7-2.6C16.9 3 14.7 2 12 2 6.5 2 2 6.5 2 12s4.5 10 10 10c5.8 0 9.6-4.1 9.6-9.8 0-.7-.1-1.2-.2-1.7H12z'/>
+                </svg>
+                Continue with Google
+              </button>
               <div className='auth-account-prompt'>
                 Already have an account? <button type='button' onClick={returnToLogin}>Sign in</button>
               </div>
