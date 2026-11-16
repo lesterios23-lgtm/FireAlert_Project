@@ -13,7 +13,7 @@ return new class extends Migration
     {
         if (! Schema::hasColumn('users', 'profile_photo_path')) {
             Schema::table('users', function (Blueprint $table) {
-                $table->string('profile_photo_path')->nullable()->after('home_longitude');
+                $table->string('profile_photo_path')->nullable();
             });
         }
     }

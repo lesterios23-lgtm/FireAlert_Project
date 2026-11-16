@@ -623,12 +623,13 @@ function ResidentProfileScreen({ user, onLogout, onUserUpdate }) {
     setNotice('');
     try {
       const body = new FormData();
+      body.append('_method', 'PATCH');
       body.append('name', form.name.trim());
       body.append('contact_number', form.contact_number.trim());
       body.append('address', form.address.trim());
       if (photoFile) body.append('profile_photo', photoFile);
       if (removePhoto) body.append('remove_profile_photo', '1');
-      const payload = await apiRequest('/auth/profile', { method: 'PATCH', body });
+      const payload = await apiRequest('/auth/profile', { method: 'POST', body });
       const returned = payload?.data || {};
       const updatedUser = {
         ...user,

@@ -296,16 +296,26 @@
 
 .resident-profile {
   display: grid;
-  width: 26px;
-  height: 26px;
+  width: 32px;
+  height: 32px;
   place-items: center;
+  padding: 0;
   border: 0;
   border-radius: 50%;
   background: #edf1f4;
   color: #53677a;
   cursor: pointer;
-  font-size: 0.62rem;
+  font-size: 0.7rem;
   font-weight: 700;
+  overflow: hidden;
+}
+
+.resident-profile > span {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .resident-content {
@@ -2947,8 +2957,7 @@
 .resident-announcements-empty { margin: 0.7rem 0 0; color: #758596; font-size: 0.82rem; }
 
 /* ===== Resident profile editable ===== */
-.resident-profile { overflow: hidden; }
-.resident-profile img, .resident-profile-avatar img, .resident-nav-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
+.resident-profile img, .resident-profile-avatar img, .resident-nav-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .resident-profile-form { display: grid; gap: 0.75rem; width: 100%; }
 .resident-profile-photo-block { display: grid; justify-items: center; gap: 0.5rem; margin-bottom: 0.25rem; }
 .resident-profile-avatar--large { width: 84px; height: 84px; font-size: 1.6rem; overflow: hidden; }
@@ -2965,3 +2974,5 @@
 .resident-nav-profile-icon { display: inline-flex; align-items: center; justify-content: center; }
 .resident-nav-icon svg { display: block; }
 .resident-profile-edit-card { align-items: stretch; }
+
+.firealert-logo-img{width:100%;height:100%;object-fit:contain;display:block;}
