@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { API_BASE_URL } from '../../sharedApi';
 import FireAlertLogoMark from './FireAlertLogoMark';
+
+const GOOGLE_CLIENT_ID = '35718463117-21q7gbd8fbvk6ms861ma3uafp4l3m98j.apps.googleusercontent.com';
 
 export default function LoginPage({ onLogin }) {
   const [mode, setMode] = useState('login');
@@ -17,6 +19,7 @@ export default function LoginPage({ onLogin }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const googleButtonRef = useRef(null);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -180,6 +183,121 @@ export default function LoginPage({ onLogin }) {
     setNotice('');
   };
 
+  const handleGoogleCredential = async (response) => {
+    if (!response?.credential) {
+      setError('Google sign-in failed. Please try again.');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    setNotice('');
+    try {
+      const googleResponse = await fetch(`${API_BASE_URL}/auth/google`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credential: response.credential }),
+      });
+      const data = await googleResponse.json().catch(() => ({}));
+      if (!googleResponse.ok) {
+        throw new Error(data?.message || 'Google sign-in failed. Please try again.');
+      }
+
+      const accessToken = data?.data?.access_token;
+      if (!accessToken) {
+        throw new Error('Authentication token missing.');
+      }
+
+      const meResponse = await fetch(`${API_BASE_URL}/auth/me`, {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+      if (!meResponse.ok) {
+        const meData = await meResponse.json().catch(() => ({}));
+        throw new Error(meData.message || 'Unable to verify this account. Please try again.');
+      }
+
+      const meData = await meResponse.json();
+      const payload = meData?.data;
+      if (!payload?.id || !payload?.role) {
+        throw new Error('The server returned incomplete account details.');
+      }
+
+      const authUser = {
+        id: payload.id,
+        name: payload.name || payload.email || '',
+        email: payload.email || '',
+        contact_number: payload.contact_number || payload.contactNumber || payload.attributes?.contactNumber || '',
+        address: payload.address || payload.attributes?.address || '',
+        role: payload.role,
+        is_manager: Boolean(payload.is_manager),
+        profile_photo_url: payload.profile_photo_url || payload.profilePhotoUrl || null,
+      };
+
+      localStorage.setItem('firealert_token', accessToken);
+      localStorage.setItem('firealert_user', JSON.stringify(authUser));
+      if (authUser.id) {
+        localStorage.setItem('firealert_user_id', String(authUser.id));
+      }
+
+      onLogin(authUser, authUser.id || undefined);
+    } catch (requestError) {
+      localStorage.removeItem('firealert_token');
+      setError(
+        requestError.message === 'Failed to fetch'
+          ? 'Could not reach the server. Check that the backend is running and try again.'
+          : requestError.message || 'Unable to sign in with Google.'
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (mode !== 'register') return undefined;
+
+    const renderGoogleButton = () => {
+      if (!window.google?.accounts?.id || !googleButtonRef.current) return;
+      googleButtonRef.current.innerHTML = '';
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: handleGoogleCredential,
+      });
+      const width = Math.min(360, googleButtonRef.current.offsetWidth || 360);
+      window.google.accounts.id.renderButton(googleButtonRef.current, {
+        theme: 'outline',
+        size: 'large',
+        shape: 'rectangular',
+        text: 'continue_with',
+        width,
+      });
+    };
+
+    if (window.google?.accounts?.id) {
+      renderGoogleButton();
+      return undefined;
+    }
+
+    const existing = document.querySelector('script[data-google-gsi="true"]');
+    if (existing) {
+      existing.addEventListener('load', renderGoogleButton);
+      return () => existing.removeEventListener('load', renderGoogleButton);
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.dataset.googleGsi = 'true';
+    script.onload = renderGoogleButton;
+    script.onerror = () => setError('Unable to load Google sign-in. Please check your connection and try again.');
+    document.head.appendChild(script);
+    return () => {
+      script.onload = null;
+    };
+  }, [mode]);
+
   return (
     <div className='auth-app'>
       <header className='auth-topbar'>
@@ -316,16 +434,7 @@ export default function LoginPage({ onLogin }) {
                 </button>
               </form>
               <div className='auth-divider'><span>or</span></div>
-              <button
-                type='button'
-                className='auth-google-button'
-                onClick={() => setNotice('Google sign-in is not available yet. Please create your account with email and password for now.')}
-              >
-                <svg viewBox='0 0 24 24' aria-hidden='true' focusable='false'>
-                  <path fill='#EA4335' d='M12 10.2v3.9h5.5c-.2 1.2-1.4 3.6-5.5 3.6-3.3 0-6-2.7-6-6s2.7-6 6-6c1.9 0 3.2.8 3.9 1.5l2.7-2.6C16.9 3 14.7 2 12 2 6.5 2 2 6.5 2 12s4.5 10 10 10c5.8 0 9.6-4.1 9.6-9.8 0-.7-.1-1.2-.2-1.7H12z'/>
-                </svg>
-                Continue with Google
-              </button>
+              <div ref={googleButtonRef} className='auth-google-button-wrap' aria-label='Continue with Google' />
               <div className='auth-account-prompt'>
                 Already have an account? <button type='button' onClick={returnToLogin}>Sign in</button>
               </div>

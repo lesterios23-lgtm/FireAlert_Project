@@ -11,6 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
@@ -130,6 +131,12 @@ class AuthController extends Controller
             'remove_profile_photo' => 'sometimes|boolean',
         ]);
 
+        // ConvertEmptyStringsToNull middleware turns empty fields into null; keep
+        // contact_number as an empty string to avoid DB NOT NULL violations.
+        if (array_key_exists('contact_number', $validated) && $validated['contact_number'] === null) {
+            $validated['contact_number'] = '';
+        }
+
         // Keep the address text in sync when only coordinates are supplied.
         $addressNeedsSync = ! array_key_exists('address', $validated)
             && (array_key_exists('home_latitude', $validated)
@@ -163,6 +170,76 @@ class AuthController extends Controller
         $user->update($validated);
 
         return $this->ok('Profile updated', $user->fresh());
+    }
+
+    /**
+     * Authenticate or register a resident using a Google ID token (credential).
+     *
+     * @unauthenticated
+     */
+    public function google(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'credential' => 'required|string',
+        ]);
+
+        $googleResponse = Http::timeout(10)->get('https://oauth2.googleapis.com/tokeninfo', [
+            'id_token' => $validated['credential'],
+        ]);
+
+        if (! $googleResponse->ok()) {
+            return response()->json([
+                'message' => 'Google sign-in failed. Please try again.',
+                'status' => 401,
+            ], 401);
+        }
+
+        $payload = $googleResponse->json();
+        $clientId = (string) (config('services.google.client_id') ?: '35718463117-21q7gbd8fbvk6ms861ma3uafp4l3m98j.apps.googleusercontent.com');
+        $emailVerified = filter_var($payload['email_verified'] ?? false, FILTER_VALIDATE_BOOLEAN);
+
+        if (($payload['aud'] ?? null) !== $clientId || ! $emailVerified || empty($payload['email']) || empty($payload['sub'])) {
+            return response()->json([
+                'message' => 'Invalid Google account. Please use a verified Google email.',
+                'status' => 401,
+            ], 401);
+        }
+
+        $email = Str::lower(trim((string) $payload['email']));
+        $googleId = (string) $payload['sub'];
+        $name = trim((string) ($payload['name'] ?? ''));
+        if ($name === '') {
+            $name = Str::before($email, '@');
+        }
+
+        $user = User::query()->where('google_id', $googleId)->first();
+
+        if (! $user) {
+            $user = User::query()->where('email', $email)->first();
+            if ($user) {
+                // Link an existing account (verified Google email) to Google sign-in.
+                if (Schema::hasColumn($user->getTable(), 'google_id')) {
+                    $user->google_id = $googleId;
+                    $user->save();
+                }
+            } else {
+                $attributes = [
+                    'name' => $name,
+                    'email' => $email,
+                    'contact_number' => '',
+                    'password' => Hash::make(Str::random(40)),
+                    'role' => User::ROLE_RESIDENT,
+                ];
+                if (Schema::hasColumn((new User)->getTable(), 'google_id')) {
+                    $attributes['google_id'] = $googleId;
+                }
+                $user = User::create($attributes);
+            }
+        }
+
+        $token = Auth::guard('api')->login($user);
+
+        return $this->ok('Login successful', $this->formatToken($token));
     }
 
     /**

@@ -24,6 +24,7 @@ use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
     'home_longitude',
     'profile_photo_path',
     'email',
+    'google_id',
     'password',
     'password_hash',
     'role',

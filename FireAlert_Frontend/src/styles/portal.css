@@ -2098,6 +2098,13 @@
   flex: 0 0 auto;
 }
 
+.auth-google-button-wrap {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  min-height: 44px;
+}
+
 .auth-divider {
   display: flex;
   align-items: center;
