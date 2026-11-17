@@ -8,7 +8,8 @@ Domain sa halimbawang ito: `example.com` · Hosting user: `u123456789`
 
 ## Bago umalis sa computer
 
-- [ ] `pwsh -File deploy/hostinger/build-release.ps1 -Zip`
+- [ ] `deploy\hostinger\build-release.cmd -Zip`
+      (hindi kailangan ng `pwsh` — Windows PowerShell 5.1 ang gamit nito)
 - [ ] Kopyahin ang `release/firealert.zip` at `release/public_html.zip`
 - [ ] Gumawa ng random na `APP_KEY` at `JWT_SECRET`:
       `php artisan key:generate --show` at `php artisan jwt:secret --show`

@@ -179,6 +179,14 @@ that need root rights. The schema in this repository does not.
 ## 5. Build the release on your computer
 
 ```powershell
+deploy\hostinger\build-release.cmd -Zip
+```
+
+`pwsh` (PowerShell 7) is **not** required and not installed by default on
+Windows — the `.cmd` wrapper uses the built-in Windows PowerShell 5.1. Using
+`pwsh` also works if you happen to have it:
+
+```powershell
 pwsh -File deploy/hostinger/build-release.ps1 -Zip
 ```
 
@@ -196,7 +204,7 @@ release/
 without SSH, add `-WithVendor` and upload everything as-is.
 
 > Use `-SkipBuild` to reuse an existing React build, e.g. when only backend
-> files changed: `pwsh -File deploy/hostinger/build-release.ps1 -SkipBuild -Zip`
+> files changed: `deploy\hostinger\build-release.cmd -SkipBuild -Zip`
 
 ---
 
@@ -546,10 +554,11 @@ Verified against these pages (November 2026):
 
 ## Building the release
 
-`deploy/hostinger/build-release.ps1` assembles the two upload folders:
+`deploy/hostinger/build-release.cmd` assembles the two upload folders (no
+PowerShell 7 needed):
 
 ```powershell
-pwsh -File deploy/hostinger/build-release.ps1
+deploy\hostinger\build-release.cmd
 ```
 
 Options:
@@ -574,3 +583,70 @@ manifests list dev-only providers and break a `--no-dev` install.
 - Schema import on a fresh database: 22 tables, 23 migrations recorded,
   `migrate` → "Nothing to migrate"
 - `reference-data.sql` imported twice: 3 roles, 6 statuses (idempotent)
+
+### If the build script does not run
+
+**`pwsh` is not recognized**
+
+`pwsh` is PowerShell 7, which Windows does not ship. Nothing to install — use
+the bundled wrapper, which calls Windows PowerShell 5.1:
+
+```powershell
+deploy\hostinger\build-release.cmd -Zip
+```
+
+or call it directly:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File deploy\hostinger\build-release.ps1 -Zip
+```
+
+**"running scripts is disabled on this system"**
+
+The `.cmd` wrapper already passes `-ExecutionPolicy Bypass`. To allow scripts
+for your own account permanently:
+
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+```
+
+**Node / npm errors**
+
+| Error | Fix |
+| --- | --- |
+| Warnings become errors (`Failed to compile`) | `CI` is set; run `set CI=` (cmd) or `$env:CI=''` (PowerShell) first |
+| `ENOENT package.json` | run the script from the repository root, or use the `.cmd` |
+| Broken `node_modules` | delete `FireAlert_Frontend\node_modules`, re-run (the script runs `npm ci` automatically) |
+| `npm ci` peer conflicts | `npm install --legacy-peer-deps`, then re-run with `-SkipBuild` |
+| No Node at all | the Laravel side does not need Node, but the React build does: build once on a machine with Node 18+ and copy the `release/` folder |
+
+The three ESLint warnings in this project are pre-existing and non-blocking.
+
+**ZIP creation fails (`tar: Cannot connect to C:`)**
+
+Skip `-Zip`; both folders are already staged:
+
+```powershell
+deploy\hostinger\build-release.cmd -SkipBuild
+```
+
+Then upload them **as folders**:
+
+- SSH: `scp -r -P 65002 release/firealert u123456789@host:~/domains/example.com/`
+- File Manager: **Upload → Upload folder**
+
+Do **not** use `Compress-Archive`: Windows PowerShell skips dotfiles such as
+`.htaccess` when zipping. If you zip with another tool, confirm `.htaccess` is
+inside the archive before uploading.
+
+**Build completely by hand (no script)**
+
+1. `cd FireAlert_Frontend` → `npm ci` → `npm run build`
+2. Create `release\firealert` = copy of `FireAlert_Backend` **without**
+   `node_modules`, `vendor`, `tests`, `.git`, `.env`, `storage\logs\*`,
+   `bootstrap\cache\*`, `database\backups`
+3. Create `release\public_html` = copy of `FireAlert_Backend\public` **without**
+   `index.php`, `.htaccess`, `storage`, `vendor`
+4. Copy the contents of `FireAlert_Frontend\build` over `release\public_html`
+5. Copy `deploy\hostinger\public_html\index.php` and `.htaccess` into
+   `release\public_html`

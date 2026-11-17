@@ -18,6 +18,9 @@
     pwsh -File deploy/hostinger/build-release.ps1
 
 .EXAMPLE
+    powershell -NoProfile -ExecutionPolicy Bypass -File deploy\hostinger\build-release.ps1 -Zip
+
+.EXAMPLE
     pwsh -File deploy/hostinger/build-release.ps1 -Zip -WithVendor
 #>
 [CmdletBinding()]
