@@ -1,85 +1,136 @@
-# FireAlert → Hostinger: checklist ng gagawin
+# FireAlert sa Hostinger — simpleng steps
 
-Isang pahina lang ito. Ang buong paliwanag ay nasa [README.md](README.md).
+Sundan lang ang bilang. Walang branch, walang pipiliin.
 
-Domain sa halimbawang ito: `example.com` · Hosting user: `u123456789`
-
----
-
-## Bago umalis sa computer
-
-- [ ] `deploy\hostinger\build-release.cmd -Zip`
-      (hindi kailangan ng `pwsh` — Windows PowerShell 5.1 ang gamit nito)
-- [ ] Kopyahin ang `release/firealert.zip` at `release/public_html.zip`
-- [ ] Gumawa ng random na `APP_KEY` at `JWT_SECRET`:
-      `php artisan key:generate --show` at `php artisan jwt:secret --show`
-      (kung walang SSH, ito lang ang paraan para magkaroon ng secrets)
+Palitan ang tatlong ito:
+- `example.com` → domain mo
+- `u123456789` → hosting user mo
+- `65002` → port na nakalagay sa SSH Access page
 
 ---
 
-## Sa hPanel
+## 1. Build (sa PC, sa repo folder)
 
-- [ ] **Websites → Manage site → SSH Access → Enable**
-      → kopyahin ang SSH command, port, username, at host key fingerprints
-- [ ] **PHP Configuration** → PHP **8.3** → **Update**
-- [ ] **PHP Configuration → PHP Options**:
-      `upload_max_filesize=20M`, `post_max_size=24M`,
-      `max_execution_time=120`, `memory_limit=256M`
-- [ ] **Databases → Management** → piliin ang website →
-      **Create a New MySQL Database And Database User** → **Create**
-      (isulat ang DB name, username, password)
-- [ ] **Databases → phpMyAdmin → Enter phpMyAdmin** → **Import** →
-      `database/schema/mysql-schema.sql` → **Go**
-      (dapat 22 tables)
+```powershell
+deploy\hostinger\build-release.cmd -Zip
+```
+
+Lalabas: `release\firealert.zip` at `release\public_html.zip`
 
 ---
 
-## Upload
+## 2. SSH
 
-- [ ] **File Manager**, nasa website folder (kapatid ng `public_html`, hindi sa loob):
-      upload `firealert.zip` → right-click → **Extract here** → delete ang zip
-- [ ] Gumawa ng `firealert/.env` mula sa
-      `deploy/hostinger/backend.env.production.example`
-      → ilagay ang `APP_URL`, DB name/user/password, `APP_KEY`, `JWT_SECRET`
-      → **Deploy** (kung may Deploy button)
-- [ ] Sa `public_html`: upload `public_html.zip` → **Extract here** → delete ang zip
-      (kung naging `public_html/public_html`, i-cut at i-paste pataas)
+**Websites → Manage site → SSH Access → Enable**
+
+Kopyahin ang SSH command na nasa card (may copy icon). Ganito ang itsura:
+
+```powershell
+ssh -p 65002 u123456789@185.185.185.185
+```
+
+Password = FTP password ng domain mo.
 
 ---
 
-## SSH commands (copy-paste)
+## 3. PHP
+
+**PHP Configuration → PHP 8.3 → Update**
+
+Tapos **PHP Options** tab:
+- `upload_max_filesize` = `20M`
+- `post_max_size` = `24M`
+- `memory_limit` = `256M`
+
+---
+
+## 4. Database
+
+**Databases → Management → Create a New MySQL Database And Database User → Create**
+
+Isulat ang **name**, **username**, **password**.
+
+---
+
+## 5. Schema
+
+**Databases → phpMyAdmin → Enter phpMyAdmin → Import**
+
+Piliin ang `FireAlert_Backend\database\schema\mysql-schema.sql` → **Go**
+
+Dapat 22 tables.
+
+---
+
+## 6. Backend
+
+```powershell
+scp -P 65002 release\firealert.zip u123456789@185.185.185.185:~/domains/example.com/
+```
+
+```bash
+cd ~/domains/example.com
+unzip -o firealert.zip && rm firealert.zip
+ls
+```
+
+Dapat may `firealert/` at `public_html/`.
+
+---
+
+## 7. `.env`
+
+**File Manager** → buksan ang `firealert/.env` (gawa mula sa `deploy/hostinger/backend.env.production.example`)
+
+Ilagay:
+- `APP_URL=https://example.com`
+- `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`
+- `APP_KEY` at `JWT_SECRET` (galing sa PC, tingnan ang README step 7)
+- `APP_DEBUG=false`
+
+Click **Deploy**.
+
+---
+
+## 8. Install (SSH)
 
 ```bash
 cd ~/domains/example.com/firealert
-php -v
 composer2 install --no-dev --optimize-autoloader --no-interaction
-php artisan migrate --force          # "Nothing to migrate" ang expected
+php artisan migrate --force
 php artisan db:seed --class=ReferenceDataSeeder --force
 php artisan optimize
 chmod -R 775 storage bootstrap/cache
-cd ../public_html
-ln -s ../firealert/storage/app/public storage
 ```
-
-Walang SSH? `-WithVendor` sa build, i-import ang
-`deploy/hostinger/reference-data.sql`, at gamitin ang
-`deploy/hostinger/tools/storage-link.php` (delete pagkatapos).
-
-Kung may error na `Class "Knuckles\Scribe\Config\AuthIn" not found`, ibig sabihin
-luma ang `config/scribe.php` sa server — i-upload ang bago, tapos
-`php artisan config:clear`.
 
 ---
 
-## Test
+## 9. Frontend
 
-- [ ] `https://example.com/up` → 200
-- [ ] Login page lumalabas
-- [ ] Admin login gumagana
-- [ ] Report na may photo → na-submit
-- [ ] Profile photo → lumalabas (test ng `storage` symlink)
-- [ ] Refresh sa `/dashboard` → hindi 404
+```powershell
+scp -P 65002 release\public_html.zip u123456789@185.185.185.185:~/domains/example.com/
+```
 
-May error? Tingnan ang
-`firealert/storage/logs/laravel-YYYY-MM-DD.log` at ang
-**Websites → Manage site → Error logs**.
+```bash
+cd ~/domains/example.com
+unzip -o public_html.zip && rm public_html.zip
+cd public_html
+ln -s ../firealert/storage/app/public storage
+ls -la storage
+```
+
+---
+
+## 10. Test
+
+| Buksan | Dapat |
+|---|---|
+| `https://example.com/up` | `up` |
+| `https://example.com` | login page |
+| Login, submit report na may photo | gumana |
+| Profile photo | lumabas |
+| Refresh sa `/dashboard` | hindi 404 |
+
+---
+
+Kung may error: copy-paste mo lang sa akin ang mensahe, sasabihin ko agad ang fix.
