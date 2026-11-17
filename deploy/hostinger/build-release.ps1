@@ -122,7 +122,10 @@ $backendExcludeDirs = @(
     (Join-Path $BackendPath 'storage\logs'),
     (Join-Path $BackendPath 'storage\framework\cache'),
     (Join-Path $BackendPath 'storage\framework\sessions'),
-    (Join-Path $BackendPath 'storage\framework\views')
+    (Join-Path $BackendPath 'storage\framework\views'),
+    # Stale manifests list dev-only providers (Scribe, Boost, Pail, Pest).
+    # Copying them breaks a --no-dev install with "class not found".
+    (Join-Path $BackendPath 'bootstrap\cache')
 )
 if (-not $WithVendor) { $backendExcludeDirs += (Join-Path $BackendPath 'vendor') }
 
