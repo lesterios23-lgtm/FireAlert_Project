@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
 
@@ -71,7 +72,13 @@ class User extends Authenticatable implements JWTSubject
         $column = Schema::hasColumn($this->getTable(), 'password_hash')
             ? 'password_hash'
             : 'password';
-        $this->attributes[$column] = $value;
+
+        // A custom mutator always wins over the 'password' => 'hashed' cast, so
+        // the hashing has to happen here. Values that are already hashes (for
+        // example a Hash::make() call from a controller) are stored untouched.
+        $this->attributes[$column] = Hash::needsRehash($value)
+            ? Hash::make($value)
+            : $value;
     }
 
     public function getAuthPasswordName(): string

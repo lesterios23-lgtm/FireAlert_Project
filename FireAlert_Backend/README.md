@@ -67,6 +67,27 @@ php artisan jwt:secret
 php artisan migrate
 ```
 
+### Fresh database / production setup
+
+`database/schema/mysql-schema.sql` is the schema baseline. On an empty MySQL
+database `php artisan migrate` loads that dump instead of replaying the legacy
+migrations, so the tables the application actually uses (roles, firetrucks,
+bfp_personnel, incident_records, response_statuses, report_locations, ...) are
+created correctly. SQLite tests still build their schema from the migration
+files.
+
+After migrating, seed the reference data (roles and report statuses). The seeder
+is idempotent and safe to re-run:
+
+```bash
+php artisan db:seed --class=ReferenceDataSeeder --force
+```
+
+Set `FIREALERT_ADMIN_EMAIL` and `FIREALERT_ADMIN_PASSWORD` before running it to
+create the first administrator account automatically. Set
+`APP_ENV=production`, `APP_DEBUG=false` and a real `APP_URL`, and run
+`php artisan storage:link` so uploaded evidence and profile photos are served.
+
 ### Local network / phone testing
 
 The development server listens on `127.0.0.1` by default, so a phone cannot

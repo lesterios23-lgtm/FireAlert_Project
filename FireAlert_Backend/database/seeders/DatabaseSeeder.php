@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use RuntimeException;
 
 class DatabaseSeeder extends Seeder
 {
@@ -15,12 +14,12 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        if (! app()->environment('testing') || config('database.default') !== 'sqlite') {
-            throw new RuntimeException(
-                'DatabaseSeeder is restricted to the isolated SQLite testing environment.'
-            );
-        }
+        // Roles and report statuses are required on every environment.
+        $this->call(ReferenceDataSeeder::class);
 
-        $this->call(FireReportSeeder::class);
+        // Demo reports only belong in the isolated SQLite testing environment.
+        if (app()->environment('testing') && config('database.default') === 'sqlite') {
+            $this->call(FireReportSeeder::class);
+        }
     }
 }
