@@ -2,7 +2,11 @@ import React, { useEffect, useRef, useState } from 'react';
 import { API_BASE_URL } from '../../sharedApi';
 import FireAlertLogoMark from './FireAlertLogoMark';
 
-const GOOGLE_CLIENT_ID = '35718463117-21q7gbd8fbvk6ms861ma3uafp4l3m98j.apps.googleusercontent.com';
+// Set REACT_APP_GOOGLE_CLIENT_ID at build time to use your own OAuth client.
+// The fallback keeps local development working without extra configuration.
+const GOOGLE_CLIENT_ID =
+  String(process.env.REACT_APP_GOOGLE_CLIENT_ID || '').trim()
+  || '35718463117-21q7gbd8fbvk6ms861ma3uafp4l3m98j.apps.googleusercontent.com';
 
 export default function LoginPage({ onLogin }) {
   const [mode, setMode] = useState('login');

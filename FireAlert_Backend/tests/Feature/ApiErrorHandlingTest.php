@@ -19,6 +19,15 @@ test('unauthenticated api errors return a consistent JSON envelope', function ()
         ->assertJsonPath('status', 401);
 });
 
+test('a guest without a JSON Accept header still gets 401 JSON, not a redirect', function () {
+    // Real browsers send "Accept: */*" for fetch() calls, so an expired token
+    // must not fall through to Laravel's guest redirect (there is no login route).
+    $this->get('/api/v1/reports')
+        ->assertStatus(401)
+        ->assertJsonPath('message', 'Unauthenticated.')
+        ->assertJsonPath('status', 401);
+});
+
 test('a missing model returns a JSON 404 with a safe message', function () {
     $resident = User::factory()->create();
     $token = loginToken($resident);

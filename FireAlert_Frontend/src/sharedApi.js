@@ -20,6 +20,7 @@ export async function apiRequest(path, options = {}) {
   const token = localStorage.getItem('firealert_token');
   const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
   const headers = {
+    Accept: 'application/json',
     ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...options.headers,

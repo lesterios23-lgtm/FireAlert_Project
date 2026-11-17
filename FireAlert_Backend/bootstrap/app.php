@@ -29,7 +29,12 @@ return Application::configure(basePath: dirname(__DIR__))
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Guests hitting the JSON API must get a 401 JSON response. Without
+        // this, Laravel tries to redirect them to a "login" route that does not
+        // exist, which turns an expired token into a 500 instead of a 401.
+        $middleware->redirectGuestsTo(
+            fn (Request $request) => $request->is('api/*') ? null : '/',
+        );
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
