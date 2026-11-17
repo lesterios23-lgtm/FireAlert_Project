@@ -16,7 +16,7 @@ CREATE TABLE `bfp_personnel` (
   UNIQUE KEY `badge_number` (`badge_number`),
   UNIQUE KEY `user_id` (`user_id`),
   CONSTRAINT `bfp_personnel_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `cache`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -72,7 +72,7 @@ CREATE TABLE `fire_incident_actions` (
   PRIMARY KEY (`id`),
   KEY `fire_incident_actions_fire_incident_id_index` (`fire_incident_id`),
   KEY `fire_incident_actions_fire_report_id_index` (`fire_report_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `fire_incidents`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -116,7 +116,7 @@ CREATE TABLE `fire_reports` (
   KEY `fire_reports_duplicate_flag_index` (`duplicate_flag`),
   CONSTRAINT `fire_reports_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `fire_reports_ibfk_2` FOREIGN KEY (`status_id`) REFERENCES `response_statuses` (`status_id`) ON DELETE RESTRICT ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `firetrucks`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -128,7 +128,7 @@ CREATE TABLE `firetrucks` (
   `status` varchar(50) NOT NULL DEFAULT 'Available',
   PRIMARY KEY (`truck_id`),
   UNIQUE KEY `plate_number` (`plate_number`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `incident_records`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -146,7 +146,7 @@ CREATE TABLE `incident_records` (
   KEY `personnel_id` (`personnel_id`),
   CONSTRAINT `incident_records_ibfk_1` FOREIGN KEY (`report_id`) REFERENCES `fire_reports` (`report_id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `incident_records_ibfk_2` FOREIGN KEY (`personnel_id`) REFERENCES `bfp_personnel` (`personnel_id`) ON DELETE RESTRICT ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `job_batches`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -248,7 +248,7 @@ CREATE TABLE `report_locations` (
   PRIMARY KEY (`location_id`),
   UNIQUE KEY `report_id` (`report_id`),
   CONSTRAINT `report_locations_ibfk_1` FOREIGN KEY (`report_id`) REFERENCES `fire_reports` (`report_id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `response_dispatches`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -272,7 +272,7 @@ CREATE TABLE `response_dispatches` (
   CONSTRAINT `response_dispatches_ibfk_1` FOREIGN KEY (`report_id`) REFERENCES `fire_reports` (`report_id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `response_dispatches_ibfk_2` FOREIGN KEY (`truck_id`) REFERENCES `firetrucks` (`truck_id`) ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT `response_dispatches_ibfk_3` FOREIGN KEY (`personnel_id`) REFERENCES `bfp_personnel` (`personnel_id`) ON DELETE RESTRICT ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `response_statuses`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -283,7 +283,7 @@ CREATE TABLE `response_statuses` (
   `description` text,
   PRIMARY KEY (`status_id`),
   UNIQUE KEY `status_name` (`status_name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `roles`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -294,7 +294,7 @@ CREATE TABLE `roles` (
   `description` text,
   PRIMARY KEY (`role_id`),
   UNIQUE KEY `role_name` (`role_name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `sessions`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -344,7 +344,7 @@ CREATE TABLE `users` (
   UNIQUE KEY `users_google_id_unique` (`google_id`),
   KEY `role_id` (`role_id`),
   CONSTRAINT `users_ibfk_1` FOREIGN KEY (`role_id`) REFERENCES `roles` (`role_id`) ON DELETE RESTRICT ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 

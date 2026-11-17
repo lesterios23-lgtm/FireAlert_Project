@@ -1,0 +1,56 @@
+# ---------------------------------------------------------------------------
+# FireAlert - Hostinger document root (public_html)
+#
+# One domain serves both parts of the system:
+#   /api/v1/...  -> Laravel (PHP)
+#   everything else -> React single-page app (index.html)
+# ---------------------------------------------------------------------------
+
+# The SPA shell is the directory index, not Laravel's index.php.
+DirectoryIndex index.html
+
+<IfModule mod_rewrite.c>
+    <IfModule mod_negotiation.c>
+        Options -MultiViews -Indexes
+    </IfModule>
+
+    RewriteEngine On
+
+    # Force HTTPS (Hostinger provides a free SSL certificate).
+    # The X-Forwarded-Proto check avoids a redirect loop behind a proxy.
+    RewriteCond %{HTTPS} !=on
+    RewriteCond %{HTTP:X-Forwarded-Proto} !https
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+    # Backend routes -> Laravel front controller.
+    RewriteRule ^(api|up|sanctum)(/.*)?$ index.php [L,QSA]
+
+    # Real files and folders: hashed build assets, the storage symlink, uploads.
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Anything else is a client-side route handled by React.
+    RewriteRule ^ index.html [L]
+</IfModule>
+
+# Never expose secrets or application sources, even if they end up here.
+<FilesMatch "^\.env|^\.git|^composer\.(json|lock)$|^artisan$|^phpunit\.xml$">
+    Require all denied
+</FilesMatch>
+
+# Hashed bundle files never change, so they can be cached for a year.
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css "access plus 1 year"
+    ExpiresByType application/javascript "access plus 1 year"
+    ExpiresByType image/svg+xml "access plus 1 year"
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/webp "access plus 1 year"
+    ExpiresByType font/woff2 "access plus 1 year"
+</IfModule>
+
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/css text/xml application/javascript application/json application/xml image/svg+xml
+</IfModule>
