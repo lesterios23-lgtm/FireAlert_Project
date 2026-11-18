@@ -16,6 +16,14 @@ DirectoryIndex index.html
 
     RewriteEngine On
 
+    # Pass the Authorization header to PHP (needed for JWT Bearer tokens).
+    # Some Apache/CGI setups strip it, which would make every API call 401.
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    RewriteCond %{HTTP:x-xsrf-token} .
+    RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
+
     # Force HTTPS (Hostinger provides a free SSL certificate).
     # The X-Forwarded-Proto check avoids a redirect loop behind a proxy.
     RewriteCond %{HTTPS} !=on

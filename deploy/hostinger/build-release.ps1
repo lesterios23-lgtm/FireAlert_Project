@@ -164,6 +164,14 @@ Invoke-Robocopy -Source (Join-Path $FrontendPath 'build') -Destination $webDir
 Copy-Item (Join-Path $scriptRoot 'public_html\index.php')  (Join-Path $webDir 'index.php')  -Force
 Copy-Item (Join-Path $scriptRoot 'public_html\.htaccess')  (Join-Path $webDir '.htaccess')  -Force
 
+# API-only web root, for the "frontend on the main domain, API on a subdomain"
+# setup. Upload these two files into the subdomain's public_html instead.
+Write-Host "Staging the API-only web root..." -ForegroundColor Cyan
+$apiDir = Join-Path $releaseRoot 'api-public'
+New-Item -ItemType Directory -Path $apiDir -Force | Out-Null
+Copy-Item (Join-Path $scriptRoot 'public_html\index.php') (Join-Path $apiDir 'index.php') -Force
+Copy-Item (Join-Path $scriptRoot 'api-public\.htaccess')  (Join-Path $apiDir '.htaccess') -Force
+
 # ---------------------------------------------------------------- report -----
 function Get-FolderSizeMb {
     param([string]$Path)
@@ -176,6 +184,15 @@ Write-Host ''
 Write-Host 'Release ready:' -ForegroundColor Green
 Write-Host ("  {0}  ({1} MB)" -f $appDir, (Get-FolderSizeMb $appDir))
 Write-Host ("  {0}  ({1} MB)" -f $webDir, (Get-FolderSizeMb $webDir))
+Write-Host ("  {0}  (API-only web root)" -f $apiDir)
+
+Write-Host ''
+Write-Host 'One domain (default):' -ForegroundColor Cyan
+Write-Host '  firealert/   -> next to public_html' -ForegroundColor Cyan
+Write-Host '  public_html/ -> replace the web root' -ForegroundColor Cyan
+Write-Host 'Two domains (frontend + api subdomain):' -ForegroundColor Cyan
+Write-Host '  firealert/   -> next to the subdomain public_html' -ForegroundColor Cyan
+Write-Host '  api-public/  -> contents go INTO the subdomain public_html' -ForegroundColor Cyan
 
 if (-not $WithVendor) {
     Write-Host ''
@@ -188,7 +205,7 @@ if ($Zip) {
     Write-Host ''
     Write-Host 'Creating ZIP archives...' -ForegroundColor Cyan
 
-    foreach ($name in @('firealert', 'public_html')) {
+    foreach ($name in @('firealert', 'public_html', 'api-public')) {
         $archive = Join-Path $releaseRoot "$name.zip"
         if (Test-Path $archive) { Remove-Item $archive -Force }
 

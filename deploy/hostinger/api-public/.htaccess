@@ -1,0 +1,49 @@
+# ---------------------------------------------------------------------------
+# FireAlert API - Hostinger document root for the api.example.com subdomain
+#
+# This folder only serves the Laravel API. The React app stays on the main
+# domain, so there is no index.html and no SPA fallback here.
+#
+# Layout:
+#   domains/api.example.com/firealert/     <- Laravel application
+#   domains/api.example.com/public_html/   <- this folder (index.php + this file)
+# ---------------------------------------------------------------------------
+
+DirectoryIndex index.php
+
+<IfModule mod_rewrite.c>
+    <IfModule mod_negotiation.c>
+        Options -MultiViews -Indexes
+    </IfModule>
+
+    RewriteEngine On
+
+    # Pass the Authorization header to PHP (needed for JWT Bearer tokens).
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    RewriteCond %{HTTP:x-xsrf-token} .
+    RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
+
+    # Force HTTPS.
+    RewriteCond %{HTTPS} !=on
+    RewriteCond %{HTTP:X-Forwarded-Proto} !https
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+    # Serve real files (storage symlink, favicon, ...) and stop.
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Everything else goes to Laravel.
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+# Never expose secrets or application sources.
+<FilesMatch "^\\.env|^\\.git|^composer\\.(json|lock)$|^artisan$|^phpunit\\.xml$">
+    Require all denied
+</FilesMatch>
+
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE application/json text/plain text/html
+</IfModule>

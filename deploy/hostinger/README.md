@@ -497,18 +497,26 @@ Hostinger also shows website errors in **Websites → Manage site → Error logs
 
 ## Option B: separate API subdomain
 
-If you prefer `api.example.com` for the backend:
+When the React app is already live on the main domain and you do not want to
+touch it, put the API on `api.example.com` instead.
 
-1. **Websites → Manage site → Subdomains** → create `api` with document root
-   `domains/example.com/firealert/public`.
-2. Hostinger serves `firealert/public` directly, so Laravel's own
-   `index.php`/`.htaccess` are used — no custom front controller there.
-3. Set `APP_URL=https://api.example.com` and rebuild the frontend with
-   `REACT_APP_API_URL=https://api.example.com/api/v1`.
-4. Because the origins differ, allow the frontend origin in CORS:
-   `php artisan vendor:publish --tag=cors`, then
-   `'allowed_origins' => ['https://example.com']` and
-   `php artisan config:cache`.
+**Full step-by-step (Tagalog): [`SUBDOMAIN.md`](SUBDOMAIN.md).**
+
+Summary:
+
+1. **Websites → Add website** → enter `api.example.com` → **Empty website**.
+2. Upload the Laravel app to `domains/api.example.com/firealert` (a sibling of
+   the subdomain's `public_html`, never inside it).
+3. Put `index.php` and `.htaccess` from `release/api-public/` into
+   `domains/api.example.com/public_html/`, then
+   `ln -s ../firealert/storage/app/public storage`.
+4. `.env`: `APP_URL=https://api.example.com` and
+   `FRONTEND_URL=https://example.com` (CORS — handled by `config/cors.php`).
+5. Rebuild the frontend with
+   `REACT_APP_API_URL=https://api.example.com/api/v1` and re-upload `build/`.
+
+The frontend **must** be rebuilt: the current production bundle calls `/api/v1`
+on its own domain.
 
 ---
 

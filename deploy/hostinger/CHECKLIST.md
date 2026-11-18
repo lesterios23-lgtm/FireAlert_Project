@@ -2,6 +2,9 @@
 
 Sundan lang ang bilang. Walang branch, walang pipiliin.
 
+> Kung **may frontend na sa main domain** at backend lang ang kulang, gamitin ang
+> [`SUBDOMAIN.md`](SUBDOMAIN.md) — doon ang tamang steps.
+
 Palitan ang tatlong ito:
 - `example.com` → domain mo
 - `u123456789` → hosting user mo
