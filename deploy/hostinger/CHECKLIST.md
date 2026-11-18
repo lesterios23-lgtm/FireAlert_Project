@@ -128,7 +128,7 @@ ls -la storage
 
 | Buksan | Dapat |
 |---|---|
-| `https://example.com/up` | `up` |
+| `https://example.com/up` | page na may "Application up" |
 | `https://example.com` | login page |
 | Login, submit report na may photo | gumana |
 | Profile photo | lumabas |

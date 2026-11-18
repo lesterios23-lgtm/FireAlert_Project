@@ -484,6 +484,7 @@ For frontend-only changes, rebuild locally and re-upload the contents of
 | `composer2: command not found` | plan without Composer (Single); build with `-WithVendor` instead |
 | `Class "Knuckles\Scribe\Config\AuthIn" not found` | the server has an old `config/scribe.php`; upload the current one (it bails out when Scribe is absent), then `php artisan config:clear` |
 | File Manager edits do nothing | pending edits must be applied with **Deploy** |
+| hPanel shows **Build failed — No output directory found after build**, expected `build`, Vite wrote `public/build` | Hostinger's deployment builder builds the Laravel Vite assets and looks for `build/` at the project root. The API does not need that build at all. `npm run build` in `FireAlert_Backend` now writes **both** `public/build` (Laravel) and `build/` (the builder's expected folder) — redeploy and it passes. Alternatively set the deployment's output directory to `public/build` if your plan exposes that setting |
 
 Logs:
 

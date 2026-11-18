@@ -15,6 +15,10 @@
 /auth.json
 /node_modules
 /public/build
+# Copy of public/build produced by "npm run build". Hostinger's deployment
+# builder looks for a "build" folder at the project root and fails the deploy
+# when it is missing, even though Laravel serves assets from public/build.
+/build
 /public/fonts-manifest.dev.json
 /public/hot
 /public/storage

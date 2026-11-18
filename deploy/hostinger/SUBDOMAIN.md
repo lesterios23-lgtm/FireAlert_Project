@@ -160,7 +160,7 @@ Hard-refresh ang browser (`Ctrl + F5`).
 
 | Buksan | Dapat |
 |---|---|
-| `https://api.firealerts.site/up` | `{"status":"up"}` |
+| `https://api.firealerts.site/up` | page na may "Application up" |
 | `https://firealerts.site` | login page |
 | Login | pumasok |
 | Mag-submit ng report | gumana |
@@ -168,6 +168,26 @@ Hard-refresh ang browser (`Ctrl + F5`).
 
 Kung 404 ang `/api/v1/auth/login` sa browser console, hindi pa naka-rebuild ang
 frontend (step 4 at 9).
+
+---
+
+## Kung lumabas ang "Build failed" sa hPanel
+
+Sasabihin nito: *"The Vite build completed successfully... but the platform reports
+'No output directory found after build' because the configured output directory
+is `build`."*
+
+**Hindi mo kailangan ayusin ang setting.** Hindi kailangan ng API ang build na
+'yon — ang Vite na 'yon ay para lang sa default na Laravel welcome page.
+Inayos na sa repo: ang `npm run build` ng backend ay nagsusulat na sa **dalawa**:
+
+- `public/build` → ito ang ginagamit ng Laravel
+- `build/` → ito ang hinahanap ng Hostinger
+
+Kaya **i-redeploy lang** (o i-upload ulit ang `release\firealert`) at lilipas na.
+
+Kung may setting na **Output Directory** sa deployment page, pwede rin
+`public/build` — pero hindi na kailangan.
 
 ---
 
