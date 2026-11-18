@@ -512,8 +512,13 @@ Summary:
    `ln -s ../firealert/storage/app/public storage`.
 4. `.env`: `APP_URL=https://api.example.com` and
    `FRONTEND_URL=https://example.com` (CORS — handled by `config/cors.php`).
-5. Rebuild the frontend with
-   `REACT_APP_API_URL=https://api.example.com/api/v1` and re-upload `build/`.
+5. Rebuild the frontend pointed at the API and re-upload `build/`:
+
+   ```powershell
+   deploy\hostinger\build-release.cmd -ApiUrl https://api.example.com/api/v1 -Zip
+   ```
+
+   `-ApiUrl` wins over `FireAlert_Frontend/.env`, so no tracked file changes.
 
 The frontend **must** be rebuilt: the current production bundle calls `/api/v1`
 on its own domain.
@@ -576,6 +581,7 @@ Options:
 | `-Zip` | also create `firealert.zip` and `public_html.zip` |
 | `-WithVendor` | include `vendor/` (plans without SSH) |
 | `-SkipBuild` | reuse the existing React build |
+| `-ApiUrl https://api.example.com/api/v1` | bake a different API base into the React build (subdomain layout) |
 
 `.env`, logs, tests, `node_modules`, and database backups are never included.
 `bootstrap/cache/` is emptied too, because stale `packages.php`/`services.php`

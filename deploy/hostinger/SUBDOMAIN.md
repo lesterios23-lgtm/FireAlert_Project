@@ -52,22 +52,20 @@ Tapos **Databases → phpMyAdmin → Enter phpMyAdmin → Import** →
 
 ## 4. Build sa PC
 
-Buksan ang `FireAlert_Frontend\.env` at ilagay:
-
-```
-REACT_APP_API_URL=https://api.firealerts.site/api/v1
-```
-
-Tapos:
-
 ```powershell
-deploy\hostinger\build-release.cmd -Zip
+deploy\hostinger\build-release.cmd -ApiUrl https://api.firealerts.site/api/v1 -Zip
 ```
+
+Ang `-ApiUrl` ang nagsisiguro na `https://api.firealerts.site/api/v1` ang
+tatawagin ng bagong React build. **Huwag na i-edit ang
+`FireAlert_Frontend\.env`** — ang `-ApiUrl` ang masusunod.
 
 Lalabas ang:
 - `release\firealert` + `firealert.zip` → backend
 - `release\api-public` → 2 files para sa subdomain `public_html`
 - `release\public_html` → **HUWAG gamitin** (para 'yon sa one-domain setup)
+
+I-check sa dulo ng output: `API base in the bundle: https://api.firealerts.site/api/v1`
 
 ---
 

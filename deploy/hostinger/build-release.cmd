@@ -7,9 +7,11 @@ rem  It simply calls build-release.ps1 with Windows PowerShell 5.1.
 rem
 rem  Usage:
 rem    build-release.cmd                 normal build
-rem    build-release.cmd -Zip            also create the two .zip files
+rem    build-release.cmd -Zip            also create the .zip files
 rem    build-release.cmd -SkipBuild -Zip reuse the existing React build
 rem    build-release.cmd -WithVendor     include vendor/ (plans without SSH)
+rem    build-release.cmd -ApiUrl https://api.example.com/api/v1 -Zip
+rem                                      API on another host (subdomain setup)
 rem ---------------------------------------------------------------------------
 
 setlocal

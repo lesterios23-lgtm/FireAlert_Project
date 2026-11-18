@@ -14,6 +14,12 @@
     Include vendor/. Needed on plans without SSH (otherwise run
     "composer install --no-dev" on the server).
 
+.PARAMETER ApiUrl
+    Value baked into the React build as REACT_APP_API_URL.
+    Use it when the API lives on another host, e.g.
+    -ApiUrl https://api.example.com/api/v1
+    Without it, the build calls /api/v1 on its own domain.
+
 .EXAMPLE
     pwsh -File deploy/hostinger/build-release.ps1
 
@@ -30,7 +36,8 @@ param(
     [string]$OutputPath,
     [switch]$Zip,
     [switch]$WithVendor,
-    [switch]$SkipBuild
+    [switch]$SkipBuild,
+    [string]$ApiUrl
 )
 
 $ErrorActionPreference = 'Stop'
@@ -86,13 +93,31 @@ if ($SkipBuild) {
 } else {
     Push-Location $FrontendPath
     try {
-        if (-not (Test-Path 'node_modules')) {
+        # An empty node_modules folder still passes Test-Path, so check for the
+        # actual package instead of just the directory.
+        if (-not (Test-Path 'node_modules\react-scripts\package.json')) {
             Write-Host 'Installing frontend dependencies...' -ForegroundColor Cyan
+            if (Test-Path 'node_modules') { Remove-Item 'node_modules' -Recurse -Force }
             npm ci
-            if ($LASTEXITCODE -ne 0) { throw 'npm ci failed' }
+            if ($LASTEXITCODE -ne 0) {
+                Write-Host 'npm ci failed - retrying with npm install --legacy-peer-deps' -ForegroundColor Yellow
+                npm install --legacy-peer-deps
+                if ($LASTEXITCODE -ne 0) { throw 'npm install failed' }
+            }
         }
 
         Write-Host 'Building the React app...' -ForegroundColor Cyan
+
+        # Burn the API URL into the bundle. The value set here wins over
+        # FireAlert_Frontend/.env, so use -ApiUrl for the subdomain layout
+        # instead of editing a tracked file.
+        if ($ApiUrl) {
+            $env:REACT_APP_API_URL = $ApiUrl.TrimEnd('/')
+        }
+
+        $apiLabel = if ($env:REACT_APP_API_URL) { $env:REACT_APP_API_URL } else { '/api/v1 (same domain)' }
+        Write-Host "  API base : $apiLabel"
+
         npm run build
         if ($LASTEXITCODE -ne 0) { throw 'npm run build failed' }
     }
@@ -185,6 +210,7 @@ Write-Host 'Release ready:' -ForegroundColor Green
 Write-Host ("  {0}  ({1} MB)" -f $appDir, (Get-FolderSizeMb $appDir))
 Write-Host ("  {0}  ({1} MB)" -f $webDir, (Get-FolderSizeMb $webDir))
 Write-Host ("  {0}  (API-only web root)" -f $apiDir)
+Write-Host ("  API base in the bundle: {0}" -f ($(if ($env:REACT_APP_API_URL) { $env:REACT_APP_API_URL } else { '/api/v1 (same domain)' })))
 
 Write-Host ''
 Write-Host 'One domain (default):' -ForegroundColor Cyan
