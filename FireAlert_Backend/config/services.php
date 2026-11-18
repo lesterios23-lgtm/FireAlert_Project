@@ -18,6 +18,13 @@ return [
         'key' => env('POSTMARK_API_KEY'),
     ],
 
+    // Google sign-in. Both the React app and the API must use the same client
+    // ID: the API checks the "aud" claim of the ID token against this value.
+    // Leave GOOGLE_CLIENT_ID empty to use the ID baked into AuthController.
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+    ],
+
     'resend' => [
         'key' => env('RESEND_API_KEY'),
     ],
