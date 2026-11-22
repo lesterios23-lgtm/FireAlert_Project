@@ -145,14 +145,17 @@ export default function AdminDashboard() {
       String(truck.status || '').toLowerCase() !== 'available'
     ).length;
     const summary = dashboard.high_risk_summary;
+    const refHigh = summary?.reference?.high;
     return {
       total: reports.length,
       active: activeReports,
       assigned: assignedUnits,
-      highRisk: summary?.model_available ? summary.high : null,
-      highRiskHint: summary?.model_available
-        ? `${summary.areas} areas analyzed from historical incidents`
-        : 'No historical data available yet',
+      highRisk: refHigh != null ? refHigh : (summary?.model_available ? summary.high : null),
+      highRiskHint: summary?.reference
+        ? `${summary.reference.total || 0} ref barangays; ${summary.areas || 0} historical areas analyzed`
+        : (summary?.model_available
+          ? `${summary.areas} areas analyzed from historical incidents`
+          : 'No historical data available yet'),
     };
   }, [reports, dashboard.firetrucks, dashboard.high_risk_summary]);
 
@@ -277,7 +280,7 @@ export default function AdminDashboard() {
             hint={dashboard.firetrucks.length ? `${dashboard.firetrucks.length} units on record` : 'No units on record'}
           />
           <StatCard
-            label='High-risk areas*'
+            label='High-risk barangays (ref)*'
             value={stats.highRisk === null ? '––' : String(stats.highRisk).padStart(2, '0')}
             tone='amber'
             icon='◍'
@@ -583,60 +586,49 @@ function HighRiskPredictionPanel({ analysis, loading, error, selectedArea, onSel
     );
   }
 
-  if (!analysis || !analysis.model_available || (analysis.areas || []).length === 0) {
+  const refBarangays = analysis?.reference_barangays || [];
+  if (!analysis || refBarangays.length === 0) {
     return (
       <section className='admin-panel admin-prediction-state'>
         <div className='admin-prediction-icon' aria-hidden='true'>!</div>
-        <h2>Prediction unavailable</h2>
-        <p>No historical incident records with usable location data are available for {periodLabel(analysis?.period || period).toLowerCase()}. This analysis is computed from recorded fire incidents and does not fabricate risk estimates.</p>
-        <div className='admin-risk-period' style={{ marginTop: '0.9rem', justifyContent: 'center' }}>
-          <label htmlFor='risk-period-empty'>Analysis period</label>
-          <select id='risk-period-empty' value={period} onChange={(event) => onPeriodChange(event.target.value)}>
-            {RISK_PERIODS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-          </select>
-        </div>
+        <h2>No reference data</h2>
+        <p>No barangay reference risk data is available. Run the database seeder to load the Mansalay reference barangays.</p>
       </section>
     );
   }
 
-  const areas = analysis.areas || [];
-  const counts = areas.reduce((acc, area) => {
-    const key = riskTone(area.risk_level);
-    acc[key] = (acc[key] || 0) + 1;
-    return acc;
-  }, { high: 0, moderate: 0, low: 0 });
+  const refHigh = refBarangays.filter((b) => b.reference_risk_level === 'High').length;
+  const refModerate = refBarangays.filter((b) => b.reference_risk_level === 'Moderate').length;
 
-  const selected = selectedArea && areas.find((area) => area.area === selectedArea.area)
-    ? areas.find((area) => area.area === selectedArea.area)
-    : areas[0];
+  const selected = selectedArea && refBarangays.find((b) => b.barangay_name === selectedArea.barangay_name)
+    ? refBarangays.find((b) => b.barangay_name === selectedArea.barangay_name)
+    : refBarangays[0];
 
-  const markers = areas
-    .filter((area) => area.latitude != null && area.longitude != null)
-    .map((area) => ({
-      id: area.area,
-      lat: area.latitude,
-      lng: area.longitude,
-      address: `${area.area} · ${area.risk_level} risk (${area.incident_count} incident${area.incident_count === 1 ? '' : 's'})`,
-    }));
+  const markers = refBarangays.map((b) => ({
+    id: b.barangay_name,
+    lat: Number(b.latitude),
+    lng: Number(b.longitude),
+    address: `${b.barangay_name} · Reference: ${b.reference_risk_level} risk`,
+  }));
 
   return (
     <div className='admin-risk-layout'>
       <div className='admin-stat-grid admin-risk-stats'>
-        <StatCard label='Incidents analyzed' value={String(analysis.total_incidents_analyzed || 0).padStart(2, '0')} tone='navy' icon='▤' hint={periodLabel(analysis.period || period)} />
-        <StatCard label='High-risk areas' value={String(counts.high).padStart(2, '0')} tone='amber' icon='◍' hint='Prioritize preparedness' />
-        <StatCard label='Moderate-risk areas' value={String(counts.moderate).padStart(2, '0')} tone='blue' icon='◌' hint='Monitor and review' />
-        <StatCard label='Low-risk areas' value={String(counts.low).padStart(2, '0')} tone='navy' icon='○' hint='Lower recent activity' />
+        <StatCard label='Barangays (reference)' value={String(refBarangays.length).padStart(2, '0')} tone='navy' icon='▤' hint='Supplied initial reference' />
+        <StatCard label='High-risk (reference)' value={String(refHigh).padStart(2, '0')} tone='amber' icon='◍' hint='Panaytayan, Budburan, Waygan' />
+        <StatCard label='Moderate-risk (reference)' value={String(refModerate).padStart(2, '0')} tone='blue' icon='◌' hint='Don Pedro, Sta. Maria, Sta. Teresita' />
+        <StatCard label='Historical incidents analyzed' value={String(analysis.total_incidents_analyzed || 0).padStart(2, '0')} tone='navy' icon='○' hint={periodLabel(analysis.period || period)} />
       </div>
 
       <section className='admin-panel admin-risk-method'>
         <div className='admin-panel-heading admin-risk-heading'>
           <div>
             <h2>High-risk location analysis</h2>
-            <p>Generated {formatDate(analysis.generated_at)} · {periodLabel(analysis.period || period)} · Based on historical incident records</p>
+            <p>Generated {formatDate(analysis.generated_at)} · Period: {periodLabel(analysis.period || period)}</p>
           </div>
           <div className='admin-risk-controls'>
             <div className='admin-risk-period'>
-              <label htmlFor='risk-period'>Period</label>
+              <label htmlFor='risk-period'>Period (historical)</label>
               <select id='risk-period' value={analysis.period || period} onChange={(event) => onPeriodChange(event.target.value)}>
                 {RISK_PERIODS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
               </select>
@@ -645,58 +637,92 @@ function HighRiskPredictionPanel({ analysis, loading, error, selectedArea, onSel
           </div>
         </div>
         <p className='admin-risk-note'>{analysis.methodology}</p>
+        {analysis.seasonal_note && (
+          <p className='admin-risk-note' style={{ marginTop: '0.5rem' }}><strong>Seasonal risk reference (not a confirmed forecast):</strong> {analysis.seasonal_note.replace(/^Seasonal risk reference \(not a confirmed forecast\):\s*/i, '')}</p>
+        )}
       </section>
 
       <div className='admin-risk-grid'>
         <section className='admin-panel admin-risk-map-panel'>
           <div className='admin-panel-heading'>
-            <div><h2>Predicted high-risk map</h2><p>Areas ranked by historical frequency, recency, and severity</p></div>
+            <div><h2>Mansalay barangay risk map (reference points)</h2><p>Six supplied barangay coordinates. Markers show reference risk level; historical stats are shown per barangay.</p></div>
           </div>
-          {markers.length > 0 ? (
-            <GoogleMap
-              markers={markers}
-              selected={selected && selected.latitude != null ? { latitude: selected.latitude, longitude: selected.longitude } : null}
-              height='360px'
-              title='High-Risk Location Prediction Map'
-            />
-          ) : (
-            <p className='admin-empty'>No mapped coordinates are available for analyzed areas.</p>
-          )}
+          <GoogleMap
+            markers={markers}
+            selected={selected && selected.latitude != null ? { latitude: Number(selected.latitude), longitude: Number(selected.longitude) } : null}
+            height='360px'
+            title='High-Risk Location Prediction Map'
+          />
           <div className='admin-risk-legend' aria-label='Risk level legend'>
-            <span><i className='high' /> High risk</span>
-            <span><i className='moderate' /> Moderate risk</span>
-            <span><i className='low' /> Low risk</span>
+            <span><i className='high' /> High risk (reference)</span>
+            <span><i className='moderate' /> Moderate risk (reference)</span>
           </div>
         </section>
 
         <section className='admin-panel admin-risk-list-panel'>
           <div className='admin-panel-heading'>
-            <div><h2>Ranked locations</h2><p>Select an area to focus it on the map</p></div>
+            <div><h2>Barangay reference list</h2><p>Select a barangay to view details and focus the map</p></div>
           </div>
           <div className='admin-risk-list'>
-            {areas.map((area, index) => (
-              <button
-                type='button'
-                key={area.area}
-                className={`admin-risk-item ${riskTone(area.risk_level)}${selected?.area === area.area ? ' selected' : ''}`}
-                onClick={() => onSelectArea(area)}
-              >
-                <div className='admin-risk-item-head'>
-                  <span className='admin-risk-rank'>#{index + 1}</span>
-                  <strong>{area.area}</strong>
-                  <span className={`admin-risk-badge ${riskTone(area.risk_level)}`}>{area.risk_level}</span>
-                </div>
-                <div className='admin-risk-item-meta'>
-                  <span>Score {area.risk_score}</span>
-                  <span>{area.incident_count} incident{area.incident_count === 1 ? '' : 's'}</span>
-                  <span>Severity avg {area.average_severity}</span>
-                </div>
-                <small>Last incident: {formatDate(area.last_reported_at)} · {area.address || 'Location details unavailable'}</small>
-              </button>
-            ))}
+            {refBarangays.map((b) => {
+              const hist = b.historical || { available: false };
+              return (
+                <button
+                  type='button'
+                  key={b.barangay_name}
+                  className={`admin-risk-item ${riskTone(b.reference_risk_level)}${selected?.barangay_name === b.barangay_name ? ' selected' : ''}`}
+                  onClick={() => onSelectArea(b)}
+                >
+                  <div className='admin-risk-item-head'>
+                    <strong>{b.barangay_name}</strong>
+                    <span className={`admin-risk-badge ${riskTone(b.reference_risk_level)}`}>{b.reference_risk_level}</span>
+                  </div>
+                  <div className='admin-risk-item-meta'>
+                    <span>Ref: {b.reference_risk_level}</span>
+                    {hist.available ? (
+                      <span>Historical: {hist.risk_level || 'Low'} ({hist.incident_count} incident{hist.incident_count === 1 ? '' : 's'})</span>
+                    ) : (
+                      <span>Historical: unavailable</span>
+                    )}
+                  </div>
+                  <small>{b.verification_status || 'Supplied initial reference'} · Last incident: {hist.available ? formatDate(hist.last_reported_at) : '—'}</small>
+                </button>
+              );
+            })}
           </div>
         </section>
       </div>
+
+      {selected && (
+        <section className='admin-panel' style={{ marginTop: '1rem' }}>
+          <div className='admin-panel-heading'>
+            <div>
+              <h2>{selected.barangay_name}</h2>
+              <p>Reference + historical analysis (separate)</p>
+            </div>
+          </div>
+          <div style={{ display: 'grid', gap: '0.5rem', fontSize: '0.9rem' }}>
+            <div><strong>Coordinates:</strong> {selected.latitude}, {selected.longitude}</div>
+            <div><strong>Reference risk level:</strong> {selected.reference_risk_level}</div>
+            <div><strong>Verification status:</strong> {selected.verification_status || '—'}</div>
+            <div><strong>Data source:</strong> {selected.data_source || '—'}</div>
+            {selected.risk_description && <div><strong>Risk description:</strong> {selected.risk_description}</div>}
+            <hr style={{ border: 'none', borderTop: '1px solid #eee', margin: '0.5rem 0' }} />
+            <div><strong>Historical incident analysis ({periodLabel(analysis.period || period)}):</strong></div>
+            {selected.historical?.available ? (
+              <>
+                <div>Matched area: {selected.historical.matched_area_name || '—'}</div>
+                <div>Incidents analyzed (for this match): {selected.historical.incident_count}</div>
+                <div>Computed risk level: {selected.historical.risk_level || '—'} (score {selected.historical.risk_score ?? '—'})</div>
+                <div>Average severity (weighted): {selected.historical.average_severity ?? '—'}</div>
+                <div>Last reported incident: {formatDate(selected.historical.last_reported_at)}</div>
+              </>
+            ) : (
+              <div>No historical incident records matched to this barangay for the selected period. Reference classification is shown above; historical analysis is unavailable.</div>
+            )}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

@@ -1049,23 +1049,23 @@
 /* ===== Red Emergency Alarm Popup Modal ===== */
 .bfp-alarm-popup-overlay {
   position: fixed;
-  inset: 0;
+  top: 1rem;
+  right: 1rem;
   z-index: 9999;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem;
-  background: rgba(14, 28, 43, 0.72);
-  backdrop-filter: blur(4px);
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 0;
+  background: transparent;
   animation: bfpAlarmFadeIn 0.2s ease-out;
 }
 
 .bfp-alarm-popup {
-  width: min(540px, 100%);
+  width: min(420px, calc(100vw - 2rem));
   border: 2px solid #d93636;
   border-radius: 12px;
   background: #ffffff;
-  box-shadow: 0 0 40px rgba(217, 54, 54, 0.45), 0 20px 48px rgba(20, 40, 63, 0.4);
+  box-shadow: 0 0 30px rgba(217, 54, 54, 0.45), 0 12px 32px rgba(20, 40, 63, 0.35);
   overflow: hidden;
   animation: bfpAlarmPopIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }

@@ -1011,6 +1011,7 @@ export default function EmergencyCommandCenter() {
                 <p className='bfp-alarm-time'>
                   Reported: {formatDate(alarmReport.reportedAt || alarmReport.createdAt)}
                 </p>
+                <p className='bfp-alarm-time' style={{color:'#b5121f', fontWeight:600}}>📍 Map focused to this location (auto).</p>
                 {alarmReport.duplicateFlag === 'possible' && (
                   <p className='bfp-alarm-verify' role='note'>⚠ Possible duplicate — verify against {alarmReport.incidentCode || 'the open incident'} before dispatching a second unit.</p>
                 )}

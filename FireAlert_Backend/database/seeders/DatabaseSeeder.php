@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
     {
         // Roles and report statuses are required on every environment.
         $this->call(ReferenceDataSeeder::class);
+        $this->call(BarangayRiskReferenceSeeder::class);
 
         // Demo reports only belong in the isolated SQLite testing environment.
         if (app()->environment('testing') && config('database.default') === 'sqlite') {

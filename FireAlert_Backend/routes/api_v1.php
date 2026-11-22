@@ -22,6 +22,8 @@ Route::middleware('auth:api')->group(function () {
     Route::match(['patch', 'post'], '/auth/profile', [AuthController::class, 'updateProfile']);
     Route::get('admin/dashboard', [AdminDashboardController::class, 'index']);
     Route::get('admin/high-risk-areas', [AdminDashboardController::class, 'highRiskAreas']);
+    Route::get('admin/barangay-risk-references', [AdminDashboardController::class, 'barangayRiskReferences']);
+    Route::put('admin/barangay-risk-references/{id}', [AdminDashboardController::class, 'updateBarangayRiskReference']);
     Route::put('admin/login-attempt-settings', [AdminDashboardController::class, 'updateLoginAttemptSettings']);
     Route::post('admin/users', [AdminDashboardController::class, 'storeUser']);
     Route::patch('admin/users/{user}', [AdminDashboardController::class, 'updateUser']);
