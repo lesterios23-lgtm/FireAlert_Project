@@ -122,7 +122,10 @@ export default function LoginPage({ onLogin }) {
           : '';
         throw new Error(validationErrors || data.message || 'Request failed. Please try again.');
       }
-
+      const contentType = response.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        throw new Error('Server returned an unexpected response (not JSON). The API may not be routed correctly on this site. Check deployment/server configuration.');
+      }
       const data = await response.json();
 
       const accessToken = data?.data?.access_token;
@@ -205,10 +208,13 @@ export default function LoginPage({ onLogin }) {
       if (!googleResponse.ok) {
         throw new Error(data?.message || 'Google sign-in failed. Please try again.');
       }
-
+      const contentType = googleResponse.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        throw new Error('Server returned an unexpected response (not JSON). The API may not be routed correctly on this site. Check deployment/server configuration.');
+      }
       const accessToken = data?.data?.access_token;
       if (!accessToken) {
-        throw new Error('Authentication token missing.');
+        throw new Error('Authentication token missing from server response. The API may be misconfigured or returning the wrong page.');
       }
 
       const meResponse = await fetch(`${API_BASE_URL}/auth/me`, {

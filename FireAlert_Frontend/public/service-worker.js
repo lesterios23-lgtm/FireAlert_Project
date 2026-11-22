@@ -21,11 +21,22 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return;
 
   const url = new URL(request.url);
-  // Let cross-origin and API requests go straight to the network.
+  // Let cross-origin and API requests go straight to the network (do not cache or intercept).
   if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith('/api/')) return;
 
   event.respondWith(
-    fetch(request).catch(() => caches.match(request))
+    fetch(request)
+      .then((response) => response)
+      .catch(async () => {
+        const cached = await caches.match(request);
+        if (cached) return cached;
+        // Fallback: for navigation requests return cached index.html if available
+        if (request.mode === 'navigate') {
+          const indexCached = await caches.match('/index.html');
+          if (indexCached) return indexCached;
+        }
+        return new Response('Offline', { status: 503, statusText: 'Service Unavailable', headers: { 'Content-Type': 'text/plain' } });
+      })
   );
 });
