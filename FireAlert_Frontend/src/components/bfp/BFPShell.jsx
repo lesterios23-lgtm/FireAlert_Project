@@ -54,8 +54,10 @@ export default function BFPShell({ user, onLogout }) {
     };
   }, [showProfile]);
 
+  const isCommandCenter = page === 'command';
+
   return (
-    <div className='bfp-app'>
+    <div className={`bfp-app${isCommandCenter ? ' is-command-center' : ''}`}>
       <header className='bfp-navbar'>
         <a className='bfp-logo' href='/' aria-label='FireAlert BFP Mansalay home'>
           <FireAlertLogoMark className='bfp-logo-mark' />
@@ -130,7 +132,7 @@ export default function BFPShell({ user, onLogout }) {
         </div>
       </header>
 
-      <main className='bfp-main'>
+      <main className={`bfp-main${isCommandCenter ? ' bfp-main-command' : ''}`}>
         {page === 'admin' && user?.role === 'admin' ? (
           <AdminDashboard />
         ) : page === 'command' ? (
@@ -148,10 +150,12 @@ export default function BFPShell({ user, onLogout }) {
           onLogout();
         }}
       />
-      <footer className='bfp-footer'>
-        <span>Restricted BFP workspace · Resident identity and location are confidential.</span>
-        <span>FireAlert · Mansalay, Oriental Mindoro</span>
-      </footer>
+      {!isCommandCenter && (
+        <footer className='bfp-footer'>
+          <span>Restricted BFP workspace · Resident identity and location are confidential.</span>
+          <span>FireAlert · Mansalay, Oriental Mindoro</span>
+        </footer>
+      )}
     </div>
   );
 }

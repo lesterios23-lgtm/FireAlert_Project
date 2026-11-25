@@ -12,6 +12,15 @@ import {
 } from './googleMaps';
 import LeafletMap from './LeafletMap';
 
+const MANSALAY_MIN_ZOOM = 11;
+const MANSALAY_MAX_ZOOM = 18;
+const MANSALAY_BOUNDS_RESTRICTION = {
+  south: 12.3,
+  north: 12.82,
+  west: 120.95,
+  east: 121.75,
+};
+
 const BOUNDARY_STYLE = {
   strokeColor: '#d93636',
   strokeWeight: 1.5,
@@ -54,6 +63,7 @@ function GoogleMapsRenderer(props) {
     selected,
     height = '320px',
     onLocationSelect,
+    onMarkerClick,
     flyTrigger = 0,
     allowFullscreen = true,
     title = 'Mansalay Fire Map',
@@ -72,6 +82,7 @@ function GoogleMapsRenderer(props) {
   const fitTokenRef = useRef(null);
   const lastOverlaysSignatureRef = useRef('');
   const onLocationSelectRef = useRef(onLocationSelect);
+  const onMarkerClickRef = useRef(onMarkerClick);
   const onUnavailableRef = useRef(onUnavailable);
   const latestPropsRef = useRef({});
   const latestSelectedRef = useRef(selected);
@@ -88,8 +99,9 @@ function GoogleMapsRenderer(props) {
   useEffect(() => { latestSelectedRef.current = selected; }, [selected]);
   useEffect(() => {
     onLocationSelectRef.current = onLocationSelect;
+    onMarkerClickRef.current = onMarkerClick;
     onUnavailableRef.current = onUnavailable;
-  }, [onLocationSelect, onUnavailable]);
+  }, [onLocationSelect, onMarkerClick, onUnavailable]);
 
   useEffect(() => {
     let cancelled = false;
@@ -103,6 +115,12 @@ function GoogleMapsRenderer(props) {
         const map = new maps.Map(containerRef.current, {
           center: { lat: BFP_STATION_LOCATION.latitude, lng: BFP_STATION_LOCATION.longitude },
           zoom: 12,
+          minZoom: MANSALAY_MIN_ZOOM,
+          maxZoom: MANSALAY_MAX_ZOOM,
+          restriction: {
+            latLngBounds: MANSALAY_BOUNDS_RESTRICTION,
+            strictBounds: false,
+          },
           mapTypeId: 'roadmap',
           mapTypeControl: false,
           streetViewControl: false,
@@ -204,7 +222,12 @@ function GoogleMapsRenderer(props) {
           onLocationSelectRef.current?.({ latitude: event.latLng.lat(), longitude: event.latLng.lng() });
         });
       }
-      if (marker.address) new maps.InfoWindow({ content: marker.address }).open(map, pin);
+      pin.addListener('click', () => {
+        onMarkerClickRef.current?.(marker);
+      });
+      if (marker.address && !onMarkerClickRef.current) {
+        new maps.InfoWindow({ content: marker.address }).open(map, pin);
+      }
     });
 
     const responderPos = p.responder ? coordinatesOf(p.responder) : null;

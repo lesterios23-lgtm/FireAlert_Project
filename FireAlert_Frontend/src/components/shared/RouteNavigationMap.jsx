@@ -57,16 +57,9 @@ function responderReading(value) {
   };
 }
 
-export default function RouteNavigationMap({
+export function useRouteNavigation({
   destination,
   origin = BFP_STATION_LOCATION,
-  markers = [],
-  selected,
-  height = '320px',
-  flyTrigger = 0,
-  title = 'Route navigation map',
-  canTrack = false,
-  readOnly = false,
   existingResponder = null,
   onShareLocation = null,
   persistLabel = 'responding unit',
@@ -168,14 +161,14 @@ export default function RouteNavigationMap({
   }, [existingResponder, tracking]);
 
   useEffect(() => {
-    const destinationPoint = destinationLat != null && destinationLng != null
+    const destPt = destinationLat != null && destinationLng != null
       ? { latitude: destinationLat, longitude: destinationLng }
       : null;
     const originPoint = routeOriginLat != null && routeOriginLng != null
       ? { latitude: routeOriginLat, longitude: routeOriginLng }
       : null;
 
-    if (!destinationPoint || !originPoint) {
+    if (!destPt || !originPoint) {
       setRoutes([]);
       setRouteState('idle');
       return undefined;
@@ -185,7 +178,7 @@ export default function RouteNavigationMap({
     const controller = new AbortController();
     setRouteState('loading');
 
-    fetchDrivingRoutes(originPoint, destinationPoint, { signal: controller.signal })
+    fetchDrivingRoutes(originPoint, destPt, { signal: controller.signal })
       .then((nextRoutes) => {
         if (cancelled) return;
         setRoutes(nextRoutes);
@@ -194,7 +187,7 @@ export default function RouteNavigationMap({
       })
       .catch(() => {
         if (cancelled) return;
-        const fallback = buildFallbackRoute(originPoint, destinationPoint);
+        const fallback = buildFallbackRoute(originPoint, destPt);
         setRoutes(fallback ? [fallback] : []);
         setSelectedRouteIndex(0);
         setRouteState(fallback ? 'ready' : 'empty');
@@ -292,7 +285,6 @@ export default function RouteNavigationMap({
       );
 
       if (!trackingActiveRef.current) {
-        // The browser rejected the watch synchronously; clean up the id.
         navigator.geolocation.clearWatch(watchId);
       } else {
         watchIdRef.current = watchId;
@@ -315,9 +307,11 @@ export default function RouteNavigationMap({
   const activeRoute = routes[selectedRouteIndex] || routes[0] || null;
   const steps = activeRoute?.steps || [];
   const visibleSteps = showAllSteps ? steps : steps.slice(0, 4);
-  const mapsUrl = livePosition
-    ? buildGoogleMapsDirectionsUrl(livePosition, destinationPoint)
-    : buildGoogleMapsDirectionsUrl(origin, destinationPoint);
+  const mapsUrl = destinationPoint
+    ? (livePosition
+      ? buildGoogleMapsDirectionsUrl(livePosition, destinationPoint)
+      : buildGoogleMapsDirectionsUrl(origin, destinationPoint))
+    : null;
   const sourceLabel = routeState === 'loading'
     ? 'Calculating route…'
     : routeSourceLabel(activeRoute);
@@ -330,6 +324,231 @@ export default function RouteNavigationMap({
   const syncedAt = lastSharedAt
     || (livePosition?.timestamp instanceof Date ? livePosition.timestamp : null);
 
+  return {
+    destinationPoint,
+    routes,
+    selectedRouteIndex,
+    setSelectedRouteIndex,
+    routeState,
+    fitToken,
+    setFitToken,
+    currentPosition,
+    livePosition,
+    hasLiveOrigin,
+    tracking,
+    geolocationError,
+    shareError,
+    showAllSteps,
+    setShowAllSteps,
+    toggleTracking,
+    activeRoute,
+    steps,
+    visibleSteps,
+    mapsUrl,
+    sourceLabel,
+    originLabel,
+    responderLabel,
+    syncedAt,
+  };
+}
+
+export function RouteNavigationPanel({
+  navigation,
+  canTrack = false,
+  readOnly = false,
+}) {
+  if (!navigation?.destinationPoint) {
+    return (
+      <p className='route-navigation-hint'>
+        Add an incident map pin or GPS coordinates to calculate a suggested response route.
+      </p>
+    );
+  }
+
+  const {
+    routes,
+    selectedRouteIndex,
+    setSelectedRouteIndex,
+    routeState,
+    setFitToken,
+    currentPosition,
+    hasLiveOrigin,
+    tracking,
+    geolocationError,
+    shareError,
+    showAllSteps,
+    setShowAllSteps,
+    toggleTracking,
+    activeRoute,
+    steps,
+    visibleSteps,
+    mapsUrl,
+    sourceLabel,
+    originLabel,
+    syncedAt,
+  } = navigation;
+
+  return (
+    <section className='route-navigation-panel' aria-label='Suggested response route'>
+      <div className='route-navigation-head'>
+        <div>
+          <span className='route-navigation-kicker'>
+            {hasLiveOrigin ? 'Remaining route' : 'Suggested route'}
+          </span>
+          <strong>
+            {routeState === 'loading'
+              ? 'Finding the fastest road route…'
+              : `${formatDistanceKm(activeRoute?.distanceKm)} · ${formatDurationMinutes(activeRoute?.durationMinutes)}`}
+          </strong>
+          <small>{hasLiveOrigin ? `From ${originLabel}` : `From ${BFP_STATION_LOCATION.name}`}</small>
+        </div>
+        <span className={`route-navigation-source${activeRoute?.source === 'estimated' ? ' is-estimated' : ''}`}>
+          {sourceLabel}
+        </span>
+      </div>
+
+      {routes.length > 1 && (
+        <div className='route-navigation-options' role='group' aria-label='Suggested route options'>
+          {routes.map((route, index) => (
+            <button
+              type='button'
+              key={route.id || index}
+              className={index === selectedRouteIndex ? 'active' : ''}
+              aria-pressed={index === selectedRouteIndex}
+              onClick={() => {
+                setSelectedRouteIndex(index);
+                setFitToken((value) => value + 1);
+              }}
+            >
+              <span>{index === 0 ? 'Recommended' : `Alternative ${index}`}</span>
+              <strong>{formatDistanceKm(route.distanceKm)} · {formatDurationMinutes(route.durationMinutes)}</strong>
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className='route-navigation-stats'>
+        <div>
+          <span>DISTANCE</span>
+          <strong>{formatDistanceKm(activeRoute?.distanceKm)}</strong>
+        </div>
+        <div>
+          <span>TRAVEL TIME</span>
+          <strong>{formatDurationMinutes(activeRoute?.durationMinutes)}</strong>
+        </div>
+        <div>
+          <span>EST. ARRIVAL</span>
+          <strong>{estimatedArrivalClock(activeRoute?.durationMinutes)}</strong>
+        </div>
+      </div>
+
+      {tracking || hasLiveOrigin ? (
+        <div className='route-navigation-live' role='status'>
+          <span className='route-navigation-live-dot' aria-hidden='true' />
+          <div>
+            <strong>{tracking ? 'Sharing live GPS position' : 'Responder live position'}</strong>
+            <small>
+              {currentPosition
+                ? `${accuracyLabel(currentPosition.accuracy)}${syncedAt ? ` · synced ${syncedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : ''}`
+                : 'Waiting for the next GPS fix from the response unit.'}
+            </small>
+          </div>
+        </div>
+      ) : null}
+
+      {geolocationError && <p className='route-navigation-error' role='alert'>{geolocationError}</p>}
+      {shareError && <p className='route-navigation-warning' role='alert'>{shareError}</p>}
+      {activeRoute?.source === 'estimated' && routeState === 'ready' && (
+        <p className='route-navigation-warning'>
+          Road routing is unavailable right now. Showing a straight-line estimate at{' '}
+          {ESTIMATED_RESPONSE_SPEED_KMH} km/h instead; traffic, road closures, and turns may add time.
+        </p>
+      )}
+
+      <div className='route-navigation-actions'>
+        {canTrack && !readOnly && (
+          <button
+            type='button'
+            className={`route-navigation-track${tracking ? ' is-tracking' : ''}`}
+            onClick={toggleTracking}
+            aria-pressed={tracking}
+          >
+            <span aria-hidden='true'>{tracking ? '■' : '➤'}</span>
+            {tracking ? 'Stop GPS tracking' : 'Start live GPS tracking'}
+          </button>
+        )}
+        {mapsUrl && (
+          <a
+            className='route-navigation-link'
+            href={mapsUrl}
+            target='_blank'
+            rel='noreferrer'
+          >
+            Open in Google Maps
+          </a>
+        )}
+      </div>
+
+      {visibleSteps.length > 0 && (
+        <div className='route-navigation-steps'>
+          <div className='route-navigation-steps-head'>
+            <h3>Turn-by-turn directions</h3>
+            {steps.length > 4 && (
+              <button type='button' onClick={() => setShowAllSteps((value) => !value)}>
+                {showAllSteps ? 'Show fewer' : `Show all ${steps.length}`}
+              </button>
+            )}
+          </div>
+          <ol>
+            {visibleSteps.map((step) => (
+              <li key={step.id}>
+                <span className={`route-step-icon step-${step.type || 'continue'}`} aria-hidden='true'>
+                  {step.type === 'arrive' ? '⚑' : step.type === 'depart' ? '●' : '↱'}
+                </span>
+                <div>
+                  <p>{step.instruction}</p>
+                  {step.distanceKm > 0 && (
+                    <small>{formatDistanceKm(step.distanceKm)} · {formatDurationMinutes(step.durationMinutes)}</small>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+
+      {routeState === 'ready' && activeRoute?.source === 'osrm' && (
+        <p className='route-navigation-credit'>
+          Road route by OSRM · map data © {hasGoogleMapsKey() ? 'Google' : 'OpenStreetMap contributors'}
+        </p>
+      )}
+    </section>
+  );
+}
+
+export default function RouteNavigationMap({
+  destination,
+  origin = BFP_STATION_LOCATION,
+  markers = [],
+  selected,
+  height = '320px',
+  flyTrigger = 0,
+  title = 'Route navigation map',
+  canTrack = false,
+  readOnly = false,
+  existingResponder = null,
+  onShareLocation = null,
+  persistLabel = 'responding unit',
+  onMarkerClick = null,
+}) {
+  const navigation = useRouteNavigation({
+    destination,
+    origin,
+    existingResponder,
+    onShareLocation,
+    persistLabel,
+  });
+
   const renderMap = (overrides = {}) => {
     const shared = {
       markers,
@@ -338,12 +557,13 @@ export default function RouteNavigationMap({
       flyTrigger,
       title,
       allowFullscreen: true,
+      onMarkerClick,
     };
 
     return <GoogleMap {...shared} {...overrides} />;
   };
 
-  if (!destinationPoint) {
+  if (!navigation.destinationPoint) {
     return (
       <div className='route-navigation'>
         {renderMap()}
@@ -358,152 +578,25 @@ export default function RouteNavigationMap({
     <div className='route-navigation'>
       <div className='route-navigation-map'>
         {renderMap({
-          route: activeRoute?.geometry || null,
-          routeDashed: activeRoute?.source === 'estimated',
-          routeFitToken: fitToken,
-          responder: livePosition ? { ...livePosition, label: responderLabel } : null,
+          route: navigation.activeRoute?.geometry || null,
+          routeDashed: navigation.activeRoute?.source === 'estimated',
+          routeFitToken: navigation.fitToken,
+          responder: navigation.livePosition
+            ? { ...navigation.livePosition, label: navigation.responderLabel }
+            : null,
         })}
-        {tracking && (
+        {navigation.tracking && (
           <span className='route-navigation-live-badge' role='status'>
             <i aria-hidden='true' /> Live GPS
           </span>
         )}
       </div>
 
-      <section className='route-navigation-panel' aria-label='Suggested response route'>
-        <div className='route-navigation-head'>
-          <div>
-            <span className='route-navigation-kicker'>
-              {hasLiveOrigin ? 'Remaining route' : 'Suggested route'}
-            </span>
-            <strong>
-              {routeState === 'loading'
-                ? 'Finding the fastest road route…'
-                : `${formatDistanceKm(activeRoute?.distanceKm)} · ${formatDurationMinutes(activeRoute?.durationMinutes)}`}
-            </strong>
-            <small>{hasLiveOrigin ? `From ${originLabel}` : `From ${BFP_STATION_LOCATION.name}`}</small>
-          </div>
-          <span className={`route-navigation-source${activeRoute?.source === 'estimated' ? ' is-estimated' : ''}`}>
-            {sourceLabel}
-          </span>
-        </div>
-
-        {routes.length > 1 && (
-          <div className='route-navigation-options' role='group' aria-label='Suggested route options'>
-            {routes.map((route, index) => (
-              <button
-                type='button'
-                key={route.id || index}
-                className={index === selectedRouteIndex ? 'active' : ''}
-                aria-pressed={index === selectedRouteIndex}
-                onClick={() => {
-                  setSelectedRouteIndex(index);
-                  setFitToken((value) => value + 1);
-                }}
-              >
-                <span>{index === 0 ? 'Recommended' : `Alternative ${index}`}</span>
-                <strong>{formatDistanceKm(route.distanceKm)} · {formatDurationMinutes(route.durationMinutes)}</strong>
-              </button>
-            ))}
-          </div>
-        )}
-
-        <div className='route-navigation-stats'>
-          <div>
-            <span>DISTANCE</span>
-            <strong>{formatDistanceKm(activeRoute?.distanceKm)}</strong>
-          </div>
-          <div>
-            <span>TRAVEL TIME</span>
-            <strong>{formatDurationMinutes(activeRoute?.durationMinutes)}</strong>
-          </div>
-          <div>
-            <span>EST. ARRIVAL</span>
-            <strong>{estimatedArrivalClock(activeRoute?.durationMinutes)}</strong>
-          </div>
-        </div>
-
-        {tracking || hasLiveOrigin ? (
-          <div className='route-navigation-live' role='status'>
-            <span className='route-navigation-live-dot' aria-hidden='true' />
-            <div>
-              <strong>{tracking ? 'Sharing live GPS position' : 'Responder live position'}</strong>
-              <small>
-                {currentPosition
-                  ? `${accuracyLabel(currentPosition.accuracy)}${syncedAt ? ` · synced ${syncedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : ''}`
-                  : 'Waiting for the next GPS fix from the response unit.'}
-              </small>
-            </div>
-          </div>
-        ) : null}
-
-        {geolocationError && <p className='route-navigation-error' role='alert'>{geolocationError}</p>}
-        {shareError && <p className='route-navigation-warning' role='alert'>{shareError}</p>}
-        {activeRoute?.source === 'estimated' && routeState === 'ready' && (
-          <p className='route-navigation-warning'>
-            Road routing is unavailable right now. Showing a straight-line estimate at{' '}
-            {ESTIMATED_RESPONSE_SPEED_KMH} km/h instead; traffic, road closures, and turns may add time.
-          </p>
-        )}
-
-        <div className='route-navigation-actions'>
-          {canTrack && !readOnly && (
-            <button
-              type='button'
-              className={`route-navigation-track${tracking ? ' is-tracking' : ''}`}
-              onClick={toggleTracking}
-              aria-pressed={tracking}
-            >
-              <span aria-hidden='true'>{tracking ? '■' : '➤'}</span>
-              {tracking ? 'Stop GPS tracking' : 'Start live GPS tracking'}
-            </button>
-          )}
-          {mapsUrl && (
-            <a
-              className='route-navigation-link'
-              href={mapsUrl}
-              target='_blank'
-              rel='noreferrer'
-            >
-              Open in Google Maps
-            </a>
-          )}
-        </div>
-
-        {visibleSteps.length > 0 && (
-          <div className='route-navigation-steps'>
-            <div className='route-navigation-steps-head'>
-              <h3>Turn-by-turn directions</h3>
-              {steps.length > 4 && (
-                <button type='button' onClick={() => setShowAllSteps((value) => !value)}>
-                  {showAllSteps ? 'Show fewer' : `Show all ${steps.length}`}
-                </button>
-              )}
-            </div>
-            <ol>
-              {visibleSteps.map((step) => (
-                <li key={step.id}>
-                  <span className={`route-step-icon step-${step.type || 'continue'}`} aria-hidden='true'>
-                    {step.type === 'arrive' ? '⚑' : step.type === 'depart' ? '●' : '↱'}
-                  </span>
-                  <div>
-                    <p>{step.instruction}</p>
-                    {step.distanceKm > 0 && (
-                      <small>{formatDistanceKm(step.distanceKm)} · {formatDurationMinutes(step.durationMinutes)}</small>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </div>
-        )}
-
-        {routeState === 'ready' && activeRoute?.source === 'osrm' && (
-          <p className='route-navigation-credit'>
-            Road route by OSRM · map data © {hasGoogleMapsKey() ? 'Google' : 'OpenStreetMap contributors'}
-          </p>
-        )}
-      </section>
+      <RouteNavigationPanel
+        navigation={navigation}
+        canTrack={canTrack}
+        readOnly={readOnly}
+      />
     </div>
   );
 }

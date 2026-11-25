@@ -1,10 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import RouteNavigationMap from '../shared/RouteNavigationMap';
-import {
-  calculateStationDistanceKm,
-  ESTIMATED_RESPONSE_SPEED_KMH,
-  suggestArrivalMinutes,
-} from '../shared/stationLocation';
+import GoogleMap from '../shared/GoogleMap';
+import { RouteNavigationPanel, useRouteNavigation } from '../shared/RouteNavigationMap';
+import { suggestArrivalMinutes } from '../shared/stationLocation';
 import { API_BASE_URL, apiRequest, normalizeReport } from '../../sharedApi';
 
 const STATUS_LABELS = {
@@ -212,10 +209,8 @@ export default function EmergencyCommandCenter() {
   const [personnel, setPersonnel] = useState([]);
   const [statuses, setStatuses] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
-  const [nextStatus, setNextStatus] = useState('');
   const [truckId, setTruckId] = useState('');
   const [personnelId, setPersonnelId] = useState('');
-  const [eta, setEta] = useState('');
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [error, setError] = useState('');
@@ -227,6 +222,8 @@ export default function EmergencyCommandCenter() {
   const [expandedMemberId, setExpandedMemberId] = useState(null);
   const [groupingNote, setGroupingNote] = useState('');
   const [mergeTargetId, setMergeTargetId] = useState('');
+  const [modalOpen, setModalOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const knownReportIdsRef = useRef(null);
   const incidentsRef = useRef(new Set());
@@ -246,6 +243,15 @@ export default function EmergencyCommandCenter() {
     }
   }, []);
 
+  useEffect(() => {
+    if (!modalOpen) return undefined;
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') setModalOpen(false);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [modalOpen]);
+
   const loadCommandCenter = useCallback(async (showLoading = true) => {
     if (showLoading) setLoading(true);
     setError('');
@@ -259,11 +265,9 @@ export default function EmergencyCommandCenter() {
       try {
         incomingIncidents = normalizeIncidents(await apiRequest('/incidents'));
       } catch (incidentError) {
-        // Incident grouping endpoint unavailable: keep the flat report feed.
         incomingIncidents = [];
       }
 
-      // Detect newly arrived report(s)
       if (knownReportIdsRef.current !== null) {
         const newReports = incomingReports.filter(
           (report) => !knownReportIdsRef.current.has(String(report.id))
@@ -275,15 +279,13 @@ export default function EmergencyCommandCenter() {
             (incident) => incident.reports.some((member) => String(member.id) === String(newest.id))
           );
           const isNewIncident = newestIncident && !incidentsRef.current.has(String(newestIncident.id));
-          // Alarm only for a brand-new Main Incident, a possible duplicate
-          // needing verification, or an ungrouped new report — not for every
-          // auto-attached supporting report.
           const needsAlarm = isNewIncident
             || newest.duplicateFlag === 'possible'
             || !newestIncident;
           setSelectedId(newest.id);
           if (newestIncident) setSelectedIncidentId(newestIncident.id);
           if (needsAlarm) {
+            setModalOpen(false);
             setAlarmReport({ ...newest, incidentCode: newestIncident?.code || null });
             setFlyTrigger((v) => v + 1);
             if (stopAlarmSoundRef.current) {
@@ -307,6 +309,11 @@ export default function EmergencyCommandCenter() {
           ? currentId
           : incomingReports[0]?.id ?? null
       ));
+      setSelectedIncidentId((currentIncidentId) => (
+        incomingIncidents.some((incident) => String(incident.id) === String(currentIncidentId))
+          ? currentIncidentId
+          : incomingIncidents[0]?.id ?? null
+      ));
     } catch (requestError) {
       setError(requestError.message || 'Unable to load command center data.');
     } finally {
@@ -322,15 +329,14 @@ export default function EmergencyCommandCenter() {
 
   const selectedReport = reports.find((report) => String(report.id) === String(selectedId)) || null;
   const selectedIncident = incidents.find((incident) => String(incident.id) === String(selectedIncidentId)) || null;
+  const isMainIncident = feedView === 'incidents' && Boolean(selectedIncident);
   const activeMembers = selectedIncident?.reports || [];
-  // Dispatch + detail operate on the anchor (first) member of the open Main
-  // Incident so grouped reports share one coordinated response.
-  const focusedReport = feedView === 'incidents' && selectedIncident
+
+  const focusedReport = isMainIncident
     ? (activeMembers.find((member) => String(member.id) === String(selectedId)) || activeMembers[0] || selectedReport)
     : selectedReport;
-  const dispatchInfo = (
-    feedView === 'incidents' && selectedIncident ? selectedIncident.dispatch : null
-  ) || focusedReport?.dispatch || null;
+
+  const dispatchInfo = (isMainIncident ? selectedIncident.dispatch : null) || focusedReport?.dispatch || null;
   const dispatchReportId = dispatchInfo?.report_id || focusedReport?.id || null;
   const responderPosition = dispatchInfo?.current_location
     ? {
@@ -338,6 +344,10 @@ export default function EmergencyCommandCenter() {
       unit_name: dispatchInfo.unit_name || dispatchInfo.plate_number || null,
     }
     : null;
+
+  const activeStatus = statusKey(
+    isMainIncident ? selectedIncident?.status : focusedReport?.status
+  ) || 'pending';
 
   const shareResponderLocation = useCallback(async (position) => {
     if (!dispatchReportId) return;
@@ -351,6 +361,12 @@ export default function EmergencyCommandCenter() {
     });
   }, [dispatchReportId]);
 
+  const navigation = useRouteNavigation({
+    destination: focusedReport,
+    existingResponder: responderPosition,
+    onShareLocation: shareResponderLocation,
+  });
+
   const availableStatuses = useMemo(() => {
     const seen = new Set();
     return statuses
@@ -362,15 +378,6 @@ export default function EmergencyCommandCenter() {
       });
   }, [statuses]);
 
-  useEffect(() => {
-    setNextStatus(focusedReport?.status || '');
-  }, [focusedReport?.id, focusedReport?.status]);
-
-  useEffect(() => {
-    const suggestedEta = suggestArrivalMinutes(focusedReport?.latitude, focusedReport?.longitude);
-    setEta(suggestedEta === null ? '' : String(suggestedEta));
-  }, [focusedReport?.id, focusedReport?.latitude, focusedReport?.longitude]);
-
   const statusCounts = useMemo(
     () => availableStatuses.map(({ value, name }) => ({
       status: value,
@@ -379,37 +386,100 @@ export default function EmergencyCommandCenter() {
     })),
     [availableStatuses, reports]
   );
-  const stationDistanceKm = focusedReport
-    ? calculateStationDistanceKm(focusedReport.latitude, focusedReport.longitude)
-    : null;
-  const incidentMarkers = (selectedIncident?.reports || [])
-    .filter((member) => member.latitude != null && member.longitude != null)
-    .map((member) => ({
-      id: member.id,
-      lat: Number(member.latitude),
-      lng: Number(member.longitude),
-      address: member.incidentAddress || `Report FA-${String(member.id).padStart(6, '0')}`,
-    }));
-  const markers = feedView === 'incidents' && selectedIncident && incidentMarkers.length > 0
-    ? incidentMarkers
-    : reports
-    .filter((report) => report.latitude != null && report.longitude != null)
-    .map((report) => ({
-      id: report.id,
-      lat: Number(report.latitude),
-      lng: Number(report.longitude),
-      address: report.incidentAddress || `Incident FA-${String(report.id).padStart(6, '0')}`,
-    }));
 
-  const selectIncident = (incident) => {
+  // Show all incident/report pins on the full-size map so any pin can be clicked to open the modal.
+  const markers = useMemo(() => {
+    if (feedView === 'incidents' && incidents.length > 0) {
+      const seen = new Set();
+      const list = [];
+      incidents.forEach((incident) => {
+        const anchor = incident.reports?.[0];
+        const lat = incident.latitude ?? anchor?.latitude;
+        const lng = incident.longitude ?? anchor?.longitude;
+        if (lat != null && lng != null) {
+          const markerId = anchor?.id ?? `incident-${incident.id}`;
+          seen.add(String(markerId));
+          list.push({
+            id: markerId,
+            incidentId: incident.id,
+            reportId: anchor?.id ?? null,
+            lat: Number(lat),
+            lng: Number(lng),
+            address: incident.incidentAddress || `${incident.code}`,
+            status: incident.status,
+          });
+        }
+      });
+      return list;
+    }
+
+    return reports
+      .filter((report) => report.latitude != null && report.longitude != null)
+      .map((report) => ({
+        id: report.id,
+        reportId: report.id,
+        lat: Number(report.latitude),
+        lng: Number(report.longitude),
+        address: report.incidentAddress || `Incident FA-${String(report.id).padStart(6, '0')}`,
+        status: report.status,
+      }));
+  }, [feedView, incidents, reports]);
+
+  const selectIncident = (incident, openModal = false) => {
     setFeedView('incidents');
     setSelectedIncidentId(incident.id);
     const anchor = incident.reports?.[0];
     if (anchor) {
       setSelectedId(anchor.id);
-      setFlyTrigger((v) => v + 1);
+    }
+    setFlyTrigger((v) => v + 1);
+    if (openModal) {
+      setAlarmReport(null);
+      setModalOpen(true);
     }
   };
+
+  const selectFlatReport = (report, openModal = false) => {
+    setFeedView('reports');
+    setSelectedId(report.id);
+    setFlyTrigger((v) => v + 1);
+    if (openModal) {
+      setAlarmReport(null);
+      setModalOpen(true);
+    }
+  };
+
+  const handleMarkerClick = useCallback((marker) => {
+    if (!marker) return;
+    setError('');
+    if (marker.incidentId != null) {
+      const matchedIncident = incidents.find((item) => String(item.id) === String(marker.incidentId));
+      if (matchedIncident) {
+        setFeedView('incidents');
+        setSelectedIncidentId(matchedIncident.id);
+        const anchor = matchedIncident.reports?.[0];
+        if (anchor) setSelectedId(anchor.id);
+        setFlyTrigger((v) => v + 1);
+        setAlarmReport(null);
+        setModalOpen(true);
+        return;
+      }
+    }
+
+    const reportId = marker.reportId ?? marker.id;
+    const matchedIncidentByReport = incidents.find((incident) =>
+      incident.reports?.some((member) => String(member.id) === String(reportId))
+    );
+    if (feedView === 'incidents' && matchedIncidentByReport) {
+      setSelectedIncidentId(matchedIncidentByReport.id);
+      setSelectedId(reportId);
+    } else {
+      setSelectedId(reportId);
+    }
+    setFlyTrigger((v) => v + 1);
+    setAlarmReport(null);
+    setModalOpen(true);
+  }, [incidents, feedView]);
 
   const runGroupingAction = async (actionLabel, requestFn) => {
     setUpdating(true);
@@ -451,55 +521,69 @@ export default function EmergencyCommandCenter() {
       }));
   };
 
-  const updateIncidentStatus = (event) => {
-    event.preventDefault();
-    if (!selectedIncident || !nextStatus || nextStatus === selectedIncident.status) return;
-    return runGroupingAction('update the incident status', () =>
-      apiRequest(`/incidents/${selectedIncident.id}/status`, {
-        method: 'PATCH',
-        body: JSON.stringify({ status: nextStatus }),
-      }));
-  };
-
-  const updateStatus = async (event) => {
-    event.preventDefault();
-    if (!focusedReport || !nextStatus || nextStatus === focusedReport.status) return;
-
+  const updateActiveStatus = async (targetStatus) => {
+    if (!focusedReport) return;
     setUpdating(true);
     setError('');
     try {
-      await apiRequest(`/reports/${selectedReport.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({
-          data: {
-            type: 'fire_report',
-            attributes: { status: nextStatus },
-          },
-        }),
-      });
+      if (isMainIncident && selectedIncident) {
+        await apiRequest(`/incidents/${selectedIncident.id}/status`, {
+          method: 'PATCH',
+          body: JSON.stringify({ status: targetStatus }),
+        });
+      } else {
+        await apiRequest(`/reports/${focusedReport.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            data: {
+              type: 'fire_report',
+              attributes: { status: targetStatus },
+            },
+          }),
+        });
+      }
       await loadCommandCenter(false);
     } catch (requestError) {
-      setError(requestError.message || 'Unable to update the report status.');
+      setError(requestError.message || 'Unable to update the incident status.');
     } finally {
       setUpdating(false);
     }
   };
 
+  const handleReceiveReport = () => updateActiveStatus('accepted');
+  const handleResolveIncident = () => updateActiveStatus('resolved');
+
   const dispatchResponse = async (event) => {
     event.preventDefault();
-    if (!focusedReport) return;
+    if (!focusedReport || !truckId || !personnelId) return;
 
     setUpdating(true);
     setError('');
     try {
+      const routeMinutes = Number(navigation.activeRoute?.durationMinutes);
+      const fallbackEta = suggestArrivalMinutes(focusedReport?.latitude, focusedReport?.longitude);
+      const computedEta = Number.isFinite(routeMinutes) && routeMinutes > 0
+        ? Math.min(1440, Math.max(1, Math.round(routeMinutes)))
+        : Math.min(1440, Math.max(1, Number(fallbackEta) || 10));
+
       await apiRequest(`/reports/${focusedReport.id}/dispatch`, {
         method: 'POST',
         body: JSON.stringify({
           truck_id: Number(truckId),
           personnel_id: Number(personnelId),
-          estimated_eta_minutes: Number(eta),
+          estimated_eta_minutes: computedEta,
         }),
       });
+
+      if (isMainIncident && selectedIncident) {
+        await apiRequest(`/incidents/${selectedIncident.id}/status`, {
+          method: 'PATCH',
+          body: JSON.stringify({ status: 'responding' }),
+        });
+      }
+
+      setTruckId('');
+      setPersonnelId('');
       await loadCommandCenter(false);
     } catch (requestError) {
       setError(requestError.message || 'Unable to dispatch the response unit.');
@@ -508,34 +592,160 @@ export default function EmergencyCommandCenter() {
     }
   };
 
+  // Determine the single modal's current workflow stage
+  const modalStage = activeStatus === 'pending'
+    ? 'request'
+    : activeStatus === 'accepted'
+      ? 'dispatch'
+      : 'info';
+
+  const renderSupportingReports = () => (
+    <div className='bfp-members'>
+      <h3>Supporting reports ({activeMembers.length})</h3>
+      <label className='bfp-grouping-note-label' htmlFor='grouping-note'>
+        Note for attach / separate / merge actions (recorded in the audit log)
+      </label>
+      <input
+        id='grouping-note'
+        type='text'
+        className='bfp-grouping-note'
+        value={groupingNote}
+        onChange={(event) => setGroupingNote(event.target.value)}
+        placeholder='e.g. Confirmed same fire on site'
+      />
+      {activeMembers.map((member) => {
+        const expanded = String(member.id) === String(expandedMemberId);
+        const otherIncidents = incidents.filter((incident) => String(incident.id) !== String(selectedIncident?.id));
+        return (
+          <article key={member.id} className={`bfp-member-card${member.duplicateFlag === 'possible' ? ' needs-verify' : ''}`}>
+            <button
+              type='button'
+              className='bfp-member-head'
+              onClick={() => {
+                setSelectedId(member.id);
+                setExpandedMemberId(expanded ? null : member.id);
+                setFlyTrigger((v) => v + 1);
+              }}
+              aria-expanded={expanded}
+            >
+              <span className='reference-id'>FA-{String(member.id).padStart(6, '0')}</span>
+              <span className='bfp-member-title'>{member.incidentAddress || member.incidentDescription || 'Report'}</span>
+              <time>{formatDate(member.reportedAt || member.createdAt)}</time>
+            </button>
+            <div className='bfp-member-tags'>
+              {member.duplicateFlag && (
+                <span className={`bfp-duplicate-flag flag-${member.duplicateFlag}`}>
+                  {DUPLICATE_LABELS[member.duplicateFlag] || member.duplicateFlag}
+                </span>
+              )}
+              <span className={`bfp-status-badge status-${member.status || 'pending'}`}>
+                <i /> {STATUS_LABELS[member.status] || member.status || 'Unknown'}
+              </span>
+            </div>
+            {expanded && (
+              <div className='bfp-member-body'>
+                <p><strong>Reported by:</strong> {member.residentName || 'Resident details unavailable'}</p>
+                <p>{member.incidentDescription || 'No description provided.'}</p>
+                <p className='bfp-member-meta'>
+                  {member.latitude != null && member.longitude != null
+                    ? `GPS: ${member.latitude}, ${member.longitude} · `
+                    : ''}
+                  {member.locationSource || 'Source unavailable'}
+                </p>
+                {member.hasEvidence && <EvidencePreview key={member.id} reportId={member.id} />}
+                <div className='bfp-member-actions'>
+                  <button
+                    type='button'
+                    className='bfp-text-button'
+                    disabled={updating}
+                    onClick={() => detachMember(member.id)}
+                    title='Separate this report into its own Main Incident'
+                  >
+                    ⤴ Separate
+                  </button>
+                  {otherIncidents.length > 0 && (
+                    <label className='bfp-attach-control'>
+                      <span>Attach to</span>
+                      <select
+                        defaultValue=''
+                        disabled={updating}
+                        onChange={(event) => {
+                          if (event.target.value) attachMemberToIncident(member.id, event.target.value);
+                          event.target.value = '';
+                        }}
+                        aria-label={`Attach report FA-${String(member.id).padStart(6, '0')} to another incident`}
+                      >
+                        <option value=''>Select incident…</option>
+                        {otherIncidents.map((incident) => (
+                          <option key={incident.id} value={incident.id}>
+                            {incident.code} · {incident.incidentAddress || 'No address'} ({incident.reportCount})
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+                </div>
+              </div>
+            )}
+          </article>
+        );
+      })}
+    </div>
+  );
+
   return (
-    <div className='bfp-page'>
-      <div className='bfp-page-heading'>
-        <div>
-          <p className='bfp-eyebrow'>BFP Mansalay</p>
-          <h1>Emergency Command Center</h1>
-          <p>Receive, verify, and coordinate fire emergency response.</p>
+    <div className='bfp-command-canvas'>
+      {/* Full-size background map */}
+      <div className='bfp-map-backdrop'>
+        <GoogleMap
+          markers={markers}
+          selected={focusedReport}
+          height='100%'
+          flyTrigger={flyTrigger}
+          allowFullscreen={false}
+          zoomControlPosition='bottomright'
+          title='Emergency Command Center Map'
+          route={navigation.activeRoute?.geometry || null}
+          routeDashed={navigation.activeRoute?.source === 'estimated'}
+          routeFitToken={navigation.fitToken}
+          responder={navigation.livePosition
+            ? { ...navigation.livePosition, label: navigation.responderLabel }
+            : null}
+          onMarkerClick={handleMarkerClick}
+        />
+        {navigation.tracking && (
+          <span className='route-navigation-live-badge bfp-canvas-live-badge' role='status'>
+            <i aria-hidden='true' /> Live GPS
+          </span>
+        )}
+      </div>
+
+      {/* Floating Top HUD (Status counts + Connection) */}
+      <div className={`bfp-floating-hud${sidebarOpen ? ' with-sidebar' : ''}`}>
+        <div className='bfp-hud-counts' aria-label='Report counts by status'>
+          {statusCounts.map(({ status, label, count }) => (
+            <div className={`bfp-hud-pill status-${status}`} key={status}>
+              <span className='bfp-hud-dot' aria-hidden='true' />
+              <span className='bfp-hud-label'>{label}</span>
+              <strong>{count}</strong>
+            </div>
+          ))}
         </div>
-        <div className='bfp-connection'>
+        <div className='bfp-hud-connection'>
           <span className='connection-indicator' />
-          {error ? 'Connection issue' : 'Connected to report service'}
-          <span className='bfp-current-time'>{new Date().toLocaleString()}</span>
+          <span>{error ? 'Connection issue' : 'Connected'}</span>
         </div>
       </div>
 
-      <section className='bfp-status-counts' aria-label='Report counts by status'>
-        {statusCounts.map(({ status, label, count }) => (
-          <div className={`bfp-count-card status-${status}`} key={status}>
-            <span className='count-status'>{label}</span>
-            <strong>{count}</strong>
-          </div>
-        ))}
-      </section>
+      {error && (
+        <div className={`bfp-floating-error${sidebarOpen ? ' with-sidebar' : ''}`} role='alert'>
+          {error}
+        </div>
+      )}
 
-      {error && <div className='bfp-error' role='alert'>{error}</div>}
-
-      <div className='bfp-command-grid'>
-        <section className='bfp-panel alerts-panel'>
+      {/* Floating Left Sidebar: Active Alerts Feed on top layer of the map */}
+      {sidebarOpen ? (
+        <aside className='bfp-floating-sidebar' aria-label='Active Alerts Feed'>
           <div className='bfp-panel-heading'>
             <div>
               <h2>Active Alerts Feed</h2>
@@ -553,6 +763,7 @@ export default function EmergencyCommandCenter() {
                   if (reports.length > 0) {
                     const target = focusedReport || reports[0];
                     setSelectedId(target.id);
+                    setModalOpen(false);
                     setAlarmReport(target);
                     setFlyTrigger((v) => v + 1);
                     if (stopAlarmSoundRef.current) stopAlarmSoundRef.current();
@@ -561,10 +772,25 @@ export default function EmergencyCommandCenter() {
                 }}
                 title='Test alarm notification & map zoom transition'
               >
-                <span aria-hidden='true'>🚨</span> Test Alarm
+                <span aria-hidden='true'>🚨</span> Test
               </button>
-              <button type='button' className='bfp-icon-button' onClick={() => loadCommandCenter()} aria-label='Refresh reports'>
+              <button
+                type='button'
+                className='bfp-icon-button'
+                onClick={() => loadCommandCenter()}
+                aria-label='Refresh reports'
+                title='Refresh reports'
+              >
                 ↻
+              </button>
+              <button
+                type='button'
+                className='bfp-icon-button'
+                onClick={() => setSidebarOpen(false)}
+                aria-label='Collapse alerts sidebar'
+                title='Hide alerts sidebar'
+              >
+                ◀
               </button>
             </div>
           </div>
@@ -596,395 +822,422 @@ export default function EmergencyCommandCenter() {
             ) : feedView === 'incidents' ? (
               incidents.length === 0 ? (
                 <p className='bfp-empty-message'>No fire incidents yet. Switch to All Reports to review incoming submissions.</p>
-              ) : incidents.map((incident) => (
-                <button
-                  type='button'
-                  key={incident.id}
-                  className={`bfp-alert-card bfp-incident-card${String(incident.id) === String(selectedIncidentId) ? ' selected' : ''}`}
-                  onClick={() => selectIncident(incident)}
-                >
-                  <span className='alert-card-top'>
-                    <span className='reference-id'>{incident.code}</span>
-                    <time>{formatDate(incident.lastReportedAt || incident.firstReportedAt)}</time>
-                  </span>
-                  <strong>{incident.incidentAddress || 'Location not provided'}</strong>
-                  <span className='alert-description'>{incident.incidentDescription || 'No description provided.'}</span>
-                  <span className='bfp-incident-card-foot'>
-                    <span className={`bfp-status-badge status-${incident.status || 'pending'}`}>
-                      <i /> {STATUS_LABELS[incident.status] || incident.status || 'Unknown'}
+              ) : incidents.map((incident) => {
+                const isSelected = String(incident.id) === String(selectedIncidentId);
+                return (
+                  <div
+                    key={incident.id}
+                    className={`bfp-alert-card bfp-incident-card${isSelected ? ' selected' : ''}`}
+                    role='button'
+                    tabIndex={0}
+                    onClick={() => selectIncident(incident, false)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        selectIncident(incident, false);
+                      }
+                    }}
+                  >
+                    <span className='alert-card-top'>
+                      <span className='reference-id'>{incident.code}</span>
+                      <time>{formatDate(incident.lastReportedAt || incident.firstReportedAt)}</time>
                     </span>
-                    <span className='bfp-report-count' title='Total supporting reports'>
-                      📄 {incident.reportCount} report{incident.reportCount === 1 ? '' : 's'}
+                    <strong>{incident.incidentAddress || 'Location not provided'}</strong>
+                    <span className='alert-description'>{incident.incidentDescription || 'No description provided.'}</span>
+                    <span className='bfp-incident-card-foot'>
+                      <span className={`bfp-status-badge status-${incident.status || 'pending'}`}>
+                        <i /> {STATUS_LABELS[incident.status] || incident.status || 'Unknown'}
+                      </span>
+                      <span className='bfp-report-count' title='Total supporting reports'>
+                        📄 {incident.reportCount} report{incident.reportCount === 1 ? '' : 's'}
+                      </span>
                     </span>
-                  </span>
-                  {incident.possibleDuplicates.length > 0 && (
-                    <span className='bfp-verify-flag' role='note'>
-                      ⚠ {incident.possibleDuplicates.length} possible duplicate{incident.possibleDuplicates.length === 1 ? '' : 's'} need verification
-                    </span>
-                  )}
-                </button>
-              ))
+                    {incident.possibleDuplicates.length > 0 && (
+                      <span className='bfp-verify-flag' role='note'>
+                        ⚠ {incident.possibleDuplicates.length} possible duplicate{incident.possibleDuplicates.length === 1 ? '' : 's'} need verification
+                      </span>
+                    )}
+                    <button
+                      type='button'
+                      className='bfp-card-open-btn'
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        selectIncident(incident, true);
+                      }}
+                    >
+                      {incident.status === 'pending'
+                        ? 'Inspect & Receive'
+                        : incident.status === 'accepted'
+                          ? 'Open Dispatch Form'
+                          : 'View Dispatch Info'}
+                    </button>
+                  </div>
+                );
+              })
             ) : reports.length === 0 ? (
               <p className='bfp-empty-message'>No fire reports have been submitted.</p>
-            ) : reports.map((report) => (
-              <button
-                type='button'
-                key={report.id}
-                className={`bfp-alert-card${String(report.id) === String(selectedId) ? ' selected' : ''}`}
-                onClick={() => {
-                  setFeedView('reports');
-                  setSelectedId(report.id);
-                  setFlyTrigger((v) => v + 1);
-                }}
-              >
-                <span className='alert-card-top'>
-                  <span className='reference-id'>FA-{String(report.id).padStart(6, '0')}</span>
-                  <time>{formatDate(report.reportedAt || report.createdAt)}</time>
-                </span>
-                <strong>{report.incidentAddress || 'Location not provided'}</strong>
-                <span className='alert-description'>{report.incidentDescription || 'No description provided.'}</span>
-                <span className={`bfp-status-badge status-${report.status || 'pending'}`}>
-                  <i /> {STATUS_LABELS[report.status] || report.status || 'Unknown'}
-                </span>
-              </button>
-            ))}
+            ) : reports.map((report) => {
+              const isSelected = String(report.id) === String(selectedId);
+              return (
+                <div
+                  key={report.id}
+                  className={`bfp-alert-card${isSelected ? ' selected' : ''}`}
+                  role='button'
+                  tabIndex={0}
+                  onClick={() => selectFlatReport(report, false)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      selectFlatReport(report, false);
+                    }
+                  }}
+                >
+                  <span className='alert-card-top'>
+                    <span className='reference-id'>FA-{String(report.id).padStart(6, '0')}</span>
+                    <time>{formatDate(report.reportedAt || report.createdAt)}</time>
+                  </span>
+                  <strong>{report.incidentAddress || 'Location not provided'}</strong>
+                  <span className='alert-description'>{report.incidentDescription || 'No description provided.'}</span>
+                  <span className={`bfp-status-badge status-${report.status || 'pending'}`}>
+                    <i /> {STATUS_LABELS[report.status] || report.status || 'Unknown'}
+                  </span>
+                  <button
+                    type='button'
+                    className='bfp-card-open-btn'
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      selectFlatReport(report, true);
+                    }}
+                  >
+                    {report.status === 'pending'
+                      ? 'Inspect & Receive'
+                      : report.status === 'accepted'
+                        ? 'Open Dispatch Form'
+                        : 'View Dispatch Info'}
+                  </button>
+                </div>
+              );
+            })}
           </div>
-          <p className='bfp-panel-note'>Verify incident details before coordinating a response.</p>
-        </section>
+          <p className='bfp-panel-note'>Click any pin on the map to open the report &amp; dispatch modal.</p>
+        </aside>
+      ) : (
+        <button
+          type='button'
+          className='bfp-sidebar-reopen-btn'
+          onClick={() => setSidebarOpen(true)}
+          aria-label='Show Active Alerts Feed'
+        >
+          ▶ Active Alerts ({feedView === 'incidents' ? incidents.length : reports.length})
+        </button>
+      )}
 
-        <section className='bfp-panel incident-panel'>
-          {feedView === 'incidents' ? (
-            selectedIncident ? (
-              <>
-                <div className='bfp-incident-heading'>
-                  <div>
-                    <p className='bfp-eyebrow'>Main Incident · {selectedIncident.code}</p>
-                    <h2>{selectedIncident.incidentAddress || 'Location not provided'}</h2>
-                    <p>
-                      {selectedIncident.reportCount} supporting report{selectedIncident.reportCount === 1 ? '' : 's'}
-                      {' · '}first {formatDate(selectedIncident.firstReportedAt)}
-                    </p>
-                  </div>
-                  <span className={`bfp-status-badge status-${selectedIncident.status || 'pending'}`}>
-                    <i /> {STATUS_LABELS[selectedIncident.status] || selectedIncident.status || 'Unknown'}
+      {/* SINGLE Modal Form: transitions in-place across Report Request -> Dispatch Form -> Dispatch Info */}
+      {modalOpen && focusedReport && !alarmReport && (
+        <div
+          className='bfp-modal-overlay'
+          role='dialog'
+          aria-modal='true'
+          aria-labelledby='bfp-incident-modal-title'
+          onClick={(event) => {
+            if (event.target === event.currentTarget) setModalOpen(false);
+          }}
+        >
+          <div className='bfp-incident-modal'>
+            <div className='bfp-incident-modal-head'>
+              <div className='bfp-incident-modal-title-wrap'>
+                <div className='bfp-incident-modal-eyebrow-row'>
+                  <p className='bfp-eyebrow'>
+                    {isMainIncident
+                      ? `Main Incident · ${selectedIncident.code}`
+                      : `Incident Report · FA-${String(focusedReport.id).padStart(6, '0')}`}
+                  </p>
+                  <span className={`bfp-status-badge status-${activeStatus}`}>
+                    <i /> {STATUS_LABELS[activeStatus] || activeStatus}
                   </span>
                 </div>
+                <h2 id='bfp-incident-modal-title'>
+                  {(isMainIncident ? selectedIncident.incidentAddress : focusedReport.incidentAddress) || 'Location not provided'}
+                </h2>
+              </div>
+              <button
+                type='button'
+                className='bfp-modal-close-btn'
+                onClick={() => setModalOpen(false)}
+                aria-label='Close modal'
+              >
+                ✕
+              </button>
+            </div>
 
-                <RouteNavigationMap
-                  destination={focusedReport}
-                  markers={markers}
-                  selected={focusedReport}
-                  height='300px'
-                  flyTrigger={flyTrigger}
-                  canTrack={Boolean(dispatchInfo)}
-                  existingResponder={responderPosition}
-                  onShareLocation={shareResponderLocation}
-                  title='Response route map'
-                />
+            {/* 3-Step Flow Indicator inside the single modal */}
+            <div className='bfp-modal-stepper' aria-label='Response workflow progress'>
+              <div className={`bfp-step${modalStage === 'request' ? ' is-active' : ' is-done'}`}>
+                <span className='bfp-step-num'>{modalStage === 'request' ? '1' : '✓'}</span>
+                <span>Report Request</span>
+              </div>
+              <span className='bfp-step-line' aria-hidden='true' />
+              <div className={`bfp-step${modalStage === 'dispatch' ? ' is-active' : modalStage === 'info' ? ' is-done' : ''}`}>
+                <span className='bfp-step-num'>{modalStage === 'info' ? '✓' : '2'}</span>
+                <span>Dispatch Unit</span>
+              </div>
+              <span className='bfp-step-line' aria-hidden='true' />
+              <div className={`bfp-step${modalStage === 'info' ? ' is-active' : ''}`}>
+                <span className='bfp-step-num'>3</span>
+                <span>Dispatch Info</span>
+              </div>
+            </div>
 
-                <div className='bfp-incident-meta'>
-                  <div><span>FIRST REPORT</span><strong>{formatDate(selectedIncident.firstReportedAt)}</strong></div>
-                  <div><span>LATEST REPORT</span><strong>{formatDate(selectedIncident.lastReportedAt)}</strong></div>
-                  <div><span>RESPONSE STATUS</span><strong>{STATUS_LABELS[selectedIncident.status] || selectedIncident.status || 'Unknown'}</strong></div>
-                </div>
+            <div className='bfp-incident-modal-body'>
+              {error && <div className='bfp-error' role='alert'>{error}</div>}
 
-                <div className='bfp-description'>
-                  <h3>Incident information</h3>
-                  <p>{selectedIncident.incidentDescription || 'No incident description provided.'}</p>
-                </div>
-                {dispatchInfo && (
-                  <div className='bfp-assignment-note'>
-                    <strong>Current response unit</strong>
-                    <p>{dispatchInfo.unit_name || dispatchInfo.plate_number || 'Assigned vehicle'} · {dispatchInfo.personnel_name || 'Assigned personnel'} · ETA {dispatchInfo.estimated_eta_minutes} min</p>
-                    {dispatchInfo.current_location && (
-                      <p className='bfp-live-location-note'>
-                        Live GPS {Number(dispatchInfo.current_location.latitude).toFixed(5)}, {Number(dispatchInfo.current_location.longitude).toFixed(5)}
-                        {' · '}updated {formatDate(dispatchInfo.location_updated_at)}
-                      </p>
+              {/* STAGE 1: Report Request Info + Receive Button */}
+              {modalStage === 'request' && (
+                <div className='bfp-modal-stage'>
+                  <div className='bfp-incident-meta'>
+                    {isMainIncident ? (
+                      <>
+                        <div><span>FIRST REPORT</span><strong>{formatDate(selectedIncident.firstReportedAt)}</strong></div>
+                        <div><span>LATEST REPORT</span><strong>{formatDate(selectedIncident.lastReportedAt)}</strong></div>
+                        <div><span>SUPPORTING REPORTS</span><strong>{selectedIncident.reportCount}</strong></div>
+                      </>
+                    ) : (
+                      <>
+                        <div><span>REPORTED</span><strong>{formatDate(focusedReport.reportedAt || focusedReport.createdAt)}</strong></div>
+                        <div><span>LOCATION SOURCE</span><strong>{focusedReport.locationSource || 'Not provided'}</strong></div>
+                        <div><span>COORDINATES</span><strong>{focusedReport.latitude != null && focusedReport.longitude != null ? `${focusedReport.latitude}, ${focusedReport.longitude}` : 'Unavailable'}</strong></div>
+                      </>
                     )}
                   </div>
-                )}
 
-                <div className='bfp-members'>
-                  <h3>Supporting reports ({activeMembers.length})</h3>
-                  <label className='bfp-grouping-note-label' htmlFor='grouping-note'>
-                    Note for attach / separate / merge actions (recorded in the audit log)
-                  </label>
-                  <input
-                    id='grouping-note'
-                    type='text'
-                    className='bfp-grouping-note'
-                    value={groupingNote}
-                    onChange={(event) => setGroupingNote(event.target.value)}
-                    placeholder='e.g. Confirmed same fire on site'
-                  />
-                  {activeMembers.map((member) => {
-                    const expanded = String(member.id) === String(expandedMemberId);
-                    const otherIncidents = incidents.filter((incident) => String(incident.id) !== String(selectedIncident.id));
-                    return (
-                      <article key={member.id} className={`bfp-member-card${member.duplicateFlag === 'possible' ? ' needs-verify' : ''}`}>
-                        <button
-                          type='button'
-                          className='bfp-member-head'
-                          onClick={() => {
-                            setSelectedId(member.id);
-                            setExpandedMemberId(expanded ? null : member.id);
-                            setFlyTrigger((v) => v + 1);
-                          }}
-                          aria-expanded={expanded}
-                        >
-                          <span className='reference-id'>FA-{String(member.id).padStart(6, '0')}</span>
-                          <span className='bfp-member-title'>{member.incidentAddress || member.incidentDescription || 'Report'}</span>
-                          <time>{formatDate(member.reportedAt || member.createdAt)}</time>
-                        </button>
-                        <div className='bfp-member-tags'>
-                          {member.duplicateFlag && (
-                            <span className={`bfp-duplicate-flag flag-${member.duplicateFlag}`}>
-                              {DUPLICATE_LABELS[member.duplicateFlag] || member.duplicateFlag}
-                            </span>
-                          )}
-                          <span className={`bfp-status-badge status-${member.status || 'pending'}`}>
-                            <i /> {STATUS_LABELS[member.status] || member.status || 'Unknown'}
-                          </span>
-                        </div>
-                        {expanded && (
-                          <div className='bfp-member-body'>
-                            <p><strong>Reported by:</strong> {member.residentName || 'Resident details unavailable'}</p>
-                            <p>{member.incidentDescription || 'No description provided.'}</p>
-                            <p className='bfp-member-meta'>
-                              {member.latitude != null && member.longitude != null
-                                ? `GPS: ${member.latitude}, ${member.longitude} · `
-                                : ''}
-                              {member.locationSource || 'Source unavailable'}
-                            </p>
-                            {member.hasEvidence && <EvidencePreview key={member.id} reportId={member.id} />}
-                            <div className='bfp-member-actions'>
-                              <button
-                                type='button'
-                                className='bfp-text-button'
-                                disabled={updating}
-                                onClick={() => detachMember(member.id)}
-                                title='Separate this report into its own Main Incident'
-                              >
-                                ⤴ Separate
-                              </button>
-                              {otherIncidents.length > 0 && (
-                                <label className='bfp-attach-control'>
-                                  <span>Attach to</span>
-                                  <select
-                                    defaultValue=''
-                                    disabled={updating}
-                                    onChange={(event) => {
-                                      if (event.target.value) attachMemberToIncident(member.id, event.target.value);
-                                      event.target.value = '';
-                                    }}
-                                    aria-label={`Attach report FA-${String(member.id).padStart(6, '0')} to another incident`}
-                                  >
-                                    <option value=''>Select incident…</option>
-                                    {otherIncidents.map((incident) => (
-                                      <option key={incident.id} value={incident.id}>
-                                        {incident.code} · {incident.incidentAddress || 'No address'} ({incident.reportCount})
-                                      </option>
-                                    ))}
-                                  </select>
-                                </label>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </article>
-                    );
-                  })}
+                  {!isMainIncident && (
+                    <div className='bfp-request-reporter'>
+                      <span>REPORTED BY</span>
+                      <strong>{focusedReport.residentName || 'Resident details unavailable'}</strong>
+                    </div>
+                  )}
+
+                  <div className='bfp-description'>
+                    <h3>Incident information</h3>
+                    <p>
+                      {(isMainIncident ? selectedIncident.incidentDescription : focusedReport.incidentDescription)
+                        || 'No incident description provided.'}
+                    </p>
+                  </div>
+
+                  {focusedReport.hasEvidence && (
+                    <EvidencePreview key={focusedReport.id} reportId={focusedReport.id} />
+                  )}
+
+                  {isMainIncident && activeMembers.length > 0 && renderSupportingReports()}
+
+                  <div className='bfp-modal-stage-footer'>
+                    <p className='bfp-modal-hint'>
+                      Review and verify the report details above, then click Receive to proceed to unit dispatch.
+                    </p>
+                    <button
+                      type='button'
+                      className='bfp-primary-button bfp-receive-btn'
+                      disabled={updating}
+                      onClick={handleReceiveReport}
+                    >
+                      {updating ? 'Receiving…' : 'Receive Report'}
+                    </button>
+                  </div>
                 </div>
+              )}
 
-                <form className='bfp-merge-form' onSubmit={mergeSelectedIncident}>
-                  <label htmlFor='merge-target'>Merge this incident into</label>
-                  <select
-                    id='merge-target'
-                    value={mergeTargetId}
-                    onChange={(event) => setMergeTargetId(event.target.value)}
-                    required
-                  >
-                    <option value=''>Select target incident…</option>
-                    {incidents
-                      .filter((incident) => String(incident.id) !== String(selectedIncident.id))
-                      .map((incident) => (
-                        <option key={incident.id} value={incident.id}>
-                          {incident.code} · {incident.incidentAddress || 'No address'} ({incident.reportCount})
+              {/* STAGE 2: Dispatch Fill-up (Fire Truck + BFP Personnel + En Route Button) */}
+              {modalStage === 'dispatch' && (
+                <div className='bfp-modal-stage'>
+                  <div className='bfp-confirmation'>
+                    <span aria-hidden='true'>✓</span>
+                    <div>
+                      <strong>
+                        {isMainIncident
+                          ? `Report received · Coordinating ${selectedIncident.code} (${selectedIncident.reportCount} report${selectedIncident.reportCount === 1 ? '' : 's'})`
+                          : 'Report received · Ready for dispatch'}
+                      </strong>
+                      <small>Submitted {formatDate(focusedReport.reportedAt || focusedReport.createdAt)}</small>
+                    </div>
+                  </div>
+
+                  <div className='bfp-description'>
+                    <h3>Incident summary</h3>
+                    <p>
+                      {(isMainIncident ? selectedIncident.incidentDescription : focusedReport.incidentDescription)
+                        || 'No incident description provided.'}
+                    </p>
+                  </div>
+
+                  <form className='bfp-dispatch-form bfp-modal-dispatch-form' onSubmit={dispatchResponse}>
+                    <label htmlFor='dispatch-truck'>Fire truck</label>
+                    <select
+                      id='dispatch-truck'
+                      value={truckId}
+                      onChange={(event) => setTruckId(event.target.value)}
+                      required
+                    >
+                      <option value=''>Select an available unit</option>
+                      {trucks.map((truck) => (
+                        <option value={truck.truck_id} key={truck.truck_id}>
+                          {truck.unit_name || truck.plate_number} · {truck.status || 'Status unknown'}
                         </option>
                       ))}
-                  </select>
-                  <button className='bfp-primary-button' type='submit' disabled={updating || !mergeTargetId}>
-                    {updating ? 'Merging…' : 'Confirm merge'}
-                  </button>
-                </form>
-              </>
-            ) : (
-              <div className='bfp-no-selection'>
-                <span aria-hidden='true'>⌖</span>
-                <h2>{loading ? 'Loading incidents…' : 'Select a Main Incident'}</h2>
-                <p>Select a Main Incident from the feed to view all its supporting reports.</p>
-              </div>
-            )
-          ) : selectedReport ? (
-            <>
-              <div className='bfp-incident-heading'>
-                <div>
-                  <p className='bfp-eyebrow'>Selected incident · FA-{String(selectedReport.id).padStart(6, '0')}</p>
-                  <h2>{selectedReport.incidentAddress || 'Location not provided'}</h2>
-                  <p>{selectedReport.residentName ? `Reported by ${selectedReport.residentName}` : 'Resident details unavailable'}</p>
-                </div>
-                <span className={`bfp-status-badge status-${selectedReport.status || 'pending'}`}>
-                  <i /> {STATUS_LABELS[selectedReport.status] || selectedReport.status || 'Unknown'}
-                </span>
-              </div>
+                    </select>
 
-              <RouteNavigationMap
-                destination={focusedReport}
-                markers={markers}
-                selected={selectedReport}
-                height='340px'
-                flyTrigger={flyTrigger}
-                canTrack={Boolean(dispatchInfo)}
-                existingResponder={responderPosition}
-                onShareLocation={shareResponderLocation}
-                title='Response route map'
-              />
+                    <label htmlFor='dispatch-personnel'>BFP personnel</label>
+                    <select
+                      id='dispatch-personnel'
+                      value={personnelId}
+                      onChange={(event) => setPersonnelId(event.target.value)}
+                      required
+                    >
+                      <option value=''>Select personnel</option>
+                      {personnel.map((member) => (
+                        <option
+                          value={member.personnel_id || ''}
+                          key={member.user_id || member.personnel_id}
+                          disabled={!member.personnel_id}
+                        >
+                          {member.rank_position ? `${member.rank_position} · ` : ''}{member.full_name}
+                          {!member.personnel_id ? ' · Complete personnel profile in User Management' : ''}
+                        </option>
+                      ))}
+                    </select>
 
-              <div className='bfp-incident-meta'>
-                <div><span>REPORTED</span><strong>{formatDate(selectedReport.reportedAt || selectedReport.createdAt)}</strong></div>
-                <div><span>LOCATION SOURCE</span><strong>{selectedReport.locationSource || 'Not provided'}</strong></div>
-                <div><span>COORDINATES</span><strong>{selectedReport.latitude != null && selectedReport.longitude != null ? `${selectedReport.latitude}, ${selectedReport.longitude}` : 'Unavailable'}</strong></div>
-              </div>
-
-              <div className='bfp-description'>
-                <h3>Incident information</h3>
-                <p>{selectedReport.incidentDescription || 'No incident description provided.'}</p>
-              </div>
-              {focusedReport.hasEvidence && (
-                <EvidencePreview key={focusedReport.id} reportId={focusedReport.id} />
-              )}
-              {dispatchInfo && (
-                  <div className='bfp-assignment-note'>
-                    <strong>Current response unit</strong>
-                    <p>{dispatchInfo.unit_name || dispatchInfo.plate_number || 'Assigned vehicle'} · {dispatchInfo.personnel_name || 'Assigned personnel'} · ETA {dispatchInfo.estimated_eta_minutes} min</p>
-                    {dispatchInfo.current_location && (
-                      <p className='bfp-live-location-note'>
-                        Live GPS {Number(dispatchInfo.current_location.latitude).toFixed(5)}, {Number(dispatchInfo.current_location.longitude).toFixed(5)}
-                        {' · '}updated {formatDate(dispatchInfo.location_updated_at)}
+                    {personnel.some((member) => !member.personnel_id) && (
+                      <p className='bfp-eta-help'>
+                        BFP accounts without a personnel profile are listed but cannot be dispatched. Add their badge and rank in System Admin &gt; User Management.
                       </p>
                     )}
-                  </div>
-                )}
-              {selectedReport.incidentRecord && (
-                <div className='bfp-assignment-note'>
-                  <strong>Incident record</strong>
-                  <p>{selectedReport.incidentRecord.resolution_summary || selectedReport.incidentRecord.damage_assessment || 'An incident record is available.'}</p>
-                  <p>Casualties: {selectedReport.incidentRecord.casualties_count ?? 'Not recorded'}</p>
+
+                    <div className='bfp-modal-stage-footer'>
+                      <p className='bfp-modal-hint'>
+                        Submitting En Route automatically notifies the resident and opens live route tracking.
+                      </p>
+                      <button
+                        className='bfp-primary-button bfp-enroute-btn'
+                        type='submit'
+                        disabled={updating || !truckId || !personnelId}
+                      >
+                        {updating ? 'Dispatching…' : 'En Route'}
+                      </button>
+                    </div>
+                  </form>
                 </div>
               )}
-            </>
-          ) : (
-            <div className='bfp-no-selection'>
-              <span aria-hidden='true'>⌖</span>
-              <h2>{loading ? 'Loading incidents…' : 'Select an incident'}</h2>
-              <p>Select a report from the alerts feed to view its location and details.</p>
-            </div>
-          )}
-        </section>
 
-        <section className='bfp-panel dispatch-panel'>
-          <div className='bfp-panel-heading'>
-            <div>
-              <h2>Dispatch Control Panel</h2>
-              <p>Assign a response unit, personnel, and ETA</p>
+              {/* STAGE 3: Dispatch Info (Remaining Route, Meta, Incident Info, Current Response Unit, Supporting Reports) */}
+              {modalStage === 'info' && (
+                <div className='bfp-modal-stage'>
+                  <RouteNavigationPanel
+                    navigation={navigation}
+                    canTrack={Boolean(dispatchInfo)}
+                  />
+
+                  <div className='bfp-incident-meta'>
+                    {isMainIncident ? (
+                      <>
+                        <div><span>FIRST REPORT</span><strong>{formatDate(selectedIncident.firstReportedAt)}</strong></div>
+                        <div><span>LATEST REPORT</span><strong>{formatDate(selectedIncident.lastReportedAt)}</strong></div>
+                        <div><span>RESPONSE STATUS</span><strong>{STATUS_LABELS[selectedIncident.status] || selectedIncident.status || 'Unknown'}</strong></div>
+                      </>
+                    ) : (
+                      <>
+                        <div><span>REPORTED</span><strong>{formatDate(focusedReport.reportedAt || focusedReport.createdAt)}</strong></div>
+                        <div><span>LOCATION SOURCE</span><strong>{focusedReport.locationSource || 'Not provided'}</strong></div>
+                        <div><span>RESPONSE STATUS</span><strong>{STATUS_LABELS[focusedReport.status] || focusedReport.status || 'Unknown'}</strong></div>
+                      </>
+                    )}
+                  </div>
+
+                  <div className='bfp-description'>
+                    <h3>Incident information</h3>
+                    <p>
+                      {(isMainIncident ? selectedIncident.incidentDescription : focusedReport.incidentDescription)
+                        || 'No incident description provided.'}
+                    </p>
+                  </div>
+
+                  {focusedReport.hasEvidence && (
+                    <EvidencePreview key={focusedReport.id} reportId={focusedReport.id} />
+                  )}
+
+                  {dispatchInfo && (
+                    <div className='bfp-assignment-note'>
+                      <strong>Current response unit</strong>
+                      <p>
+                        {dispatchInfo.unit_name || dispatchInfo.plate_number || 'Assigned vehicle'}
+                        {' · '}
+                        {dispatchInfo.personnel_name || 'Assigned personnel'}
+                        {dispatchInfo.estimated_eta_minutes ? ` · ETA ${dispatchInfo.estimated_eta_minutes} min` : ''}
+                      </p>
+                      {dispatchInfo.current_location && (
+                        <p className='bfp-live-location-note'>
+                          Live GPS {Number(dispatchInfo.current_location.latitude).toFixed(5)}, {Number(dispatchInfo.current_location.longitude).toFixed(5)}
+                          {' · '}updated {formatDate(dispatchInfo.location_updated_at)}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {!isMainIncident && focusedReport.incidentRecord && (
+                    <div className='bfp-assignment-note'>
+                      <strong>Incident record</strong>
+                      <p>{focusedReport.incidentRecord.resolution_summary || focusedReport.incidentRecord.damage_assessment || 'An incident record is available.'}</p>
+                      <p>Casualties: {focusedReport.incidentRecord.casualties_count ?? 'Not recorded'}</p>
+                    </div>
+                  )}
+
+                  {isMainIncident && (
+                    <>
+                      {renderSupportingReports()}
+
+                      <form className='bfp-merge-form' onSubmit={mergeSelectedIncident}>
+                        <label htmlFor='merge-target'>Merge this incident into</label>
+                        <select
+                          id='merge-target'
+                          value={mergeTargetId}
+                          onChange={(event) => setMergeTargetId(event.target.value)}
+                          required
+                        >
+                          <option value=''>Select target incident…</option>
+                          {incidents
+                            .filter((incident) => String(incident.id) !== String(selectedIncident.id))
+                            .map((incident) => (
+                              <option key={incident.id} value={incident.id}>
+                                {incident.code} · {incident.incidentAddress || 'No address'} ({incident.reportCount})
+                              </option>
+                            ))}
+                        </select>
+                        <button className='bfp-primary-button' type='submit' disabled={updating || !mergeTargetId}>
+                          {updating ? 'Merging…' : 'Confirm merge'}
+                        </button>
+                      </form>
+                    </>
+                  )}
+
+                  {activeStatus === 'responding' && (
+                    <div className='bfp-modal-stage-footer'>
+                      <button
+                        type='button'
+                        className='bfp-resolve-btn'
+                        disabled={updating}
+                        onClick={handleResolveIncident}
+                      >
+                        {updating ? 'Updating…' : 'Mark Incident Resolved'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
+        </div>
+      )}
 
-          {focusedReport ? (
-            <div className='bfp-dispatch-form'>
-              <div className='bfp-confirmation'>
-                <span aria-hidden='true'>✓</span>
-                <div>
-                  <strong>
-                    {feedView === 'incidents' && selectedIncident
-                      ? `Coordinating ${selectedIncident.code} (${selectedIncident.reportCount} reports)`
-                      : 'Report received'}
-                  </strong>
-                  <small>Submitted {formatDate(focusedReport.reportedAt || focusedReport.createdAt)}</small>
-                </div>
-              </div>
-              <form onSubmit={feedView === 'incidents' && selectedIncident ? updateIncidentStatus : updateStatus}>
-                <label htmlFor='bfp-status'>Response status{feedView === 'incidents' && selectedIncident ? ' — applies to the whole Main Incident' : ''}</label>
-                <select id='bfp-status' value={nextStatus} onChange={(event) => setNextStatus(event.target.value)}>
-                  {availableStatuses.map(({ value, name }) => (
-                    <option value={value} key={name}>{STATUS_LABELS[value] || name}</option>
-                  ))}
-                </select>
-                <button
-                  className='bfp-primary-button'
-                  type='submit'
-                  disabled={updating || !nextStatus || nextStatus === (feedView === 'incidents' && selectedIncident ? selectedIncident.status : focusedReport.status)}
-                >
-                  {updating ? 'Saving…' : 'Update response status'}
-                </button>
-              </form>
-
-              <form className='bfp-assignment-form' onSubmit={dispatchResponse}>
-                <label htmlFor='dispatch-truck'>Fire truck</label>
-                <select id='dispatch-truck' value={truckId} onChange={(event) => setTruckId(event.target.value)} required>
-                  <option value=''>Select an available unit</option>
-                  {trucks.map((truck) => (
-                    <option value={truck.truck_id} key={truck.truck_id}>
-                      {truck.unit_name || truck.plate_number} · {truck.status || 'Status unknown'}
-                    </option>
-                  ))}
-                </select>
-                <label htmlFor='dispatch-personnel'>BFP personnel</label>
-                <select id='dispatch-personnel' value={personnelId} onChange={(event) => setPersonnelId(event.target.value)} required>
-                  <option value=''>Select personnel</option>
-                  {personnel.map((member) => (
-                    <option
-                      value={member.personnel_id || ''}
-                      key={member.user_id || member.personnel_id}
-                      disabled={!member.personnel_id}
-                    >
-                      {member.rank_position ? `${member.rank_position} · ` : ''}{member.full_name}
-                      {!member.personnel_id ? ' · Complete personnel profile in User Management' : ''}
-                    </option>
-                  ))}
-                </select>
-                {personnel.some((member) => !member.personnel_id) && (
-                  <p className='bfp-eta-help'>
-                    BFP accounts without a personnel profile are listed but cannot be dispatched. Add their badge and rank in System Admin &gt; User Management.
-                  </p>
-                )}
-                <label htmlFor='dispatch-eta'>Suggested arrival time (minutes)</label>
-                <input id='dispatch-eta' type='number' min='1' max='1440' value={eta} onChange={(event) => setEta(event.target.value)} required />
-                <p className='bfp-eta-help'>
-                  {stationDistanceKm === null
-                    ? 'Add an incident map pin to calculate an ETA. You can enter the estimate manually.'
-                    : `Auto-estimated from ${stationDistanceKm.toFixed(1)} km straight-line distance at ${ESTIMATED_RESPONSE_SPEED_KMH} km/h. Actual road distance and traffic may increase travel time; adjust as needed.`}
-                </p>
-                <button
-                  className='bfp-primary-button'
-                  type='submit'
-                  disabled={updating || !truckId || !personnelId || !eta}
-                >
-                  {updating ? 'Dispatching…' : 'Confirm dispatch'}
-                </button>
-              </form>
-              <div className='bfp-security-note'>
-                <strong>Authorized personnel only</strong>
-                <p>Dispatch and status changes are recorded against the selected fire report.</p>
-              </div>
-            </div>
-          ) : (
-            <p className='bfp-empty-message'>Select an incident to manage its response.</p>
-          )}
-        </section>
-      </div>
-
+      {/* Emergency Alarm Notification */}
       {alarmReport && (
         <div className='bfp-alarm-popup-overlay' role='dialog' aria-modal='true' aria-labelledby='alarm-dialog-title'>
           <div className='bfp-alarm-popup'>
@@ -1011,7 +1264,7 @@ export default function EmergencyCommandCenter() {
                 <p className='bfp-alarm-time'>
                   Reported: {formatDate(alarmReport.reportedAt || alarmReport.createdAt)}
                 </p>
-                <p className='bfp-alarm-time' style={{color:'#b5121f', fontWeight:600}}>📍 Map focused to this location (auto).</p>
+                <p className='bfp-alarm-time' style={{ color: '#b5121f', fontWeight: 600 }}>📍 Map focused to this location (auto).</p>
                 {alarmReport.duplicateFlag === 'possible' && (
                   <p className='bfp-alarm-verify' role='note'>⚠ Possible duplicate — verify against {alarmReport.incidentCode || 'the open incident'} before dispatching a second unit.</p>
                 )}
@@ -1060,16 +1313,17 @@ export default function EmergencyCommandCenter() {
                   setSelectedId(alarmReport.id);
                   setFlyTrigger((v) => v + 1);
                   dismissAlarm();
+                  setModalOpen(true);
                 }}
               >
-                <span aria-hidden='true'>🎯</span> Zoom to Location Pin
+                <span aria-hidden='true'>🎯</span> Zoom &amp; Inspect Report
               </button>
               <button
                 type='button'
                 className='btn bfp-alarm-btn-ack'
                 onClick={dismissAlarm}
               >
-                Acknowledge & Dismiss
+                Acknowledge &amp; Dismiss
               </button>
             </div>
           </div>

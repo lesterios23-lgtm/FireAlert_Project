@@ -1759,3 +1759,508 @@
   color: #33475b;
   font-size: 0.8rem;
 }
+
+
+/* ===== Full-Bleed Map Command Center + Floating Sidebar + Single Modal ===== */
+.bfp-app.is-command-center {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.bfp-app.is-command-center .bfp-navbar {
+  position: relative;
+  z-index: 1100;
+  flex: 0 0 auto;
+}
+
+.bfp-main.bfp-main-command {
+  flex: 1 1 auto;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  min-height: 0;
+  display: flex;
+}
+
+.bfp-command-canvas {
+  position: relative;
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+  min-height: calc(100vh - 62px);
+  overflow: hidden;
+  background: #e6ecf2;
+}
+
+.bfp-map-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.bfp-map-backdrop .fire-map-wrapper,
+.bfp-map-backdrop .fire-map-container {
+  width: 100%;
+  height: 100% !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+}
+
+.bfp-canvas-live-badge {
+  top: auto;
+  bottom: 18px;
+  left: auto;
+  right: 64px;
+  z-index: 1040;
+}
+
+/* Floating Top Status HUD */
+.bfp-floating-hud {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  left: 14px;
+  z-index: 1040;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  pointer-events: none;
+  transition: left 0.2s ease;
+}
+
+.bfp-floating-hud.with-sidebar {
+  left: 368px;
+}
+
+.bfp-hud-counts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  pointer-events: auto;
+}
+
+.bfp-hud-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  padding: 0.42rem 0.7rem;
+  border: 1px solid rgb(224 229 235 / 92%);
+  border-left: 3px solid var(--status-color, #8996a3);
+  border-radius: 9px;
+  background: rgb(255 255 255 / 94%);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 14px rgb(15 28 43 / 12%);
+}
+
+.bfp-hud-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--status-color, #8996a3);
+}
+
+.bfp-hud-label {
+  color: #556679;
+  font-size: 0.74rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.bfp-hud-pill strong {
+  color: #1c2e40;
+  font-size: 0.92rem;
+  font-weight: 800;
+}
+
+.bfp-hud-connection {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  padding: 0.44rem 0.72rem;
+  border: 1px solid rgb(224 229 235 / 92%);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 94%);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 14px rgb(15 28 43 / 12%);
+  color: #465a6e;
+  font-size: 0.74rem;
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: auto;
+}
+
+.bfp-floating-error {
+  position: absolute;
+  top: 66px;
+  right: 14px;
+  left: 14px;
+  z-index: 1045;
+  padding: 0.65rem 0.9rem;
+  border: 1px solid #f1c7c1;
+  border-radius: 8px;
+  background: rgb(255 241 239 / 96%);
+  color: #a63b31;
+  font-size: 0.8rem;
+  font-weight: 700;
+  box-shadow: 0 6px 18px rgb(15 28 43 / 12%);
+}
+
+.bfp-floating-error.with-sidebar {
+  left: 368px;
+}
+
+/* Floating Left Sidebar: Active Alerts Feed */
+.bfp-floating-sidebar {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  bottom: 14px;
+  z-index: 1050;
+  width: 340px;
+  max-width: calc(100vw - 28px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgb(221 228 235 / 95%);
+  border-radius: 12px;
+  background: rgb(255 255 255 / 95%);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 14px 36px rgb(15 28 43 / 20%);
+}
+
+.bfp-floating-sidebar .bfp-alert-list {
+  flex: 1 1 auto;
+  max-height: none;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.bfp-floating-sidebar .bfp-panel-note {
+  flex: 0 0 auto;
+  padding: 0.6rem 0.75rem;
+  border-top: 1px solid #edf0f3;
+  background: #f9fbfc;
+}
+
+.bfp-card-open-btn {
+  margin-top: 0.35rem;
+  padding: 0.38rem 0.6rem;
+  border: 1px solid #dce3ea;
+  border-radius: 6px;
+  background: #f5f8fb;
+  color: #21374d;
+  font-size: 0.74rem;
+  font-weight: 750;
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.bfp-card-open-btn:hover,
+.bfp-alert-card.selected .bfp-card-open-btn {
+  border-color: #d94f42;
+  background: #d94f42;
+  color: #fff;
+}
+
+.bfp-sidebar-reopen-btn {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 1050;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.58rem 0.9rem;
+  border: 1px solid rgb(221 228 235 / 95%);
+  border-radius: 10px;
+  background: rgb(255 255 255 / 96%);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 24px rgb(15 28 43 / 18%);
+  color: #1c2e40;
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.bfp-sidebar-reopen-btn:hover {
+  background: #fff;
+  border-color: #d94f42;
+  color: #b5121f;
+}
+
+/* Single Modal Form Overlay */
+.bfp-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgb(15 26 39 / 52%);
+  backdrop-filter: blur(4px);
+  animation: bfpAlarmFadeIn 0.16s ease-out;
+}
+
+.bfp-incident-modal {
+  width: min(720px, 100%);
+  max-height: calc(100vh - 2rem);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid #dce3ea;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 24px 60px rgb(12 24 38 / 32%);
+  animation: bfpAlarmPopIn 0.18s ease-out;
+}
+
+.bfp-incident-modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem 1.2rem 0.85rem;
+  border-bottom: 1px solid #edf0f3;
+  background: #fafcfd;
+}
+
+.bfp-incident-modal-title-wrap {
+  min-width: 0;
+  flex: 1;
+}
+
+.bfp-incident-modal-eyebrow-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.bfp-incident-modal-eyebrow-row .bfp-eyebrow {
+  margin: 0;
+}
+
+.bfp-incident-modal-head h2 {
+  margin: 0;
+  color: #1c2e40;
+  font-size: 1.12rem;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.bfp-modal-close-btn {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #dce3ea;
+  border-radius: 8px;
+  background: #fff;
+  color: #54687b;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.bfp-modal-close-btn:hover {
+  border-color: #cbd5e0;
+  background: #f2f5f8;
+  color: #1c2e40;
+}
+
+/* 3-Step Workflow Indicator */
+.bfp-modal-stepper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.2rem;
+  border-bottom: 1px solid #edf0f3;
+  background: #f6f9fb;
+}
+
+.bfp-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #8290a0;
+  font-size: 0.76rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.bfp-step-num {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #e2e8ef;
+  color: #5f7184;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.bfp-step.is-active {
+  color: #b5121f;
+}
+
+.bfp-step.is-active .bfp-step-num {
+  background: #d94f42;
+  color: #fff;
+}
+
+.bfp-step.is-done {
+  color: #2f7a5a;
+}
+
+.bfp-step.is-done .bfp-step-num {
+  background: #3aa075;
+  color: #fff;
+}
+
+.bfp-step-line {
+  flex: 1;
+  height: 2px;
+  background: #dde4eb;
+  border-radius: 2px;
+}
+
+.bfp-incident-modal-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 1.05rem 1.2rem 1.2rem;
+}
+
+.bfp-modal-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.bfp-request-reporter {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #e7eaed;
+  border-radius: 7px;
+  background: #fafbfc;
+}
+
+.bfp-request-reporter span {
+  color: #8793a0;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.bfp-request-reporter strong {
+  color: #27394b;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.bfp-modal-dispatch-form {
+  padding: 0;
+  gap: 0.55rem;
+}
+
+.bfp-modal-dispatch-form select {
+  min-height: 40px;
+}
+
+.bfp-modal-stage-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 0.35rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid #edf0f3;
+}
+
+.bfp-modal-hint {
+  margin: 0;
+  color: #6b7c8e;
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+.bfp-receive-btn {
+  min-height: 42px;
+  background: #1f6f8b;
+  font-size: 0.9rem;
+}
+
+.bfp-receive-btn:hover:not(:disabled) {
+  background: #185870;
+}
+
+.bfp-enroute-btn {
+  min-height: 42px;
+  background: #d94f42;
+  font-size: 0.9rem;
+}
+
+.bfp-resolve-btn {
+  display: block;
+  width: 100%;
+  min-height: 40px;
+  padding: 0.55rem 0.9rem;
+  border: 1px solid #2f855a;
+  border-radius: 7px;
+  background: #edf9f3;
+  color: #216b46;
+  font-size: 0.86rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.bfp-resolve-btn:hover:not(:disabled) {
+  background: #2f855a;
+  color: #fff;
+}
+
+.bfp-resolve-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Ensure alarm popup stays above the incident modal if triggered */
+.bfp-alarm-popup-overlay {
+  z-index: 1300;
+}
+
+@media (max-width: 900px) {
+  .bfp-floating-hud.with-sidebar {
+    left: 14px;
+    top: auto;
+    bottom: 14px;
+    display: none;
+  }
+
+  .bfp-floating-sidebar {
+    width: min(320px, calc(100vw - 24px));
+    top: 12px;
+    left: 12px;
+    bottom: 12px;
+  }
+
+  .bfp-modal-stepper {
+    gap: 0.3rem;
+    padding: 0.55rem 0.85rem;
+  }
+
+  .bfp-step {
+    font-size: 0.68rem;
+  }
+}

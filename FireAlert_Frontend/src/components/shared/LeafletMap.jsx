@@ -5,6 +5,9 @@ import mansalayBoundary from './mansalayBoundary.json';
 import { BFP_STATION_LOCATION } from './stationLocation';
 
 const MAP_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors · Mansalay boundary: <a href="https://whosonfirst.org/docs/licenses/">Who&#39;s On First</a>';
+const MANSALAY_MIN_ZOOM = 11;
+const MANSALAY_MAX_ZOOM = 18;
+const MANSALAY_MAX_BOUNDS = L.latLngBounds([12.3, 120.95], [12.82, 121.75]);
 const BOUNDARY_STYLE = {
   color: '#d93636',
   weight: 1.5,
@@ -72,8 +75,10 @@ export default function LeafletMap({
   selected,
   height = '420px',
   onLocationSelect,
+  onMarkerClick,
   flyTrigger = 0,
   allowFullscreen = true,
+  zoomControlPosition = 'topleft',
   title = 'Mansalay Fire Map',
   route = null,
   routeColor = '#d94f42',
@@ -89,6 +94,7 @@ export default function LeafletMap({
   const responderMarkerRef = useRef(null);
   const lastRouteFitTokenRef = useRef(null);
   const onLocationSelectRef = useRef(onLocationSelect);
+  const onMarkerClickRef = useRef(onMarkerClick);
   const isFirstLoadRef = useRef(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -101,6 +107,7 @@ export default function LeafletMap({
   const responderLabel = responder?.label || 'Responding unit';
 
   useEffect(() => { onLocationSelectRef.current = onLocationSelect; }, [onLocationSelect]);
+  useEffect(() => { onMarkerClickRef.current = onMarkerClick; }, [onMarkerClick]);
 
   useEffect(() => {
     document.body.style.overflow = isFullscreen ? 'hidden' : '';
@@ -133,11 +140,22 @@ export default function LeafletMap({
   useEffect(() => {
     if (!containerRef.current) return undefined;
 
-    const map = L.map(containerRef.current, { attributionControl: true, zoomControl: true });
+    const map = L.map(containerRef.current, {
+      attributionControl: true,
+      zoomControl: zoomControlPosition === 'topleft',
+      minZoom: MANSALAY_MIN_ZOOM,
+      maxZoom: MANSALAY_MAX_ZOOM,
+      maxBounds: MANSALAY_MAX_BOUNDS,
+      maxBoundsViscosity: 1.0,
+    });
+    if (zoomControlPosition !== 'topleft') {
+      L.control.zoom({ position: zoomControlPosition }).addTo(map);
+    }
     map.attributionControl.setPrefix(false);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: MAP_ATTRIBUTION,
-      maxZoom: 19,
+      minZoom: MANSALAY_MIN_ZOOM,
+      maxZoom: MANSALAY_MAX_ZOOM,
       referrerPolicy: 'strict-origin-when-cross-origin',
     }).addTo(map);
 
@@ -157,7 +175,16 @@ export default function LeafletMap({
     const routeLayer = L.layerGroup().addTo(map);
     routeLayerRef.current = routeLayer;
 
+    let resizeObserver = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(() => {
+        map.invalidateSize();
+      });
+      resizeObserver.observe(containerRef.current);
+    }
+
     return () => {
+      resizeObserver?.disconnect();
       map.remove();
       mapRef.current = null;
       boundaryBoundsRef.current = null;
@@ -165,7 +192,7 @@ export default function LeafletMap({
       routeLayerRef.current = null;
       responderMarkerRef.current = null;
     };
-  }, []);
+  }, [zoomControlPosition]);
 
   useEffect(() => {
     if (!mapRef.current || selectedLatitude == null || selectedLongitude == null) return;
@@ -217,6 +244,9 @@ export default function LeafletMap({
           onLocationSelectRef.current?.({ latitude: point.lat, longitude: point.lng });
         });
       }
+      pin.on('click', () => {
+        onMarkerClickRef.current?.(marker);
+      });
       pin.addTo(markersLayerRef.current);
     });
   }, [markers, onLocationSelect, selectedPosition]);
