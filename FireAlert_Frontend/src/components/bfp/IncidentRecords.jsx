@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import GoogleMap from '../shared/GoogleMap';
+import AdminDashboard from './AdminDashboard';
 import { apiRequest, normalizeReport } from '../../sharedApi';
 
 const STATUS_LABELS = {
@@ -113,7 +114,8 @@ function hasIncidentDocumentation(report) {
   );
 }
 
-export default function IncidentRecords({ onOpenCommand }) {
+export default function IncidentRecords({ user = null, onOpenCommand }) {
+  const isAdmin = String(user?.role || '').toLowerCase() === 'admin';
   const [reports, setReports] = useState([]);
   const [statuses, setStatuses] = useState([]);
   const [trucks, setTrucks] = useState([]);
@@ -574,6 +576,11 @@ export default function IncidentRecords({ onOpenCommand }) {
     ? [{ id: selectedReport.id, lat: selectedReport.latitude, lng: selectedReport.longitude }]
     : [];
   const selectedSeverity = selectedReport ? extractFireSeverity(selectedReport) : 'unspecified';
+  const isAdminSection = isAdmin && (
+    activeSection === 'predictions'
+    || activeSection === 'users'
+    || activeSection === 'firetrucks'
+  );
 
   return (
     <div className='bfp-records-workspace'>
@@ -593,6 +600,18 @@ export default function IncidentRecords({ onOpenCommand }) {
             <span className='bfp-records-nav-label'>Incident Records</span>
             <span className='bfp-records-nav-badge'>{analytics.total}</span>
           </button>
+
+          {isAdmin && (
+            <button
+              type='button'
+              className={activeSection === 'predictions' ? 'active' : ''}
+              onClick={() => setActiveSection('predictions')}
+            >
+              <span className='bfp-records-nav-icon' aria-hidden='true'>⌁</span>
+              <span className='bfp-records-nav-label'>High-Risk Predictions</span>
+              <span className='bfp-records-nav-badge'>Live</span>
+            </button>
+          )}
 
           <button
             type='button'
@@ -623,6 +642,28 @@ export default function IncidentRecords({ onOpenCommand }) {
             <span className='bfp-records-nav-label'>Dispatches &amp; Units</span>
             <span className='bfp-records-nav-badge'>{analytics.dispatchedReports.length}</span>
           </button>
+
+          {isAdmin && (
+            <>
+              <span className='bfp-records-nav-divider'>Administration</span>
+              <button
+                type='button'
+                className={activeSection === 'users' ? 'active' : ''}
+                onClick={() => setActiveSection('users')}
+              >
+                <span className='bfp-records-nav-icon' aria-hidden='true'>♙</span>
+                <span className='bfp-records-nav-label'>User Management</span>
+              </button>
+              <button
+                type='button'
+                className={activeSection === 'firetrucks' ? 'active' : ''}
+                onClick={() => setActiveSection('firetrucks')}
+              >
+                <span className='bfp-records-nav-icon' aria-hidden='true'>▰</span>
+                <span className='bfp-records-nav-label'>Firetruck Management</span>
+              </button>
+            </>
+          )}
         </nav>
 
         <div className='bfp-records-sidebar-summary'>
@@ -660,7 +701,14 @@ export default function IncidentRecords({ onOpenCommand }) {
       </aside>
 
       <div className='bfp-records-content'>
-        {error && <div className='bfp-error' role='alert'>{error}</div>}
+        {error && !isAdminSection && <div className='bfp-error' role='alert'>{error}</div>}
+
+        {isAdminSection && (
+          <AdminDashboard
+            embeddedSection={activeSection}
+            onDataChanged={loadReports}
+          />
+        )}
 
         {activeSection === 'records' && (
           <>

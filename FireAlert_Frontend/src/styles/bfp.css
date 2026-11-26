@@ -2447,6 +2447,17 @@
   color: #ffffff;
 }
 
+.bfp-records-nav-divider {
+  margin-top: 0.5rem;
+  padding: 0.45rem 0.75rem 0.15rem;
+  border-top: 1px solid rgb(255 255 255 / 10%);
+  color: #90a5bb;
+  font-size: 0.56rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
 .bfp-records-sidebar-summary {
   display: grid;
   gap: 0.45rem;
@@ -3060,6 +3071,7 @@
   }
 
   .bfp-records-sidebar-summary,
+  .bfp-records-nav-divider,
   .bfp-sidebar-access-note {
     display: none;
   }

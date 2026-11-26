@@ -40,24 +40,11 @@ afterEach(() => {
   jest.clearAllMocks();
 });
 
-test('shows incident analytics from database records', async () => {
-  render(<AdminDashboard />);
-
-  expect(await screen.findByText('Recent incidents')).toBeInTheDocument();
-  expect(screen.getByText('Mansalay Poblacion')).toBeInTheDocument();
-  expect(screen.getByText('Resident One')).toBeInTheDocument();
-  expect(screen.getByText('Total reports*')).toBeInTheDocument();
-  expect(screen.getByText('Active reports*')).toBeInTheDocument();
-  expect(screen.getByText('Units assigned*')).toBeInTheDocument();
-  expect(screen.getByText('High-risk areas*')).toBeInTheDocument();
-});
-
 test('lets an administrator update failed-login threshold and lockout duration', async () => {
   render(<AdminDashboard />);
-  await screen.findByText('Recent incidents');
   fireEvent.click(screen.getByRole('button', { name: /user management/i }));
 
-  expect(screen.getByLabelText('Failed attempts before lockout')).toHaveValue(5);
+  expect(await screen.findByLabelText('Failed attempts before lockout')).toHaveValue(5);
   expect(screen.getByLabelText('Lockout duration (minutes)')).toHaveValue(15);
   fireEvent.change(screen.getByLabelText('Failed attempts before lockout'), { target: { value: '3' } });
   fireEvent.change(screen.getByLabelText('Lockout duration (minutes)'), { target: { value: '10' } });
@@ -71,10 +58,9 @@ test('lets an administrator update failed-login threshold and lockout duration',
 
 test('opens account and prediction sections from the administration sidebar', async () => {
   render(<AdminDashboard />);
-  await screen.findByText('Recent incidents');
 
   fireEvent.click(screen.getByRole('button', { name: /user management/i }));
-  expect(screen.getByRole('heading', { name: 'Add account' })).toBeInTheDocument();
+  expect(await screen.findByRole('heading', { name: 'Add account' })).toBeInTheDocument();
   expect(screen.getByLabelText('Account type')).toBeInTheDocument();
   fireEvent.change(screen.getByLabelText('Account type'), { target: { value: 'bfp' } });
   expect(screen.getByLabelText('Badge number')).toBeInTheDocument();
@@ -99,7 +85,7 @@ test('opens account and prediction sections from the administration sidebar', as
   })));
 
   fireEvent.click(screen.getByRole('button', { name: /high-risk predictions/i }));
-  await waitFor(() => expect(screen.getByText('Prediction model unavailable')).toBeInTheDocument());
+  await waitFor(() => expect(screen.getByRole('heading', { name: 'No reference data' })).toBeInTheDocument());
 });
 
 test('filters accounts by user category and searchable account details', async () => {
@@ -114,10 +100,9 @@ test('filters accounts by user category and searchable account details', async (
     },
   });
   render(<AdminDashboard />);
-  await screen.findByText('Recent incidents');
   fireEvent.click(screen.getByRole('button', { name: /user management/i }));
 
-  expect(screen.getByText('Admin User')).toBeInTheDocument();
+  expect(await screen.findByText('Admin User')).toBeInTheDocument();
   expect(screen.getByText('Maria Firefighter')).toBeInTheDocument();
   expect(screen.getByText('Resident User')).toBeInTheDocument();
 
@@ -143,9 +128,9 @@ test('filters accounts by user category and searchable account details', async (
 
 test('creates firetrucks without asking the admin to choose the single station', async () => {
   render(<AdminDashboard />);
-  await screen.findByText('Recent incidents');
 
   fireEvent.click(screen.getByRole('button', { name: /firetruck management/i }));
+  expect(await screen.findByLabelText('Unit name')).toBeInTheDocument();
   expect(screen.queryByLabelText('Fire station')).not.toBeInTheDocument();
 
   fireEvent.change(screen.getByLabelText('Unit name'), { target: { value: 'Mansalay Engine 1' } });
@@ -210,9 +195,7 @@ test('toggles seasonal high-risk heatmap overlay and switches season filter', as
   });
 
   render(<AdminDashboard />);
-  await screen.findByText('Recent incidents');
 
-  fireEvent.click(screen.getByRole('button', { name: /high-risk predictions/i }));
   const toggle = await screen.findByLabelText(/Show Seasonal High-Risk Zones/i);
   const seasonSelect = screen.getByLabelText(/Seasonal heatmap filter/i);
   expect(seasonSelect).toBeDisabled();
@@ -306,9 +289,6 @@ test('pins only predicted high-risk locations on the map and updates when switch
   });
 
   render(<AdminDashboard />);
-  await screen.findByText('Recent incidents');
-
-  fireEvent.click(screen.getByRole('button', { name: /high-risk predictions/i }));
 
   // Today: 2 areas monitored, ONLY 1 High-Risk area pinned on the map
   await screen.findByLabelText('7-day fire risk forecast');

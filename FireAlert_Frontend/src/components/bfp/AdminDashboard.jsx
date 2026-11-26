@@ -4,10 +4,9 @@ import { apiRequest } from '../../sharedApi';
 import './AdminDashboard.css';
 
 const SECTIONS = [
-  { id: 'analytics', label: 'Incident analytics', icon: '▥' },
+  { id: 'predictions', label: 'High-risk predictions', icon: '⌁' },
   { id: 'users', label: 'User management', icon: '♙' },
   { id: 'firetrucks', label: 'Firetruck management', icon: '▰' },
-  { id: 'predictions', label: 'High-risk predictions', icon: '⌁' },
 ];
 
 const USER_CATEGORIES = [
@@ -38,17 +37,10 @@ const DEFAULT_LOGIN_ATTEMPT_SETTINGS = {
   lockout_minutes: 15,
 };
 
-function reportFromResource(report) {
-  return {
-    id: report.id,
-    ...report.attributes,
-    residentName: report.includes?.resident?.attributes?.name || 'Unknown resident',
-  };
-}
-
-export default function AdminDashboard() {
-  const [section, setSection] = useState('analytics');
-  const [dashboard, setDashboard] = useState({ reports: [], users: [], firetrucks: [], high_risk_summary: null });
+export default function AdminDashboard({ embeddedSection = null, onDataChanged = null } = {}) {
+  const [section, setSection] = useState('predictions');
+  const activeSection = embeddedSection || section;
+  const [dashboard, setDashboard] = useState({ users: [], firetrucks: [] });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -75,10 +67,8 @@ export default function AdminDashboard() {
       const data = response.data || {};
       setDashboard({
         ...data,
-        reports: (data.reports || []).map(reportFromResource),
         users: data.users || [],
         firetrucks: data.firetrucks || [],
-        high_risk_summary: data.high_risk_summary || null,
       });
       setLoginAttemptSettings({
         ...DEFAULT_LOGIN_ATTEMPT_SETTINGS,
@@ -113,12 +103,11 @@ export default function AdminDashboard() {
   }, [refresh]);
 
   useEffect(() => {
-    if (section === 'predictions' && !riskAnalysis && !riskLoading) {
+    if (activeSection === 'predictions' && !riskAnalysis && !riskLoading && !riskError) {
       loadRiskAnalysis(riskPeriod, riskDay, false);
     }
-  }, [section, riskAnalysis, riskLoading, loadRiskAnalysis, riskPeriod, riskDay]);
+  }, [activeSection, riskAnalysis, riskLoading, riskError, loadRiskAnalysis, riskPeriod, riskDay]);
 
-  const reports = dashboard.reports;
   const filteredUsers = useMemo(() => {
     const query = userSearch.trim().toLocaleLowerCase();
     return dashboard.users.filter((user) => {
@@ -139,29 +128,6 @@ export default function AdminDashboard() {
       return matchesCategory && (!query || searchableText.includes(query));
     });
   }, [dashboard.users, userCategory, userSearch]);
-
-  const stats = useMemo(() => {
-    const countStatus = (status) => reports.filter((report) =>
-      String(report.status || '').toLowerCase() === status
-    ).length;
-    const activeReports = countStatus('pending');
-    const assignedUnits = dashboard.firetrucks.filter((truck) =>
-      String(truck.status || '').toLowerCase() !== 'available'
-    ).length;
-    const summary = dashboard.high_risk_summary;
-    const refHigh = summary?.reference?.high;
-    return {
-      total: reports.length,
-      active: activeReports,
-      assigned: assignedUnits,
-      highRisk: refHigh != null ? refHigh : (summary?.model_available ? summary.high : null),
-      highRiskHint: summary?.reference
-        ? `${summary.reference.total || 0} ref barangays; ${summary.areas || 0} historical areas analyzed`
-        : (summary?.model_available
-          ? `${summary.areas} areas analyzed from historical incidents`
-          : 'No historical data available yet'),
-    };
-  }, [reports, dashboard.firetrucks, dashboard.high_risk_summary]);
 
   async function submitUser(event) {
     event.preventDefault();
@@ -191,6 +157,7 @@ export default function AdminDashboard() {
       setEditingUser(null);
       setUserForm(EMPTY_USER);
       await refresh();
+      onDataChanged?.();
     } catch (requestError) {
       setError(requestError.message);
     } finally {
@@ -219,6 +186,7 @@ export default function AdminDashboard() {
       await apiRequest(`/admin/users/${user.user_id}`, { method: 'DELETE' });
       setNotice('User account deleted.');
       await refresh();
+      onDataChanged?.();
     } catch (requestError) {
       setError(requestError.message);
     }
@@ -238,6 +206,7 @@ export default function AdminDashboard() {
       setEditingTruck(null);
       setTruckForm(EMPTY_TRUCK);
       await refresh();
+      onDataChanged?.();
     } catch (requestError) {
       setError(requestError.message);
     } finally {
@@ -253,67 +222,10 @@ export default function AdminDashboard() {
       await apiRequest(`/admin/firetrucks/${truck.truck_id}`, { method: 'DELETE' });
       setNotice('Firetruck deleted.');
       await refresh();
+      onDataChanged?.();
     } catch (requestError) {
       setError(requestError.message);
     }
-  }
-
-  function renderAnalytics() {
-    return (
-      <>
-        <div className='admin-stat-grid'>
-          <StatCard
-            label='Total reports*'
-            value={String(stats.total).padStart(2, '0')}
-            tone='navy'
-            icon='▤'
-            hint='Illustrative data'
-          />
-          <StatCard
-            label='Active reports*'
-            value={String(stats.active).padStart(2, '0')}
-            tone='amber'
-            icon='◷'
-            hint='Needs review'
-          />
-          <StatCard
-            label='Units assigned*'
-            value={String(stats.assigned).padStart(2, '0')}
-            tone='blue'
-            icon='▰'
-            hint={dashboard.firetrucks.length ? `${dashboard.firetrucks.length} units on record` : 'No units on record'}
-          />
-          <StatCard
-            label='High-risk barangays (ref)*'
-            value={stats.highRisk === null ? '––' : String(stats.highRisk).padStart(2, '0')}
-            tone='amber'
-            icon='◍'
-            hint={stats.highRiskHint}
-          />
-        </div>
-        <section className='admin-panel'>
-          <div className='admin-panel-heading'>
-            <div><h2>Recent incidents</h2><p>Live records from the incident database</p></div>
-          </div>
-          {reports.length ? (
-            <div className='admin-table-wrap'>
-              <table className='admin-table'>
-                <thead><tr><th>Reference</th><th>Incident</th><th>Resident</th><th>Reported</th><th>Status</th></tr></thead>
-                <tbody>{reports.slice(0, 10).map((report) => (
-                  <tr key={report.id}>
-                    <td>#{report.id}</td>
-                    <td>{report.incidentAddress || report.incidentDescription || 'Location not provided'}</td>
-                    <td>{report.residentName}</td>
-                    <td>{formatDate(report.reportedAt || report.createdAt)}</td>
-                    <td><span className={`admin-status ${statusTone(report.status)}`}>{report.status || 'Unknown'}</span></td>
-                  </tr>
-                ))}</tbody>
-              </table>
-            </div>
-          ) : <p className='admin-empty'>No incident reports have been recorded.</p>}
-        </section>
-      </>
-    );
   }
 
   async function submitLoginAttemptSettings(event) {
@@ -498,54 +410,84 @@ export default function AdminDashboard() {
     );
   }
 
+  const sectionMeta = SECTIONS.find((item) => item.id === activeSection);
+  const content = (
+    <section className={embeddedSection ? 'admin-content admin-content-embedded' : 'admin-content'}>
+      <header className='admin-content-heading'>
+        <div>
+          <span className='admin-eyebrow'>FIREALERT · ADMINISTRATION</span>
+          <h1>{sectionMeta?.label}</h1>
+          <p>
+            {activeSection === 'predictions'
+              ? 'Real-time daily and 7-day fire risk forecast across Mansalay barangays.'
+              : 'Manage operational users, login security, and station firetrucks for BFP Mansalay.'}
+          </p>
+        </div>
+        <button
+          type='button'
+          className='admin-refresh'
+          onClick={() => {
+            if (activeSection === 'predictions') {
+              loadRiskAnalysis(riskPeriod, riskDay, true);
+            } else {
+              setLoading(true);
+              refresh();
+            }
+          }}
+        >
+          Refresh data
+        </button>
+      </header>
+      {error && <div className='admin-alert admin-alert-error' role='alert'>{error}</div>}
+      {notice && <div className='admin-alert admin-alert-success' role='status'>{notice}</div>}
+      {activeSection === 'predictions' ? (
+        <HighRiskPredictionPanel
+          analysis={riskAnalysis}
+          loading={riskLoading}
+          error={riskError}
+          selectedArea={selectedRiskArea}
+          onSelectArea={setSelectedRiskArea}
+          period={riskPeriod}
+          onPeriodChange={(value) => {
+            setRiskPeriod(value);
+            loadRiskAnalysis(value, riskDay, false);
+          }}
+          selectedDay={riskDay}
+          onDayChange={(nextDay) => {
+            setRiskDay(nextDay);
+            loadRiskAnalysis(riskPeriod, nextDay, false);
+          }}
+          onRefresh={() => loadRiskAnalysis(riskPeriod, riskDay, true)}
+        />
+      ) : loading ? (
+        <div className='admin-loading'>Loading database records...</div>
+      ) : (
+        <>
+          {activeSection === 'users' && renderUsers()}
+          {activeSection === 'firetrucks' && renderTrucks()}
+        </>
+      )}
+    </section>
+  );
+
+  if (embeddedSection) {
+    return content;
+  }
+
   return (
     <div className='admin-dashboard'>
       <aside className='admin-sidebar'>
         <div className='admin-sidebar-title'><span>ADMINISTRATION</span><strong>System workspace</strong></div>
         <nav aria-label='System administration'>
           {SECTIONS.map((item) => (
-            <button key={item.id} type='button' className={section === item.id ? 'active' : ''} onClick={() => setSection(item.id)}>
+            <button key={item.id} type='button' className={activeSection === item.id ? 'active' : ''} onClick={() => setSection(item.id)}>
               <span aria-hidden='true'>{item.icon}</span>{item.label}
             </button>
           ))}
         </nav>
         <div className='admin-sidebar-note'>Access is restricted to system administrators.</div>
       </aside>
-      <section className='admin-content'>
-        <header className='admin-content-heading'>
-          <div><span className='admin-eyebrow'>FIREALERT · SYSTEM ADMIN</span><h1>{SECTIONS.find((item) => item.id === section)?.label}</h1><p>Manage operational records for BFP Mansalay.</p></div>
-          <button type='button' className='admin-refresh' onClick={() => { setLoading(true); refresh(); }}>Refresh data</button>
-        </header>
-        {error && <div className='admin-alert admin-alert-error' role='alert'>{error}</div>}
-        {notice && <div className='admin-alert admin-alert-success' role='status'>{notice}</div>}
-        {loading ? <div className='admin-loading'>Loading database records...</div> : (
-          <>
-            {section === 'analytics' && renderAnalytics()}
-            {section === 'users' && renderUsers()}
-            {section === 'firetrucks' && renderTrucks()}
-            {section === 'predictions' && (
-              <HighRiskPredictionPanel
-                analysis={riskAnalysis}
-                loading={riskLoading}
-                error={riskError}
-                selectedArea={selectedRiskArea}
-                onSelectArea={setSelectedRiskArea}
-                period={riskPeriod}
-                onPeriodChange={(value) => {
-                  setRiskPeriod(value);
-                  loadRiskAnalysis(value, riskDay, false);
-                }}
-                selectedDay={riskDay}
-                onDayChange={(nextDay) => {
-                  setRiskDay(nextDay);
-                  loadRiskAnalysis(riskPeriod, nextDay, false);
-                }}
-                onRefresh={() => loadRiskAnalysis(riskPeriod, riskDay, true)}
-              />
-            )}
-          </>
-        )}
-      </section>
+      {content}
     </div>
   );
 }
@@ -1014,14 +956,6 @@ function HighRiskPredictionPanel({
       )}
     </div>
   );
-}
-
-function statusTone(status) {
-  const normalized = String(status || '').toLowerCase();
-  if (normalized === 'resolved') return 'resolved';
-  if (normalized === 'rejected') return 'rejected';
-  if (normalized === 'pending') return 'pending';
-  return 'active';
 }
 
 function formatDate(value) {

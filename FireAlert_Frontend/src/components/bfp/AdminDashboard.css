@@ -91,6 +91,10 @@
   padding: 1.5rem;
 }
 
+.admin-content.admin-content-embedded {
+  padding: 0;
+}
+
 .admin-content-heading,
 .admin-panel-heading {
   display: flex;

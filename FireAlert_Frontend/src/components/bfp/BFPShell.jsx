@@ -3,7 +3,6 @@ import EmergencyCommandCenter from './EmergencyCommandCenter';
 import IncidentRecords from './IncidentRecords';
 import FireAlertLogoMark from '../shared/FireAlertLogoMark';
 import LogoutConfirmModal from '../shared/LogoutConfirmModal';
-import AdminDashboard from './AdminDashboard';
 
 function getInitials(name) {
   const clean = String(name || '').trim();
@@ -82,15 +81,6 @@ export default function BFPShell({ user, onLogout }) {
           >
             <span aria-hidden='true'>▤</span> Incident Records
           </button>
-          {user?.role === 'admin' && (
-            <button
-              type='button'
-              className={page === 'admin' ? 'active' : ''}
-              onClick={() => setPage('admin')}
-            >
-              <span aria-hidden='true'>⚙</span> System Admin
-            </button>
-          )}
         </nav>
 
         <div className='bfp-account' ref={profileRef}>
@@ -133,12 +123,10 @@ export default function BFPShell({ user, onLogout }) {
       </header>
 
       <main className={`bfp-main${isCommandCenter ? ' bfp-main-command' : ''}`}>
-        {page === 'admin' && user?.role === 'admin' ? (
-          <AdminDashboard />
-        ) : page === 'command' ? (
+        {page === 'command' ? (
           <EmergencyCommandCenter />
         ) : (
-          <IncidentRecords onOpenCommand={() => setPage('command')} />
+          <IncidentRecords user={user} onOpenCommand={() => setPage('command')} />
         )}
       </main>
       <LogoutConfirmModal

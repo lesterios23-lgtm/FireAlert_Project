@@ -1,7 +1,12 @@
 import React from 'react';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import BFPShell from './BFPShell';
 import IncidentRecords from './IncidentRecords';
 import { apiRequest } from '../../sharedApi';
+
+jest.mock('./EmergencyCommandCenter', () => function MockCommandCenter() {
+  return <div>Command Center View</div>;
+});
 
 jest.mock('../shared/GoogleMap', () => function MockGoogleMap() {
   return <div aria-label='Map' />;
@@ -187,4 +192,91 @@ test('filters the incident data table by location and date range and inspects di
   expect(screen.getAllByText('Engine 01').length).toBeGreaterThan(0);
   expect(screen.getAllByText('FO1 Santos').length).toBeGreaterThan(0);
   expect(screen.getByText('B-104')).toBeInTheDocument();
+});
+
+test('places High-Risk Predictions second in sidebar and shows user and firetruck management for admin users', async () => {
+  apiRequest.mockImplementation((path) => {
+    if (path === '/command-center') return Promise.resolve(analyticsCommandCenter);
+    if (path === '/admin/dashboard') {
+      return Promise.resolve({
+        data: {
+          users: [],
+          firetrucks: [],
+          login_attempt_settings: { max_attempts: 5, lockout_minutes: 15 },
+        },
+      });
+    }
+    if (path.startsWith('/admin/high-risk-areas')) {
+      const sample = {
+        barangay_name: 'Panaytayan',
+        latitude: 12.5427,
+        longitude: 121.3334,
+        reference_risk_level: 'High',
+        predicted_risk_level: 'High',
+        predicted_risk_score: 82,
+        historical: { available: false, incident_count: 0 },
+      };
+      return Promise.resolve({
+        data: {
+          model_available: true,
+          methodology: 'Weather + history.',
+          daily_predictions: [sample],
+          high_risk_locations: [sample],
+          forecast_days: [],
+        },
+      });
+    }
+    return Promise.resolve({ data: {} });
+  });
+
+  render(<IncidentRecords user={{ id: 1, name: 'BFPAdmin', role: 'admin' }} />);
+  await screen.findByRole('heading', { name: 'FA-000012' });
+
+  const sidebarNav = screen.getByRole('navigation', { name: 'Incident records sections' });
+  const navLabels = within(sidebarNav)
+    .getAllByRole('button')
+    .map((btn) => btn.querySelector('.bfp-records-nav-label')?.textContent);
+
+  expect(navLabels).toEqual([
+    'Incident Records',
+    'High-Risk Predictions',
+    'Analytics Dashboard',
+    'Incident Data Table',
+    'Dispatches & Units',
+    'User Management',
+    'Firetruck Management',
+  ]);
+
+  fireEvent.click(within(sidebarNav).getByRole('button', { name: /High-Risk Predictions/i }));
+  expect(await screen.findByRole('heading', { name: /Daily & 7-Day Fire Risk Prediction/i })).toBeInTheDocument();
+
+  fireEvent.click(within(sidebarNav).getByRole('button', { name: /User Management/i }));
+  expect(await screen.findByRole('heading', { name: 'Add account' })).toBeInTheDocument();
+
+  fireEvent.click(within(sidebarNav).getByRole('button', { name: /Firetruck Management/i }));
+  expect(await screen.findByRole('heading', { name: 'Add firetruck' })).toBeInTheDocument();
+});
+
+test('removes System Admin from top navbar and embeds admin sections in Incident Records for admin user', async () => {
+  apiRequest.mockImplementation((path) => {
+    if (path === '/command-center') return Promise.resolve(analyticsCommandCenter);
+    if (path === '/admin/dashboard') {
+      return Promise.resolve({
+        data: { users: [], firetrucks: [], login_attempt_settings: { max_attempts: 5, lockout_minutes: 15 } },
+      });
+    }
+    return Promise.resolve({ data: {} });
+  });
+
+  render(<BFPShell user={{ id: 1, name: 'BFPAdmin', role: 'admin' }} onLogout={jest.fn()} />);
+
+  expect(screen.getByRole('button', { name: /Command Center/i })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /Incident Records/i })).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: /System Admin/i })).not.toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole('button', { name: /Incident Records/i }));
+  expect(await screen.findByRole('heading', { name: 'FA-000012' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /High-Risk Predictions/i })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /User Management/i })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /Firetruck Management/i })).toBeInTheDocument();
 });
