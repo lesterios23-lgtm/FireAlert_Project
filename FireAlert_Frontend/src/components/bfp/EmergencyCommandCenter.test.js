@@ -233,3 +233,62 @@ test('groups supporting reports under one Main Incident with verify flags and re
   expect(flatFeedScope.getByText('Purok 3, Brgy. Poblacion (42)')).toBeInTheDocument();
   expect(flatFeedScope.getByText('Purok 3, Brgy. Poblacion (44)')).toBeInTheDocument();
 });
+
+test('automatically loads and displays incident photo evidence when opening a report without clicking a toggle button', async () => {
+  const originalFetch = global.fetch;
+  const originalCreateObjectURL = URL.createObjectURL;
+  const originalRevokeObjectURL = URL.revokeObjectURL;
+
+  const mockBlob = new Blob(['fake-image'], { type: 'image/jpeg' });
+  global.fetch = jest.fn(() => Promise.resolve({
+    ok: true,
+    blob: () => Promise.resolve(mockBlob),
+  }));
+  URL.createObjectURL = jest.fn(() => 'blob:mock-evidence-url');
+  URL.revokeObjectURL = jest.fn();
+
+  try {
+    apiRequest.mockImplementation((path) => {
+      if (path === '/incidents') return Promise.resolve({ data: { incidents: [] } });
+      return Promise.resolve({
+        data: {
+          reports: [{
+            id: 55,
+            attributes: {
+              incidentAddress: 'Brgy. Poblacion',
+              incidentDescription: 'Smoke visible.',
+              status: 'pending',
+              reportedAt: '2026-11-04T10:00:00Z',
+              latitude: 12.4,
+              longitude: 121.44,
+              hasEvidence: true,
+            },
+            includes: { resident: { attributes: { name: 'Resident 55' } } },
+          }],
+          trucks: [],
+          personnel: [],
+          statuses: [{ status_id: 1, status_name: 'Submitted' }],
+        },
+      });
+    });
+
+    const { unmount } = render(<EmergencyCommandCenter />);
+
+    fireEvent.click(await screen.findByTestId('map-pin-55'));
+    const dialog = await screen.findByRole('dialog');
+
+    expect(within(dialog).queryByRole('button', { name: /View incident photo evidence/i })).not.toBeInTheDocument();
+    const img = await within(dialog).findByAltText('Submitted incident evidence');
+    expect(img).toHaveAttribute('src', 'blob:mock-evidence-url');
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringMatching(/\/reports\/55\/evidence$/),
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
+    );
+    unmount();
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-evidence-url');
+  } finally {
+    global.fetch = originalFetch;
+    URL.createObjectURL = originalCreateObjectURL;
+    URL.revokeObjectURL = originalRevokeObjectURL;
+  }
+});

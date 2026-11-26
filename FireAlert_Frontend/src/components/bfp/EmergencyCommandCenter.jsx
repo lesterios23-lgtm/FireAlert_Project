@@ -101,44 +101,69 @@ function normalizeIncidents(payload) {
 
 function EvidencePreview({ reportId }) {
   const [imageUrl, setImageUrl] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => () => {
-    if (imageUrl) URL.revokeObjectURL(imageUrl);
-  }, [imageUrl]);
-
-  const togglePreview = async () => {
-    if (imageUrl) {
+  useEffect(() => {
+    if (!reportId) {
       setImageUrl('');
+      setLoading(false);
       setError('');
-      return;
+      return undefined;
     }
+
+    let cancelled = false;
+    let createdObjectUrl = '';
+    const controller = new AbortController();
 
     setLoading(true);
     setError('');
-    try {
-      const token = localStorage.getItem('firealert_token');
-      const response = await fetch(`${API_BASE_URL}/reports/${reportId}/evidence`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      if (!response.ok) {
-        const payload = await response.json().catch(() => ({}));
-        throw new Error(payload.message || `Unable to load evidence (HTTP ${response.status}).`);
+    setImageUrl('');
+
+    const loadEvidence = async () => {
+      try {
+        const token = localStorage.getItem('firealert_token');
+        const response = await fetch(`${API_BASE_URL}/reports/${reportId}/evidence`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          signal: controller.signal,
+        });
+        if (!response.ok) {
+          const payload = await response.json().catch(() => ({}));
+          throw new Error(payload.message || `Unable to load evidence (HTTP ${response.status}).`);
+        }
+        const blob = await response.blob();
+        createdObjectUrl = URL.createObjectURL(blob);
+        if (cancelled) {
+          if (typeof URL.revokeObjectURL === 'function') {
+            URL.revokeObjectURL(createdObjectUrl);
+          }
+          createdObjectUrl = '';
+          return;
+        }
+        setImageUrl(createdObjectUrl);
+      } catch (requestError) {
+        if (cancelled || requestError?.name === 'AbortError') return;
+        setError(requestError.message || 'Unable to load incident photo evidence.');
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      setImageUrl(URL.createObjectURL(await response.blob()));
-    } catch (requestError) {
-      setError(requestError.message || 'Unable to load incident photo evidence.');
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+
+    loadEvidence();
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+      if (createdObjectUrl && typeof URL.revokeObjectURL === 'function') {
+        URL.revokeObjectURL(createdObjectUrl);
+      }
+    };
+  }, [reportId]);
 
   return (
     <div className='bfp-evidence'>
-      <button type='button' className='bfp-text-button' onClick={togglePreview} disabled={loading}>
-        {loading ? 'Loading evidence…' : imageUrl ? 'Hide incident photo evidence' : 'View incident photo evidence'}
-      </button>
+      <h3 className='bfp-evidence-title'>Incident photo evidence</h3>
+      {loading && <p className='bfp-evidence-loading'>Loading incident photo evidence…</p>}
       {imageUrl && <img src={imageUrl} alt='Submitted incident evidence' />}
       {error && <p className='bfp-evidence-error' role='alert'>{error}</p>}
     </div>
