@@ -1809,11 +1809,13 @@
   border-radius: 0 !important;
 }
 
-.bfp-canvas-live-badge {
+.route-navigation-live-badge.bfp-canvas-live-badge {
   top: auto;
-  bottom: 18px;
   left: auto;
+  bottom: 18px;
   right: 64px;
+  width: fit-content;
+  height: auto;
   z-index: 1040;
 }
 
@@ -1822,7 +1824,7 @@
   position: absolute;
   top: 14px;
   right: 14px;
-  left: 14px;
+  left: 192px;
   z-index: 1040;
   display: flex;
   align-items: center;
