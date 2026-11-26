@@ -92,7 +92,17 @@ export default function SubmissionHistoryScreen({ onViewReport, onReportNew, use
             <div className='resident-history-card-heading'>
               <span>FA-{String(report.id).padStart(6, '0')} · {formatDate(report.reportedAt || report.createdAt)}</span>
               <span className={`resident-status status-${report.status || 'pending'}`}>
-                {report.status === 'resolved' ? 'Incident resolved' : report.status === 'responding' ? 'En route' : report.status === 'accepted' ? 'Report received' : report.status === 'rejected' ? 'Rejected' : 'Report submitted'}
+                {report.status === 'resolved'
+                  ? 'Incident resolved'
+                  : report.status === 'arrived'
+                    ? 'Arrived'
+                    : report.status === 'responding'
+                      ? 'En route'
+                      : report.status === 'accepted'
+                        ? 'Report received'
+                        : report.status === 'rejected'
+                          ? 'Rejected'
+                          : 'Report submitted'}
               </span>
             </div>
             <h2>{report.incidentAddress || 'Location unavailable'}</h2>

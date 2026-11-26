@@ -5,6 +5,7 @@ export default function StatusBadge({ status }) {
     pending: { label: 'Pending', className: 'pending' },
     accepted: { label: 'Accepted', className: 'accepted' },
     responding: { label: 'Responding', className: 'responding' },
+    arrived: { label: 'Arrived', className: 'arrived' },
     resolved: { label: 'Resolved', className: 'resolved' },
     rejected: { label: 'Rejected', className: 'rejected' },
   };

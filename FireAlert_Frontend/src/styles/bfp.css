@@ -212,6 +212,7 @@
 .status-pending { --status-color: #e7a43c; }
 .status-accepted { --status-color: #4a9baf; }
 .status-responding { --status-color: #df634e; }
+.status-arrived { --status-color: #2f80ed; }
 .status-resolved { --status-color: #469b75; }
 .status-rejected { --status-color: #89938e; }
 
@@ -2253,6 +2254,66 @@
   margin: 0;
   color: #748394;
   font-size: 0.8rem;
+}
+
+.bfp-arrival-pending-banner {
+  padding: 0.7rem 0.85rem;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #1e40af;
+}
+
+.bfp-arrival-pending-banner strong {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.bfp-arrival-pending-banner p {
+  margin: 0.2rem 0 0;
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+
+.bfp-arrived-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.72rem 0.85rem;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.bfp-arrived-banner > span {
+  display: grid;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  place-items: center;
+  border-radius: 50%;
+  background: #dbeafe;
+  font-weight: 800;
+}
+
+.bfp-arrived-banner strong {
+  display: block;
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.bfp-arrived-banner small {
+  display: block;
+  margin-top: 0.15rem;
+  color: #3b6fd8;
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.bfp-modal-record-form {
+  margin-top: 0.2rem;
 }
 
 @media (max-width: 900px) {

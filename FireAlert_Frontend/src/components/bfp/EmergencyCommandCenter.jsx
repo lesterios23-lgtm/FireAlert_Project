@@ -8,6 +8,7 @@ const STATUS_LABELS = {
   pending: 'Report submitted',
   accepted: 'Report received',
   responding: 'En route',
+  arrived: 'Arrived',
   resolved: 'Incident resolved',
   rejected: 'Rejected',
   merged: 'Merged into another incident',
@@ -30,9 +31,10 @@ function statusKey(value) {
     case 'accepted':
       return 'accepted';
     case 'en route':
-    case 'arrived':
     case 'responding':
       return 'responding';
+    case 'arrived':
+      return 'arrived';
     case 'resolved':
       return 'resolved';
     case 'rejected':
@@ -249,6 +251,11 @@ export default function EmergencyCommandCenter() {
   const [mergeTargetId, setMergeTargetId] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [recordForm, setRecordForm] = useState({
+    damage_assessment: '',
+    casualties_count: '0',
+    resolution_summary: '',
+  });
 
   const knownReportIdsRef = useRef(null);
   const incidentsRef = useRef(new Set());
@@ -374,9 +381,26 @@ export default function EmergencyCommandCenter() {
     isMainIncident ? selectedIncident?.status : focusedReport?.status
   ) || 'pending';
 
+  const currentIncidentRecord = reports.find(
+    (report) => String(report.id) === String(focusedReport?.id)
+  )?.incidentRecord || focusedReport?.incidentRecord || null;
+
+  useEffect(() => {
+    setRecordForm({
+      damage_assessment: currentIncidentRecord?.damage_assessment || '',
+      casualties_count: String(currentIncidentRecord?.casualties_count ?? 0),
+      resolution_summary: currentIncidentRecord?.resolution_summary || '',
+    });
+  }, [
+    focusedReport?.id,
+    currentIncidentRecord?.damage_assessment,
+    currentIncidentRecord?.casualties_count,
+    currentIncidentRecord?.resolution_summary,
+  ]);
+
   const shareResponderLocation = useCallback(async (position) => {
     if (!dispatchReportId) return;
-    await apiRequest(`/reports/${dispatchReportId}/dispatch-location`, {
+    const payload = await apiRequest(`/reports/${dispatchReportId}/dispatch-location`, {
       method: 'POST',
       body: JSON.stringify({
         latitude: position.latitude,
@@ -384,12 +408,60 @@ export default function EmergencyCommandCenter() {
         accuracy_meters: Number.isFinite(position.accuracy) ? position.accuracy : undefined,
       }),
     });
-  }, [dispatchReportId]);
+    if (payload?.data?.auto_arrived) {
+      await loadCommandCenter(false);
+    }
+  }, [dispatchReportId, loadCommandCenter]);
+
+  const handleAutoArrive = useCallback(async (reading) => {
+    if (!focusedReport) return;
+    setError('');
+    try {
+      let transitioned = false;
+      if (dispatchReportId) {
+        const payload = await apiRequest(`/reports/${dispatchReportId}/dispatch-location`, {
+          method: 'POST',
+          body: JSON.stringify({
+            latitude: reading.latitude,
+            longitude: reading.longitude,
+            accuracy_meters: Number.isFinite(reading.accuracy) ? reading.accuracy : undefined,
+            arrived: true,
+          }),
+        });
+        transitioned = Boolean(payload?.data?.auto_arrived || payload?.data?.status === 'arrived');
+      }
+
+      if (!transitioned) {
+        if (isMainIncident && selectedIncident) {
+          await apiRequest(`/incidents/${selectedIncident.id}/status`, {
+            method: 'PATCH',
+            body: JSON.stringify({ status: 'arrived' }),
+          });
+        } else {
+          await apiRequest(`/reports/${focusedReport.id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({
+              data: {
+                type: 'fire_report',
+                attributes: { status: 'arrived' },
+              },
+            }),
+          });
+        }
+      }
+
+      await loadCommandCenter(false);
+    } catch (requestError) {
+      setError(requestError.message || 'Unable to mark the response unit as arrived.');
+    }
+  }, [dispatchReportId, focusedReport, isMainIncident, loadCommandCenter, selectedIncident]);
 
   const navigation = useRouteNavigation({
     destination: focusedReport,
     existingResponder: responderPosition,
     onShareLocation: shareResponderLocation,
+    canAutoArrive: activeStatus === 'responding' && Boolean(dispatchInfo),
+    onAutoArrive: handleAutoArrive,
   });
 
   const availableStatuses = useMemo(() => {
@@ -576,7 +648,62 @@ export default function EmergencyCommandCenter() {
   };
 
   const handleReceiveReport = () => updateActiveStatus('accepted');
-  const handleResolveIncident = () => updateActiveStatus('resolved');
+
+  const resolveWithIncidentRecord = async (event) => {
+    event.preventDefault();
+    if (!focusedReport) return;
+
+    const damageAssessment = recordForm.damage_assessment.trim();
+    const resolutionSummary = recordForm.resolution_summary.trim();
+    const casualtiesCount = Number(recordForm.casualties_count);
+
+    if (
+      !damageAssessment
+      || recordForm.casualties_count === ''
+      || !Number.isFinite(casualtiesCount)
+      || casualtiesCount < 0
+      || !resolutionSummary
+    ) {
+      setError('Complete damage assessment, casualties count, and resolution summary before resolving.');
+      return;
+    }
+
+    setUpdating(true);
+    setError('');
+    try {
+      await apiRequest(`/reports/${focusedReport.id}/incident-record`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          damage_assessment: damageAssessment,
+          casualties_count: casualtiesCount,
+          resolution_summary: resolutionSummary,
+        }),
+      });
+
+      if (isMainIncident && selectedIncident) {
+        await apiRequest(`/incidents/${selectedIncident.id}/status`, {
+          method: 'PATCH',
+          body: JSON.stringify({ status: 'resolved' }),
+        });
+      } else {
+        await apiRequest(`/reports/${focusedReport.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            data: {
+              type: 'fire_report',
+              attributes: { status: 'resolved' },
+            },
+          }),
+        });
+      }
+
+      await loadCommandCenter(false);
+    } catch (requestError) {
+      setError(requestError.message || 'Unable to save the incident record and resolve the incident.');
+    } finally {
+      setUpdating(false);
+    }
+  };
 
   const dispatchResponse = async (event) => {
     event.preventDefault();
@@ -995,7 +1122,7 @@ export default function EmergencyCommandCenter() {
               </button>
             </div>
 
-            {/* 3-Step Flow Indicator inside the single modal */}
+            {/* 4-Step Flow Indicator inside the single modal */}
             <div className='bfp-modal-stepper' aria-label='Response workflow progress'>
               <div className={`bfp-step${modalStage === 'request' ? ' is-active' : ' is-done'}`}>
                 <span className='bfp-step-num'>{modalStage === 'request' ? '1' : '✓'}</span>
@@ -1007,9 +1134,14 @@ export default function EmergencyCommandCenter() {
                 <span>Dispatch Unit</span>
               </div>
               <span className='bfp-step-line' aria-hidden='true' />
-              <div className={`bfp-step${modalStage === 'info' ? ' is-active' : ''}`}>
-                <span className='bfp-step-num'>3</span>
-                <span>Dispatch Info</span>
+              <div className={`bfp-step${activeStatus === 'responding' ? ' is-active' : ['arrived', 'resolved'].includes(activeStatus) ? ' is-done' : ''}`}>
+                <span className='bfp-step-num'>{['arrived', 'resolved'].includes(activeStatus) ? '✓' : '3'}</span>
+                <span>En Route</span>
+              </div>
+              <span className='bfp-step-line' aria-hidden='true' />
+              <div className={`bfp-step${activeStatus === 'arrived' ? ' is-active' : activeStatus === 'resolved' ? ' is-done' : ''}`}>
+                <span className='bfp-step-num'>{activeStatus === 'resolved' ? '✓' : '4'}</span>
+                <span>{activeStatus === 'resolved' ? 'Resolved' : 'Arrived'}</span>
               </div>
             </div>
 
@@ -1153,13 +1285,36 @@ export default function EmergencyCommandCenter() {
                 </div>
               )}
 
-              {/* STAGE 3: Dispatch Info (Remaining Route, Meta, Incident Info, Current Response Unit, Supporting Reports) */}
+              {/* STAGE 3: Dispatch Info (Remaining Route, Auto-Arrival, Incident Record Form -> Incident Resolved) */}
               {modalStage === 'info' && (
                 <div className='bfp-modal-stage'>
-                  <RouteNavigationPanel
-                    navigation={navigation}
-                    canTrack={Boolean(dispatchInfo)}
-                  />
+                  {['responding', 'arrived'].includes(activeStatus) && (
+                    <RouteNavigationPanel
+                      navigation={navigation}
+                      canTrack={Boolean(dispatchInfo) && activeStatus === 'responding'}
+                    />
+                  )}
+
+                  {activeStatus === 'responding' && navigation.arrivalPending && (
+                    <div className='bfp-arrival-pending-banner' role='status'>
+                      <strong>Within arrival range</strong>
+                      <p>Confirming arrival automatically once the response unit stops moving at the incident site.</p>
+                    </div>
+                  )}
+
+                  {activeStatus === 'arrived' && (
+                    <div className='bfp-arrived-banner' role='status'>
+                      <span aria-hidden='true'>✓</span>
+                      <div>
+                        <strong>Arrived on scene</strong>
+                        <small>
+                          {dispatchInfo?.arrived_at
+                            ? `Arrived ${formatDate(dispatchInfo.arrived_at)} · Complete the incident record below to resolve.`
+                            : 'Complete the incident record below, then click Incident Resolved.'}
+                        </small>
+                      </div>
+                    </div>
+                  )}
 
                   <div className='bfp-incident-meta'>
                     {isMainIncident ? (
@@ -1207,11 +1362,71 @@ export default function EmergencyCommandCenter() {
                     </div>
                   )}
 
-                  {!isMainIncident && focusedReport.incidentRecord && (
+                  {activeStatus === 'responding' && (
+                    <p className='bfp-modal-hint'>
+                      Progress automatically updates to <strong>Arrived</strong> once live GPS tracking reaches the incident location and stops moving.
+                    </p>
+                  )}
+
+                  {activeStatus === 'arrived' && (
+                    <form className='bfp-incident-record-form bfp-modal-record-form' onSubmit={resolveWithIncidentRecord}>
+                      <h3>Incident record &amp; resolution</h3>
+                      <label htmlFor='modal-record-damage'>Damage assessment</label>
+                      <textarea
+                        id='modal-record-damage'
+                        rows='3'
+                        maxLength='5000'
+                        placeholder='Describe structural or property damages observed on site'
+                        value={recordForm.damage_assessment}
+                        onChange={(event) => setRecordForm((current) => ({ ...current, damage_assessment: event.target.value }))}
+                        required
+                      />
+                      <label htmlFor='modal-record-casualties'>Casualties count</label>
+                      <input
+                        id='modal-record-casualties'
+                        type='number'
+                        min='0'
+                        value={recordForm.casualties_count}
+                        onChange={(event) => setRecordForm((current) => ({ ...current, casualties_count: event.target.value }))}
+                        required
+                      />
+                      <label htmlFor='modal-record-resolution'>Resolution summary</label>
+                      <textarea
+                        id='modal-record-resolution'
+                        rows='3'
+                        maxLength='5000'
+                        placeholder='Summarize fire suppression and clearance actions'
+                        value={recordForm.resolution_summary}
+                        onChange={(event) => setRecordForm((current) => ({ ...current, resolution_summary: event.target.value }))}
+                        required
+                      />
+                      <div className='bfp-modal-stage-footer'>
+                        <button
+                          type='submit'
+                          className='bfp-resolve-btn'
+                          disabled={
+                            updating
+                            || !recordForm.damage_assessment.trim()
+                            || recordForm.casualties_count === ''
+                            || !recordForm.resolution_summary.trim()
+                          }
+                        >
+                          {updating ? 'Saving & resolving…' : 'Incident Resolved'}
+                        </button>
+                      </div>
+                    </form>
+                  )}
+
+                  {activeStatus === 'resolved' && currentIncidentRecord && (
                     <div className='bfp-assignment-note'>
                       <strong>Incident record</strong>
-                      <p>{focusedReport.incidentRecord.resolution_summary || focusedReport.incidentRecord.damage_assessment || 'An incident record is available.'}</p>
-                      <p>Casualties: {focusedReport.incidentRecord.casualties_count ?? 'Not recorded'}</p>
+                      {currentIncidentRecord.damage_assessment && (
+                        <p><strong>Damages:</strong> {currentIncidentRecord.damage_assessment}</p>
+                      )}
+                      <p><strong>Casualties:</strong> {currentIncidentRecord.casualties_count ?? 'Not recorded'}</p>
+                      {currentIncidentRecord.resolution_summary && (
+                        <p><strong>Resolution summary:</strong> {currentIncidentRecord.resolution_summary}</p>
+                      )}
                     </div>
                   )}
 
@@ -1241,19 +1456,6 @@ export default function EmergencyCommandCenter() {
                         </button>
                       </form>
                     </>
-                  )}
-
-                  {activeStatus === 'responding' && (
-                    <div className='bfp-modal-stage-footer'>
-                      <button
-                        type='button'
-                        className='bfp-resolve-btn'
-                        disabled={updating}
-                        onClick={handleResolveIncident}
-                      >
-                        {updating ? 'Updating…' : 'Mark Incident Resolved'}
-                      </button>
-                    </div>
                   )}
                 </div>
               )}

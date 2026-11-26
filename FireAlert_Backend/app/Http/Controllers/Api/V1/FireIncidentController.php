@@ -11,6 +11,7 @@ use App\Services\IncidentGroupingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * BFP-only incident grouping: the Main Incident list, report attachments,
@@ -148,7 +149,7 @@ class FireIncidentController extends APIController
         $this->authorizeBfp($request);
 
         $attributes = $request->validate([
-            'status' => ['required', 'string', 'in:pending,accepted,responding,resolved,rejected'],
+            'status' => ['required', 'string', 'in:pending,accepted,responding,arrived,resolved,rejected'],
         ]);
 
         DB::transaction(function () use ($incident, $attributes, $request): void {
@@ -162,6 +163,20 @@ class FireIncidentController extends APIController
                 ->where('fire_incident_id', $incident->getKey())
                 ->whereNotIn(FireReport::columnFor('status'), FireReport::statusIdsForValues(['resolved', 'rejected']))
                 ->update([FireReport::columnFor('status') => FireReport::statusIdsForValues([$attributes['status']])[0] ?? $attributes['status']]);
+
+            if ($attributes['status'] === 'arrived' && Schema::hasTable('response_dispatches')) {
+                $reportIds = FireReport::query()
+                    ->where('fire_incident_id', $incident->getKey())
+                    ->pluck((new FireReport())->getKeyName())
+                    ->all();
+
+                if ($reportIds !== []) {
+                    DB::table('response_dispatches')
+                        ->whereIn('report_id', $reportIds)
+                        ->whereNull('arrived_at')
+                        ->update(['arrived_at' => now()]);
+                }
+            }
 
             \App\Models\FireIncidentAction::create([
                 'fire_incident_id' => $incident->getKey(),

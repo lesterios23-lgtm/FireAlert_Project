@@ -53,9 +53,23 @@ test('refreshes BFP reports every 12 seconds', async () => {
   expect(apiRequest).toHaveBeenLastCalledWith('/incidents');
 });
 
-test('single modal transitions from Report Request (Receive) to Dispatch (En Route) to Dispatch Info without ETA input or status dropdown', async () => {
+test('single modal transitions from Report Request (Receive) to Dispatch (En Route) to auto-Arrived to Incident Record resolution', async () => {
   let currentStatus = 'pending';
   let currentDispatch = null;
+  let currentRecord = null;
+
+  const originalGeolocation = navigator.geolocation;
+  let watchSuccess = null;
+  Object.defineProperty(navigator, 'geolocation', {
+    configurable: true,
+    value: {
+      watchPosition: jest.fn((success) => {
+        watchSuccess = success;
+        return 1;
+      }),
+      clearWatch: jest.fn(),
+    },
+  });
 
   const makeCommandCenter = () => ({
     data: {
@@ -70,6 +84,7 @@ test('single modal transitions from Report Request (Receive) to Dispatch (En Rou
           longitude: 121.44,
         },
         dispatch: currentDispatch,
+        incidentRecord: currentRecord,
         includes: { resident: { attributes: { name: 'Resident' } } },
       }],
       trucks: [{ truck_id: 3, unit_name: 'Engine 1', status: 'Available' }],
@@ -81,6 +96,8 @@ test('single modal transitions from Report Request (Receive) to Dispatch (En Rou
         { status_id: 1, status_name: 'Submitted' },
         { status_id: 2, status_name: 'Received' },
         { status_id: 3, status_name: 'En Route' },
+        { status_id: 4, status_name: 'Arrived' },
+        { status_id: 5, status_name: 'Resolved' },
       ],
     },
   });
@@ -102,53 +119,140 @@ test('single modal transitions from Report Request (Receive) to Dispatch (En Rou
       };
       return Promise.resolve({ status: 200 });
     }
+    if (path === '/reports/42/dispatch-location' && options?.method === 'POST') {
+      const parsed = JSON.parse(options.body);
+      if (parsed.arrived) {
+        currentStatus = 'arrived';
+        currentDispatch = {
+          ...currentDispatch,
+          arrived_at: '2026-11-04T10:12:00Z',
+        };
+      }
+      return Promise.resolve({
+        status: 200,
+        data: {
+          dispatch: currentDispatch,
+          auto_arrived: Boolean(parsed.arrived),
+          status: currentStatus,
+        },
+      });
+    }
+    if (path === '/reports/42/incident-record' && options?.method === 'PUT') {
+      currentRecord = JSON.parse(options.body);
+      return Promise.resolve({ status: 200 });
+    }
     return Promise.resolve(makeCommandCenter());
   });
 
-  render(<EmergencyCommandCenter />);
+  try {
+    render(<EmergencyCommandCenter />);
 
-  // Click the pin on the map to open the single modal
-  const pinButton = await screen.findByTestId('map-pin-42');
-  fireEvent.click(pinButton);
+    // Click the pin on the map to open the single modal
+    const pinButton = await screen.findByTestId('map-pin-42');
+    fireEvent.click(pinButton);
 
-  // Stage 1: Report Request Info + Receive button (no status dropdown, no ETA input)
-  const dialog = await screen.findByRole('dialog');
-  expect(within(dialog).getByRole('heading', { name: 'Mansalay Public Market' })).toBeInTheDocument();
-  expect(within(dialog).queryByLabelText(/Response status/i)).not.toBeInTheDocument();
-  expect(within(dialog).queryByLabelText(/Suggested arrival time/i)).not.toBeInTheDocument();
+    // Stage 1: Report Request Info + Receive button (no status dropdown, no ETA input)
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByRole('heading', { name: 'Mansalay Public Market' })).toBeInTheDocument();
+    expect(within(dialog).queryByLabelText(/Response status/i)).not.toBeInTheDocument();
+    expect(within(dialog).queryByLabelText(/Suggested arrival time/i)).not.toBeInTheDocument();
 
-  fireEvent.click(within(dialog).getByRole('button', { name: /Receive Report/i }));
+    fireEvent.click(within(dialog).getByRole('button', { name: /Receive Report/i }));
 
-  await waitFor(() => expect(apiRequest).toHaveBeenCalledWith('/reports/42', expect.objectContaining({
-    method: 'PATCH',
-    body: JSON.stringify({
-      data: {
-        type: 'fire_report',
-        attributes: { status: 'accepted' },
-      },
-    }),
-  })));
+    await waitFor(() => expect(apiRequest).toHaveBeenCalledWith('/reports/42', expect.objectContaining({
+      method: 'PATCH',
+      body: JSON.stringify({
+        data: {
+          type: 'fire_report',
+          attributes: { status: 'accepted' },
+        },
+      }),
+    })));
 
-  // Stage 2: Dispatch Fill-up inside the SAME modal (Fire truck + BFP personnel, no ETA input)
-  const truckSelect = await within(dialog).findByLabelText('Fire truck');
-  expect(within(dialog).queryByLabelText(/Suggested arrival time/i)).not.toBeInTheDocument();
-  expect(within(dialog).getByRole('option', { name: /BFP Member Without Profile.*Complete personnel profile/i })).toBeDisabled();
+    // Stage 2: Dispatch Fill-up inside the SAME modal (Fire truck + BFP personnel, no ETA input)
+    const truckSelect = await within(dialog).findByLabelText('Fire truck');
+    expect(within(dialog).queryByLabelText(/Suggested arrival time/i)).not.toBeInTheDocument();
+    expect(within(dialog).getByRole('option', { name: /BFP Member Without Profile.*Complete personnel profile/i })).toBeDisabled();
 
-  fireEvent.change(truckSelect, { target: { value: '3' } });
-  fireEvent.change(within(dialog).getByLabelText('BFP personnel'), { target: { value: '4' } });
-  fireEvent.click(within(dialog).getByRole('button', { name: /^En Route$/i }));
+    fireEvent.change(truckSelect, { target: { value: '3' } });
+    fireEvent.change(within(dialog).getByLabelText('BFP personnel'), { target: { value: '4' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: /^En Route$/i }));
 
-  await waitFor(() => expect(apiRequest).toHaveBeenCalledWith('/reports/42/dispatch', expect.objectContaining({
-    method: 'POST',
-    body: expect.stringContaining('"truck_id":3'),
-  })));
+    await waitFor(() => expect(apiRequest).toHaveBeenCalledWith('/reports/42/dispatch', expect.objectContaining({
+      method: 'POST',
+      body: expect.stringContaining('"truck_id":3'),
+    })));
 
-  // Stage 3: Dispatch Info inside the SAME modal
-  expect(await within(dialog).findByText(/Current response unit/i)).toBeInTheDocument();
-  expect(within(dialog).getByText(/Engine 1 · Duty Officer/i)).toBeInTheDocument();
-  expect(within(dialog).getByRole('button', { name: /Mark Incident Resolved/i })).toBeInTheDocument();
-  // Ensure only ONE modal dialog is ever rendered
-  expect(screen.getAllByRole('dialog')).toHaveLength(1);
+    // Stage 3 (En Route): Dispatch Info inside the SAME modal; resolve button not shown until Arrived
+    expect(await within(dialog).findByText(/Current response unit/i)).toBeInTheDocument();
+    expect(within(dialog).getByText(/Engine 1 · Duty Officer/i)).toBeInTheDocument();
+    expect(within(dialog).queryByRole('button', { name: /Incident Resolved/i })).not.toBeInTheDocument();
+
+    // Simulate responder stopping within meters of the incident location for 10s -> automatic Arrived
+    jest.useFakeTimers();
+    fireEvent.click(within(dialog).getByRole('button', { name: /Start live GPS tracking/i }));
+    await act(async () => {
+      watchSuccess({
+        coords: { latitude: 12.4, longitude: 121.44, accuracy: 8 },
+        timestamp: Date.now(),
+      });
+      await Promise.resolve();
+    });
+    expect(within(dialog).getByText(/Within arrival range/i)).toBeInTheDocument();
+    await act(async () => {
+      jest.advanceTimersByTime(10000);
+      await Promise.resolve();
+    });
+    jest.useRealTimers();
+
+    await waitFor(() => expect(apiRequest).toHaveBeenCalledWith('/reports/42/dispatch-location', expect.objectContaining({
+      method: 'POST',
+      body: expect.stringContaining('"arrived":true'),
+    })));
+
+    // Now in Arrived state: Incident record form appears and must be filled before clicking Incident Resolved
+    const damageField = await within(dialog).findByLabelText(/Damage assessment/i);
+    const casualtiesField = within(dialog).getByLabelText(/Casualties count/i);
+    const summaryField = within(dialog).getByLabelText(/Resolution summary/i);
+    const resolveButton = within(dialog).getByRole('button', { name: /^Incident Resolved$/i });
+    expect(resolveButton).toBeDisabled();
+
+    fireEvent.change(damageField, { target: { value: 'Kitchen wall scorched' } });
+    fireEvent.change(casualtiesField, { target: { value: '0' } });
+    fireEvent.change(summaryField, { target: { value: 'Fire extinguished and scene cleared.' } });
+    expect(resolveButton).not.toBeDisabled();
+
+    fireEvent.click(resolveButton);
+
+    await waitFor(() => expect(apiRequest).toHaveBeenCalledWith('/reports/42/incident-record', expect.objectContaining({
+      method: 'PUT',
+      body: JSON.stringify({
+        damage_assessment: 'Kitchen wall scorched',
+        casualties_count: 0,
+        resolution_summary: 'Fire extinguished and scene cleared.',
+      }),
+    })));
+
+    await waitFor(() => expect(apiRequest).toHaveBeenCalledWith('/reports/42', expect.objectContaining({
+      method: 'PATCH',
+      body: JSON.stringify({
+        data: {
+          type: 'fire_report',
+          attributes: { status: 'resolved' },
+        },
+      }),
+    })));
+
+    // Saved record is shown in Resolved state and only ONE modal dialog is ever rendered
+    expect(await within(dialog).findByText(/Kitchen wall scorched/i)).toBeInTheDocument();
+    expect(screen.getAllByRole('dialog')).toHaveLength(1);
+  } finally {
+    jest.useRealTimers();
+    Object.defineProperty(navigator, 'geolocation', {
+      configurable: true,
+      value: originalGeolocation,
+    });
+  }
 });
 
 test('groups supporting reports under one Main Incident with verify flags and receives whole incident', async () => {

@@ -13,6 +13,7 @@ const STATUS_PROGRESS = {
   pending: 0,
   accepted: 1,
   responding: 3,
+  arrived: 4,
   resolved: 5,
 };
 

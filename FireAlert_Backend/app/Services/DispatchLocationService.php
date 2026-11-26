@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
+use App\Models\FireIncident;
 use App\Models\FireReport;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -16,6 +18,11 @@ use Illuminate\Support\Facades\Schema;
  */
 class DispatchLocationService
 {
+    public const ARRIVAL_RADIUS_METERS = 75.0;
+
+    public const STATIONARY_RADIUS_METERS = 15.0;
+
+    public const STATIONARY_DWELL_SECONDS = 10;
     public function latestForReport(FireReport $report): ?array
     {
         $row = $this->latestRowForReports($this->reportIdsFor($report));
@@ -93,6 +100,7 @@ class DispatchLocationService
         float $latitude,
         float $longitude,
         ?float $accuracyMeters = null,
+        bool $forceArrived = false,
     ): ?array {
         if (! Schema::hasTable('response_dispatches')
             || ! Schema::hasColumn('response_dispatches', 'current_latitude')
@@ -103,6 +111,41 @@ class DispatchLocationService
         $dispatch = $this->latestRowForReports($this->reportIdsFor($report));
         if (! $dispatch) {
             return null;
+        }
+
+        $isResponding = $report->status === 'responding'
+            || ($report->fire_incident_id !== null
+                && FireIncident::query()->whereKey($report->fire_incident_id)->value('status') === 'responding');
+
+        $shouldAutoArrive = false;
+        if ($isResponding && $report->latitude !== null && $report->longitude !== null) {
+            $incidentLat = (float) $report->latitude;
+            $incidentLng = (float) $report->longitude;
+            $distanceToIncident = $this->haversineMeters($latitude, $longitude, $incidentLat, $incidentLng);
+
+            if ($distanceToIncident <= self::ARRIVAL_RADIUS_METERS) {
+                if ($forceArrived) {
+                    $shouldAutoArrive = true;
+                } elseif (
+                    $dispatch->current_latitude !== null
+                    && $dispatch->current_longitude !== null
+                    && $dispatch->location_updated_at !== null
+                ) {
+                    $prevLat = (float) $dispatch->current_latitude;
+                    $prevLng = (float) $dispatch->current_longitude;
+                    $prevDistToIncident = $this->haversineMeters($prevLat, $prevLng, $incidentLat, $incidentLng);
+                    $movementMeters = $this->haversineMeters($latitude, $longitude, $prevLat, $prevLng);
+                    $elapsedSeconds = abs(now()->getTimestamp() - Carbon::parse($dispatch->location_updated_at)->getTimestamp());
+
+                    if (
+                        $prevDistToIncident <= self::ARRIVAL_RADIUS_METERS
+                        && $movementMeters < self::STATIONARY_RADIUS_METERS
+                        && $elapsedSeconds >= self::STATIONARY_DWELL_SECONDS
+                    ) {
+                        $shouldAutoArrive = true;
+                    }
+                }
+            }
         }
 
         $attributes = [
@@ -121,7 +164,68 @@ class DispatchLocationService
             ->where('dispatch_id', $dispatch->id)
             ->update($attributes);
 
-        return $this->latestForReport($report);
+        if ($shouldAutoArrive) {
+            $this->markArrived($report, (int) $dispatch->id);
+        }
+
+        $serialized = $this->latestForReport($report);
+        if ($serialized !== null) {
+            $serialized['auto_arrived'] = $shouldAutoArrive;
+        }
+
+        return $serialized;
+    }
+
+    public function markArrived(FireReport $report, ?int $dispatchId = null): void
+    {
+        DB::transaction(function () use ($report, $dispatchId): void {
+            if (Schema::hasTable('response_dispatches')) {
+                $query = DB::table('response_dispatches')->whereNull('arrived_at');
+                if ($dispatchId !== null) {
+                    $query->where('dispatch_id', $dispatchId);
+                } else {
+                    $query->whereIn('report_id', $this->reportIdsFor($report));
+                }
+                $query->update(['arrived_at' => now()]);
+            }
+
+            if ($report->status === 'responding') {
+                $report->updateFromApi(['status' => 'arrived']);
+            }
+
+            if ($report->fire_incident_id !== null) {
+                $incident = FireIncident::query()
+                    ->whereKey($report->fire_incident_id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($incident && $incident->status === 'responding') {
+                    $incident->status = 'arrived';
+                    $incident->save();
+                }
+
+                FireReport::query()
+                    ->where('fire_incident_id', $report->fire_incident_id)
+                    ->whereNotIn(
+                        FireReport::columnFor('status'),
+                        FireReport::statusIdsForValues(['resolved', 'rejected']),
+                    )
+                    ->update([
+                        FireReport::columnFor('status') => FireReport::statusIdsForValues(['arrived'])[0] ?? 'arrived',
+                    ]);
+            }
+        });
+    }
+
+    private function haversineMeters(float $lat1, float $lng1, float $lat2, float $lng2): float
+    {
+        $earthRadiusMeters = 6371000.0;
+        $dLat = deg2rad($lat2 - $lat1);
+        $dLng = deg2rad($lng2 - $lng1);
+        $a = sin($dLat / 2) ** 2
+            + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * (sin($dLng / 2) ** 2);
+
+        return 2 * $earthRadiusMeters * asin(min(1.0, sqrt($a)));
     }
 
     /**

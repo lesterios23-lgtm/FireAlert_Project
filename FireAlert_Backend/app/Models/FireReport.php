@@ -147,6 +147,7 @@ class FireReport extends Model
             'pending' => 'Submitted',
             'accepted' => 'Received',
             'responding' => 'En Route',
+            'arrived' => 'Arrived',
             'resolved' => 'Resolved',
             'rejected' => 'Rejected',
             default => '',
@@ -164,7 +165,7 @@ class FireReport extends Model
     public static function availableStatusValues(): array
     {
         if (! Schema::hasColumn('fire_reports', 'status_id')) {
-            return ['pending', 'accepted', 'responding', 'resolved', 'rejected'];
+            return ['pending', 'accepted', 'responding', 'arrived', 'resolved', 'rejected'];
         }
 
         return DB::table('response_statuses')
@@ -172,7 +173,8 @@ class FireReport extends Model
             ->map(static fn (string $name): ?string => match (strtolower($name)) {
                 'submitted' => 'pending',
                 'received', 'dispatched' => 'accepted',
-                'en route', 'arrived' => 'responding',
+                'en route' => 'responding',
+                'arrived' => 'arrived',
                 'resolved' => 'resolved',
                 'rejected' => 'rejected',
                 default => null,
@@ -285,7 +287,8 @@ class FireReport extends Model
         return match (strtolower((string) $statusName)) {
             'submitted' => 'pending',
             'received', 'dispatched' => 'accepted',
-            'en route', 'arrived' => 'responding',
+            'en route' => 'responding',
+            'arrived' => 'arrived',
             'resolved' => 'resolved',
             default => null,
         };
@@ -303,6 +306,7 @@ class FireReport extends Model
             'pending' => 'Submitted',
             'accepted' => 'Received',
             'responding' => 'En Route',
+            'arrived' => 'Arrived',
             'resolved' => 'Resolved',
             'rejected' => 'Rejected',
             default => null,

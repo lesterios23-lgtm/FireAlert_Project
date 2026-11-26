@@ -8,6 +8,7 @@ const STATUS_LABELS = {
   pending: 'Report submitted',
   accepted: 'Report received',
   responding: 'En route',
+  arrived: 'Arrived',
   resolved: 'Incident resolved',
   rejected: 'Report rejected',
 };
@@ -55,7 +56,7 @@ export default function ResponseTrackingScreen({ report }) {
 
   useEffect(() => {
     refreshReport();
-    const intervalMs = trackingReport?.status === 'responding' ? 15000 : 30000;
+    const intervalMs = ['responding', 'arrived'].includes(trackingReport?.status) ? 15000 : 30000;
     const timer = window.setInterval(refreshReport, intervalMs);
     return () => window.clearInterval(timer);
   }, [refreshReport, trackingReport?.status]);
@@ -122,19 +123,31 @@ export default function ResponseTrackingScreen({ report }) {
           <span aria-hidden='true'>♧</span>
           <div>
             <strong>
-              {dispatch
-                ? `${unitName} dispatched`
-                : trackingReport.status === 'responding'
-                  ? 'Response en route'
-                  : 'Awaiting BFP response'}
+              {trackingReport.status === 'arrived'
+                ? `${unitName} arrived on scene`
+                : dispatch
+                  ? `${unitName} dispatched`
+                  : trackingReport.status === 'responding'
+                    ? 'Response en route'
+                    : 'Awaiting BFP response'}
             </strong>
             <small>
-              {dispatch
-                ? `${personnelName} · ETA ${dispatch.estimated_eta_minutes ?? '—'} min${liveLocation ? ' · live GPS available' : ' · GPS pending'}`
-                : 'BFP personnel will assign a unit and estimated arrival time after verification.'}
+              {trackingReport.status === 'arrived'
+                ? `${personnelName} · Arrived on scene`
+                : dispatch
+                  ? `${personnelName} · ETA ${dispatch.estimated_eta_minutes ?? '—'} min${liveLocation ? ' · live GPS available' : ' · GPS pending'}`
+                  : 'BFP personnel will assign a unit and estimated arrival time after verification.'}
             </small>
           </div>
-          <b>{dispatch ? `${dispatch.estimated_eta_minutes ?? '—'} min` : trackingReport.status === 'responding' ? 'En route' : '—'}</b>
+          <b>
+            {trackingReport.status === 'arrived'
+              ? 'Arrived'
+              : dispatch
+                ? `${dispatch.estimated_eta_minutes ?? '—'} min`
+                : trackingReport.status === 'responding'
+                  ? 'En route'
+                  : '—'}
+          </b>
         </div>
       </section>
 

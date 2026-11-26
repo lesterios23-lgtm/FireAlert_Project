@@ -20,6 +20,9 @@ const SHARE_INTERVAL_MS = 8000;
 const SHARE_MIN_DISTANCE_KM = 0.015;
 const REROUTE_MIN_DISTANCE_KM = 0.03;
 const REROUTE_MIN_INTERVAL_MS = 12000;
+const ARRIVAL_RADIUS_METERS = 75;
+const ARRIVAL_STATIONARY_METERS = 15;
+const ARRIVAL_DWELL_MS = 10000;
 
 function geolocationMessage(error) {
   switch (error?.code) {
@@ -63,6 +66,8 @@ export function useRouteNavigation({
   existingResponder = null,
   onShareLocation = null,
   persistLabel = 'responding unit',
+  canAutoArrive = false,
+  onAutoArrive = null,
 }) {
   const destinationPoint = validPoint(destination);
   const destinationLat = destinationPoint?.latitude ?? null;
@@ -81,11 +86,17 @@ export function useRouteNavigation({
   const [shareError, setShareError] = useState('');
   const [lastSharedAt, setLastSharedAt] = useState(null);
   const [showAllSteps, setShowAllSteps] = useState(false);
+  const [arrivalPending, setArrivalPending] = useState(false);
 
   const watchIdRef = useRef(null);
   const trackingActiveRef = useRef(false);
   const hasDeviceFixRef = useRef(false);
   const onShareLocationRef = useRef(onShareLocation);
+  const onAutoArriveRef = useRef(onAutoArrive);
+  const canAutoArriveRef = useRef(canAutoArrive);
+  const stationaryAnchorRef = useRef(null);
+  const arrivalTimerRef = useRef(null);
+  const autoArrivedRef = useRef(false);
   const lastSharedRef = useRef(null);
   const lastRerouteRef = useRef(null);
   const previousDestinationRef = useRef('');
@@ -103,6 +114,26 @@ export function useRouteNavigation({
     onShareLocationRef.current = onShareLocation;
   }, [onShareLocation]);
 
+  useEffect(() => {
+    onAutoArriveRef.current = onAutoArrive;
+  }, [onAutoArrive]);
+
+  const clearArrivalState = useCallback(() => {
+    if (arrivalTimerRef.current != null) {
+      clearTimeout(arrivalTimerRef.current);
+      arrivalTimerRef.current = null;
+    }
+    stationaryAnchorRef.current = null;
+    setArrivalPending(false);
+  }, []);
+
+  useEffect(() => {
+    canAutoArriveRef.current = canAutoArrive;
+    if (!canAutoArrive) {
+      clearArrivalState();
+    }
+  }, [canAutoArrive, clearArrivalState]);
+
   const stopTracking = useCallback(() => {
     trackingActiveRef.current = false;
     if (watchIdRef.current != null && typeof navigator !== 'undefined' && navigator.geolocation) {
@@ -110,7 +141,8 @@ export function useRouteNavigation({
     }
     watchIdRef.current = null;
     setTracking(false);
-  }, []);
+    clearArrivalState();
+  }, [clearArrivalState]);
 
   useEffect(() => () => stopTracking(), [stopTracking]);
 
@@ -120,6 +152,8 @@ export function useRouteNavigation({
     previousDestinationRef.current = destinationKey;
 
     if (watchIdRef.current != null) stopTracking();
+    clearArrivalState();
+    autoArrivedRef.current = false;
     setRoutes([]);
     setRouteState('idle');
     setSelectedRouteIndex(0);
@@ -136,7 +170,7 @@ export function useRouteNavigation({
 
     const fallbackOrigin = validPoint(existingResponder) || validPoint(origin);
     setRouteOrigin(fallbackOrigin);
-  }, [destinationKey, existingResponder, origin, stopTracking]);
+  }, [clearArrivalState, destinationKey, existingResponder, origin, stopTracking]);
 
   // Resident view: follow the latest dispatch fix as it arrives from polling.
   useEffect(() => {
@@ -258,7 +292,39 @@ export function useRouteNavigation({
       lastRerouteRef.current = { time: now, point: reading };
       setRouteOrigin({ latitude: next.latitude, longitude: next.longitude });
     }
-  }, [sharePosition]);
+
+    if (canAutoArriveRef.current && !autoArrivedRef.current && destinationLat != null && destinationLng != null) {
+      const distanceMeters = haversineDistanceKm(reading, {
+        latitude: destinationLat,
+        longitude: destinationLng,
+      }) * 1000;
+
+      if (distanceMeters <= ARRIVAL_RADIUS_METERS) {
+        const anchor = stationaryAnchorRef.current;
+        if (!anchor || haversineDistanceKm(reading, anchor.point) * 1000 >= ARRIVAL_STATIONARY_METERS) {
+          stationaryAnchorRef.current = { point: reading, since: now };
+          setArrivalPending(true);
+          if (arrivalTimerRef.current != null) {
+            clearTimeout(arrivalTimerRef.current);
+          }
+          arrivalTimerRef.current = setTimeout(() => {
+            if (autoArrivedRef.current || !canAutoArriveRef.current) return;
+            autoArrivedRef.current = true;
+            clearArrivalState();
+            stopTracking();
+            onAutoArriveRef.current?.(reading);
+          }, ARRIVAL_DWELL_MS);
+        } else if (now - anchor.since >= ARRIVAL_DWELL_MS) {
+          autoArrivedRef.current = true;
+          clearArrivalState();
+          stopTracking();
+          onAutoArriveRef.current?.(reading);
+        }
+      } else {
+        clearArrivalState();
+      }
+    }
+  }, [clearArrivalState, destinationLat, destinationLng, sharePosition, stopTracking]);
 
   const startTracking = () => {
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
@@ -336,6 +402,7 @@ export function useRouteNavigation({
     livePosition,
     hasLiveOrigin,
     tracking,
+    arrivalPending,
     geolocationError,
     shareError,
     showAllSteps,
@@ -374,6 +441,7 @@ export function RouteNavigationPanel({
     currentPosition,
     hasLiveOrigin,
     tracking,
+    arrivalPending,
     geolocationError,
     shareError,
     showAllSteps,

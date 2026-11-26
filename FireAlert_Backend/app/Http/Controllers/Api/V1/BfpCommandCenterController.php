@@ -137,6 +137,7 @@ class BfpCommandCenterController extends APIController
             'latitude' => ['required', 'numeric', 'between:-90,90'],
             'longitude' => ['required', 'numeric', 'between:-180,180'],
             'accuracy_meters' => ['nullable', 'numeric', 'between:0,100000'],
+            'arrived' => ['sometimes', 'boolean'],
         ]);
 
         $dispatch = $this->dispatchLocations->updateForReport(
@@ -144,13 +145,18 @@ class BfpCommandCenterController extends APIController
             (float) $attributes['latitude'],
             (float) $attributes['longitude'],
             isset($attributes['accuracy_meters']) ? (float) $attributes['accuracy_meters'] : null,
+            (bool) ($attributes['arrived'] ?? false),
         );
 
         if ($dispatch === null) {
             return $this->error('No active dispatch is assigned to this incident.', 422);
         }
 
-        return $this->ok('Responder location updated', ['dispatch' => $dispatch]);
+        return $this->ok('Responder location updated', [
+            'dispatch' => $dispatch,
+            'auto_arrived' => (bool) ($dispatch['auto_arrived'] ?? false),
+            'status' => $report->fresh()?->status,
+        ]);
     }
 
     public function saveIncidentRecord(Request $request, FireReport $report): JsonResponse
@@ -165,6 +171,9 @@ class BfpCommandCenterController extends APIController
         $personnelId = DB::table('bfp_personnel')
             ->where('user_id', $request->user()->getAuthIdentifier())
             ->value('personnel_id');
+        if ($personnelId === null) {
+            $personnelId = $this->dispatchLocations->latestForReport($report)['personnel_id'] ?? null;
+        }
         if ($personnelId === null) {
             return $this->error('Your account is not linked to a BFP personnel record.', 422);
         }

@@ -48,7 +48,7 @@ class DuplicateReportMatcher
             (int) ($config['window_minutes'] ?? 15),
             (float) ($config['description_threshold'] ?? 0.35),
             (float) ($config['tight_radius_meters'] ?? 60),
-            (array) ($config['active_statuses'] ?? ['pending', 'accepted', 'responding']),
+            (array) ($config['active_statuses'] ?? ['pending', 'accepted', 'responding', 'arrived']),
         );
     }
 

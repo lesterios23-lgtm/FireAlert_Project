@@ -18,7 +18,7 @@ return [
         'tight_radius_meters' => (float) env('DUPLICATE_TIGHT_RADIUS_METERS', 60),
 
 
-        'active_statuses' => ['pending', 'accepted', 'responding'],
+        'active_statuses' => ['pending', 'accepted', 'responding', 'arrived'],
     ],
 
     /*

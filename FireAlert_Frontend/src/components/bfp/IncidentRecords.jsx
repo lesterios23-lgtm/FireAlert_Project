@@ -6,6 +6,7 @@ const STATUS_LABELS = {
   pending: 'Report submitted',
   accepted: 'Report received',
   responding: 'En route',
+  arrived: 'Arrived',
   resolved: 'Incident resolved',
   rejected: 'Rejected',
 };
@@ -20,9 +21,10 @@ function statusKey(value) {
     case 'accepted':
       return 'accepted';
     case 'en route':
-    case 'arrived':
     case 'responding':
       return 'responding';
+    case 'arrived':
+      return 'arrived';
     case 'resolved':
       return 'resolved';
     case 'rejected':
