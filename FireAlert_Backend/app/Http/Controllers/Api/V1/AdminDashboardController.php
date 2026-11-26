@@ -6,6 +6,7 @@ use App\Http\Resources\V1\FireReportResource;
 use App\Models\BarangayRiskReference;
 use App\Models\FireReport;
 use App\Models\User;
+use App\Services\FireRiskForecastService;
 use App\Services\LoginAttemptSettings;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -46,8 +47,86 @@ class AdminDashboardController extends APIController
     {
         abort_unless($request->user() && $request->user()->role === 'admin', 403, 'Admin access required.');
         $period = $this->normalizeRiskPeriod($request->query('period'));
+        $day = max(0, min(6, (int) $request->query('day', 0)));
+        $forceRefresh = $request->boolean('refresh');
 
-        return $this->ok('High-risk location analysis retrieved', $this->buildHighRiskAnalysis($period));
+        return $this->ok('High-risk location analysis retrieved', $this->buildHighRiskAnalysis($period, $day, $forceRefresh));
+    }
+
+    public function riskHeatmap(Request $request): JsonResponse
+    {
+        abort_unless($request->user() && $request->user()->role === 'admin', 403, 'Admin access required.');
+
+        $season = in_array($request->query('season'), ['dry', 'wet', 'all'], true)
+            ? (string) $request->query('season')
+            : 'all';
+
+        $rows = $this->incidentRowsForAnalysis();
+        $points = [];
+
+        foreach ($rows as $row) {
+            if (! is_numeric($row->latitude ?? null) || ! is_numeric($row->longitude ?? null)) {
+                continue;
+            }
+
+            if ($season !== 'all') {
+                if (empty($row->reported_at)) {
+                    continue;
+                }
+
+                try {
+                    $month = \Illuminate\Support\Carbon::parse($row->reported_at)->month;
+                } catch (\Throwable) {
+                    continue;
+                }
+
+                if ($season === 'dry' && ($month < 3 || $month > 5)) {
+                    continue;
+                }
+                if ($season === 'wet' && ($month < 6 || $month > 11)) {
+                    continue;
+                }
+            }
+
+            $rawSeverity = strtolower(trim((string) ($row->fire_severity ?? '')));
+            if (! in_array($rawSeverity, ['large', 'medium', 'small'], true)) {
+                $description = (string) ($row->description ?? '');
+                if (preg_match('/Estimated fire size:\s*(small|medium|large)/i', $description, $matches)) {
+                    $rawSeverity = strtolower($matches[1]);
+                }
+            }
+
+            $severity = match ($rawSeverity) {
+                'large' => 'Large',
+                'medium' => 'Medium',
+                default => 'Small',
+            };
+
+            $intensity = match ($rawSeverity) {
+                'large' => 1.0,
+                'medium' => 0.7,
+                default => 0.4,
+            };
+
+            $barangayName = trim((string) ($row->barangay_name ?? ''));
+            if ($barangayName === '') {
+                $barangayName = $this->riskAreaKey($row);
+            }
+
+            $points[] = [
+                'latitude' => (float) $row->latitude,
+                'longitude' => (float) $row->longitude,
+                'barangay_name' => $barangayName,
+                'severity' => $severity,
+                'intensity' => $intensity,
+            ];
+        }
+
+        return $this->ok('Seasonal risk heatmap data retrieved', [
+            'season' => $season,
+            'count' => count($points),
+            'points' => $points,
+        ]);
     }
 
     public function updateLoginAttemptSettings(Request $request): JsonResponse
@@ -290,7 +369,7 @@ class AdminDashboardController extends APIController
      */
     private function highRiskSummary(): array
     {
-        $analysis = $this->buildHighRiskAnalysis('365');
+        $analysis = $this->buildHighRiskAnalysis('365', 0, false, false);
         $ref = BarangayRiskReference::query()->orderBy('barangay_name')->get();
         $refHigh = $ref->where('reference_risk_level', 'High')->count();
         $refModerate = $ref->where('reference_risk_level', 'Moderate')->count();
@@ -331,11 +410,16 @@ class AdminDashboardController extends APIController
     }
 
     /**
-     * Builds explainable high-risk analysis: 6 reference barangays + historical incident stats matched by name.
+     * Builds explainable high-risk analysis: reference barangays + historical incident stats + live 7-day weather forecast.
      *
      * @return array<string, mixed>
      */
-    private function buildHighRiskAnalysis(string $period = '365'): array
+    private function buildHighRiskAnalysis(
+        string $period = '365',
+        int $day = 0,
+        bool $forceRefresh = false,
+        bool $includeForecast = true,
+    ): array
     {
         $rows = $this->incidentRowsForAnalysis();
         $periodDays = $period === 'all' ? null : (int) $period;
@@ -506,22 +590,68 @@ class AdminDashboardController extends APIController
             }
         }
 
+        $referenceWithHistorical = array_map(function ($ref) use ($matchedHistoricalByRef) {
+            $ref['historical'] = $matchedHistoricalByRef[$ref['barangay_name']] ?? ['available' => false];
+
+            return $ref;
+        }, $referenceBarangays);
+
         $periodLabel = $periodDays ? "last {$periodDays} days" : 'all recorded time';
 
-        return [
+        $result = [
             'model_available' => $rows !== [],
             'generated_at' => now()->toIso8601String(),
-            'methodology' => "Reference: the 6 Mansalay barangays listed below use supplied initial reference classifications (not independent verification). Historical incident analysis (when available) is computed from recorded fire reports for {$periodLabel} using frequency, recent activity, and reported severity; this is analytical guidance, not an automatic dispatch trigger and not a trained/validated ML model output.",
-            'seasonal_note' => 'Seasonal risk reference (not a confirmed forecast): Mansalay is generally vulnerable to grass fires during March-May because of prolonged dry conditions and grassland/rolling terrain. This does not automatically change scores unless a documented validated methodology is applied.',
+            'methodology' => "Real-time daily fire-risk prediction combining live Open-Meteo weather forecasts (max temperature, min humidity, wind speed, rainfall), barangay baseline terrain vulnerability, and recorded historical fire incidents ({$periodLabel}). Only locations predicted as High Risk for the selected day are pinned on the map.",
+            'seasonal_note' => 'Seasonal risk reference: Mansalay is generally more vulnerable to grass fires during dry months (March–May) when low humidity, high heat, and low rainfall align.',
             'total_incidents_analyzed' => count($rows),
             'period' => $period,
             'period_days' => $periodDays,
-            'reference_barangays' => array_map(function ($ref) use ($matchedHistoricalByRef) {
-                $ref['historical'] = $matchedHistoricalByRef[$ref['barangay_name']] ?? ['available' => false];
-                return $ref;
-            }, $referenceBarangays),
+            'reference_barangays' => $referenceWithHistorical,
             'historical_areas' => $historicalAreas,
         ];
+
+        if ($includeForecast) {
+            $matchedNames = array_filter(array_map(
+                fn (array $item) => $item['historical']['matched_area_name'] ?? null,
+                $referenceWithHistorical,
+            ));
+
+            $candidateLocations = $referenceWithHistorical;
+            foreach ($historicalAreas as $ha) {
+                if (in_array($ha['area'], $matchedNames, true)) {
+                    continue;
+                }
+                if (! is_numeric($ha['latitude'] ?? null) || ! is_numeric($ha['longitude'] ?? null)) {
+                    continue;
+                }
+
+                $candidateLocations[] = [
+                    'barangay_name' => $ha['area'],
+                    'latitude' => (float) $ha['latitude'],
+                    'longitude' => (float) $ha['longitude'],
+                    'reference_risk_level' => 'Low',
+                    'risk_description' => 'Derived from recorded historical incident coordinates.',
+                    'data_source' => 'Recorded fire incident reports',
+                    'verification_status' => 'Historical incident area',
+                    'reference_last_updated_at' => $ha['last_reported_at'],
+                    'historical' => [
+                        'available' => true,
+                        'incident_count' => $ha['incident_count'],
+                        'risk_level' => $ha['risk_level'],
+                        'risk_score' => $ha['risk_score'],
+                        'average_severity' => $ha['average_severity'],
+                        'last_reported_at' => $ha['last_reported_at'],
+                        'factors' => $ha['factors'],
+                        'matched_area_name' => $ha['area'],
+                    ],
+                ];
+            }
+
+            $forecast = app(FireRiskForecastService::class)->buildForecast($candidateLocations, $day, $forceRefresh);
+            $result = array_merge($result, $forecast);
+        }
+
+        return $result;
     }
 
     /**
@@ -545,6 +675,14 @@ class AdminDashboardController extends APIController
             $select[] = 'r.fire_severity';
         } else {
             $select[] = DB::raw('NULL as fire_severity');
+        }
+
+        if (Schema::hasColumn('fire_reports', 'additional_notes')) {
+            $select[] = 'r.additional_notes as description';
+        } elseif (Schema::hasColumn('fire_reports', 'incident_description')) {
+            $select[] = 'r.incident_description as description';
+        } else {
+            $select[] = DB::raw('NULL as description');
         }
 
         if (Schema::hasColumn('fire_reports', 'latitude') && Schema::hasColumn('fire_reports', 'longitude')) {

@@ -66,6 +66,7 @@ export default function AdminDashboard() {
   const [riskError, setRiskError] = useState('');
   const [selectedRiskArea, setSelectedRiskArea] = useState(null);
   const [riskPeriod, setRiskPeriod] = useState('365');
+  const [riskDay, setRiskDay] = useState(0);
 
   const refresh = useCallback(async () => {
     setError('');
@@ -90,11 +91,14 @@ export default function AdminDashboard() {
     }
   }, []);
 
-  const loadRiskAnalysis = useCallback(async (period = riskPeriod) => {
+  const loadRiskAnalysis = useCallback(async (period = riskPeriod, day = riskDay, forceRefresh = false) => {
     setRiskLoading(true);
     setRiskError('');
     try {
-      const response = await apiRequest(`/admin/high-risk-areas?period=${encodeURIComponent(period)}`);
+      const refreshQuery = forceRefresh ? '&refresh=1' : '';
+      const response = await apiRequest(
+        `/admin/high-risk-areas?period=${encodeURIComponent(period)}&day=${encodeURIComponent(day)}${refreshQuery}`
+      );
       setRiskAnalysis(response.data || null);
       setSelectedRiskArea(null);
     } catch (requestError) {
@@ -102,7 +106,7 @@ export default function AdminDashboard() {
     } finally {
       setRiskLoading(false);
     }
-  }, [riskPeriod]);
+  }, [riskPeriod, riskDay]);
 
   useEffect(() => {
     refresh();
@@ -110,9 +114,9 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (section === 'predictions' && !riskAnalysis && !riskLoading) {
-      loadRiskAnalysis(riskPeriod);
+      loadRiskAnalysis(riskPeriod, riskDay, false);
     }
-  }, [section, riskAnalysis, riskLoading, loadRiskAnalysis, riskPeriod]);
+  }, [section, riskAnalysis, riskLoading, loadRiskAnalysis, riskPeriod, riskDay]);
 
   const reports = dashboard.reports;
   const filteredUsers = useMemo(() => {
@@ -529,9 +533,14 @@ export default function AdminDashboard() {
                 period={riskPeriod}
                 onPeriodChange={(value) => {
                   setRiskPeriod(value);
-                  loadRiskAnalysis(value);
+                  loadRiskAnalysis(value, riskDay, false);
                 }}
-                onRefresh={() => loadRiskAnalysis(riskPeriod)}
+                selectedDay={riskDay}
+                onDayChange={(nextDay) => {
+                  setRiskDay(nextDay);
+                  loadRiskAnalysis(riskPeriod, nextDay, false);
+                }}
+                onRefresh={() => loadRiskAnalysis(riskPeriod, riskDay, true)}
               />
             )}
           </>
@@ -570,9 +579,66 @@ function periodLabel(period) {
   return RISK_PERIODS.find((item) => item.value === String(period))?.label || 'Last 365 days';
 }
 
-function HighRiskPredictionPanel({ analysis, loading, error, selectedArea, onSelectArea, onRefresh, period, onPeriodChange }) {
+function HighRiskPredictionPanel({
+  analysis,
+  loading,
+  error,
+  selectedArea,
+  onSelectArea,
+  onRefresh,
+  period,
+  onPeriodChange,
+  selectedDay = 0,
+  onDayChange,
+}) {
+  const [showHeatmap, setShowHeatmap] = useState(false);
+  const [heatmapSeason, setHeatmapSeason] = useState('dry');
+  const [heatmapPoints, setHeatmapPoints] = useState([]);
+  const [heatmapCount, setHeatmapCount] = useState(0);
+  const [heatmapLoading, setHeatmapLoading] = useState(false);
+  const [heatmapError, setHeatmapError] = useState('');
+  const [listFilter, setListFilter] = useState('high');
+
+  useEffect(() => {
+    if (!showHeatmap) {
+      setHeatmapPoints([]);
+      setHeatmapCount(0);
+      setHeatmapError('');
+      setHeatmapLoading(false);
+      return undefined;
+    }
+
+    let cancelled = false;
+    setHeatmapLoading(true);
+    setHeatmapError('');
+
+    apiRequest(`/admin/risk-heatmap?season=${encodeURIComponent(heatmapSeason)}`)
+      .then((response) => {
+        if (cancelled) return;
+        const rows = Array.isArray(response?.data?.points) ? response.data.points : [];
+        const mapped = rows
+          .map((item) => [Number(item.latitude), Number(item.longitude), Number(item.intensity ?? 0.4)])
+          .filter(([lat, lng]) => Number.isFinite(lat) && Number.isFinite(lng));
+        setHeatmapPoints(mapped);
+        setHeatmapCount(mapped.length);
+      })
+      .catch((requestError) => {
+        if (cancelled) return;
+        setHeatmapPoints([]);
+        setHeatmapCount(0);
+        setHeatmapError(requestError.message || 'Unable to load seasonal risk heatmap data.');
+      })
+      .finally(() => {
+        if (!cancelled) setHeatmapLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [showHeatmap, heatmapSeason, analysis?.generated_at]);
+
   if (loading) {
-    return <div className='admin-loading'>Analyzing historical incident records...</div>;
+    return <div className='admin-loading'>Analyzing live weather forecast and incident records...</div>;
   }
 
   if (error) {
@@ -587,7 +653,11 @@ function HighRiskPredictionPanel({ analysis, loading, error, selectedArea, onSel
   }
 
   const refBarangays = analysis?.reference_barangays || [];
-  if (!analysis || refBarangays.length === 0) {
+  const dailyPredictions = Array.isArray(analysis?.daily_predictions) && analysis.daily_predictions.length > 0
+    ? analysis.daily_predictions
+    : refBarangays;
+
+  if (!analysis || dailyPredictions.length === 0) {
     return (
       <section className='admin-panel admin-prediction-state'>
         <div className='admin-prediction-icon' aria-hidden='true'>!</div>
@@ -597,34 +667,96 @@ function HighRiskPredictionPanel({ analysis, loading, error, selectedArea, onSel
     );
   }
 
-  const refHigh = refBarangays.filter((b) => b.reference_risk_level === 'High').length;
-  const refModerate = refBarangays.filter((b) => b.reference_risk_level === 'Moderate').length;
+  const forecastDays = Array.isArray(analysis?.forecast_days) ? analysis.forecast_days : [];
+  const activeDaySummary = forecastDays.find((d) => Number(d.day_index) === Number(selectedDay)) || null;
+  const selectedDayLabel = activeDaySummary
+    ? `${activeDaySummary.label}${activeDaySummary.date ? ` (${activeDaySummary.date})` : ''}`
+    : (selectedDay === 0 ? 'Today' : `Day +${selectedDay}`);
 
-  const selected = selectedArea && refBarangays.find((b) => b.barangay_name === selectedArea.barangay_name)
-    ? refBarangays.find((b) => b.barangay_name === selectedArea.barangay_name)
-    : refBarangays[0];
+  const highRiskLocations = Array.isArray(analysis?.high_risk_locations)
+    ? analysis.high_risk_locations
+    : dailyPredictions.filter((item) => (item.predicted_risk_level || item.reference_risk_level) === 'High');
 
-  const markers = refBarangays.map((b) => ({
-    id: b.barangay_name,
-    lat: Number(b.latitude),
-    lng: Number(b.longitude),
-    address: `${b.barangay_name} · Reference: ${b.reference_risk_level} risk`,
-  }));
+  const visibleList = listFilter === 'high' ? highRiskLocations : dailyPredictions;
+
+  const selected = (selectedArea && dailyPredictions.find((b) => b.barangay_name === selectedArea.barangay_name))
+    || highRiskLocations[0]
+    || dailyPredictions[0]
+    || null;
+
+  const selectedIsHighRisk = Boolean(
+    selected && highRiskLocations.some((item) => item.barangay_name === selected.barangay_name)
+  );
+  const mapSelected = selectedIsHighRisk && selected.latitude != null && selected.longitude != null
+    ? { latitude: Number(selected.latitude), longitude: Number(selected.longitude) }
+    : null;
+
+  // Map pins ONLY show predicted High-Risk zones for the selected day
+  const markers = highRiskLocations
+    .filter((b) => b.latitude != null && b.longitude != null)
+    .map((b) => ({
+      id: b.barangay_name,
+      lat: Number(b.latitude),
+      lng: Number(b.longitude),
+      address: `${b.barangay_name} · HIGH RISK (${b.predicted_risk_score ?? '—'}/100)`,
+    }));
+
+  const liveHighRiskHeatPoints = highRiskLocations
+    .filter((b) => b.latitude != null && b.longitude != null)
+    .map((b) => [
+      Number(b.latitude),
+      Number(b.longitude),
+      Math.min(1, Math.max(0.55, Number(b.predicted_risk_score || 70) / 100)),
+    ]);
+
+  const effectiveHeatPoints = showHeatmap ? heatmapPoints : liveHighRiskHeatPoints;
+  const weatherReady = analysis?.weather_available !== false;
+  const dayWeatherLabel = activeDaySummary && activeDaySummary.avg_temp_max != null
+    ? `${activeDaySummary.avg_temp_max}°C · ${activeDaySummary.avg_precip_mm ?? 0} mm`
+    : (weatherReady ? '—' : 'Offline');
 
   return (
     <div className='admin-risk-layout'>
       <div className='admin-stat-grid admin-risk-stats'>
-        <StatCard label='Barangays (reference)' value={String(refBarangays.length).padStart(2, '0')} tone='navy' icon='▤' hint='Supplied initial reference' />
-        <StatCard label='High-risk (reference)' value={String(refHigh).padStart(2, '0')} tone='amber' icon='◍' hint='Panaytayan, Budburan, Waygan' />
-        <StatCard label='Moderate-risk (reference)' value={String(refModerate).padStart(2, '0')} tone='blue' icon='◌' hint='Don Pedro, Sta. Maria, Sta. Teresita' />
-        <StatCard label='Historical incidents analyzed' value={String(analysis.total_incidents_analyzed || 0).padStart(2, '0')} tone='navy' icon='○' hint={periodLabel(analysis.period || period)} />
+        <StatCard
+          label='Predicted high risk'
+          value={String(highRiskLocations.length).padStart(2, '0')}
+          tone={highRiskLocations.length > 0 ? 'amber' : 'navy'}
+          icon='◍'
+          hint={selectedDayLabel}
+        />
+        <StatCard
+          label='Monitored areas'
+          value={String(dailyPredictions.length).padStart(2, '0')}
+          tone='navy'
+          icon='▤'
+          hint={weatherReady ? 'Live weather active' : 'Weather feed offline'}
+        />
+        <StatCard
+          label='Historical incidents'
+          value={String(analysis.total_incidents_analyzed || 0).padStart(2, '0')}
+          tone='blue'
+          icon='○'
+          hint={periodLabel(analysis.period || period)}
+        />
+        <StatCard
+          label='Day weather avg'
+          value={dayWeatherLabel}
+          tone='navy'
+          icon='⌁'
+          hint={activeDaySummary?.label || 'Selected forecast day'}
+        />
       </div>
 
       <section className='admin-panel admin-risk-method'>
         <div className='admin-panel-heading admin-risk-heading'>
           <div>
-            <h2>High-risk location analysis</h2>
-            <p>Generated {formatDate(analysis.generated_at)} · Period: {periodLabel(analysis.period || period)}</p>
+            <h2>Daily &amp; 7-Day Fire Risk Prediction</h2>
+            <p>
+              Updated {formatDate(analysis.weather_fetched_at || analysis.generated_at)}
+              {' · '}
+              {analysis.weather_source || 'Open-Meteo'}
+            </p>
           </div>
           <div className='admin-risk-controls'>
             <div className='admin-risk-period'>
@@ -633,59 +765,191 @@ function HighRiskPredictionPanel({ analysis, loading, error, selectedArea, onSel
                 {RISK_PERIODS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
               </select>
             </div>
-            <button type='button' className='admin-refresh' onClick={onRefresh}>Refresh analysis</button>
+            <button type='button' className='admin-refresh' onClick={onRefresh}>Refresh live forecast</button>
           </div>
         </div>
         <p className='admin-risk-note'>{analysis.methodology}</p>
-        {analysis.seasonal_note && (
-          <p className='admin-risk-note' style={{ marginTop: '0.5rem' }}><strong>Seasonal risk reference (not a confirmed forecast):</strong> {analysis.seasonal_note.replace(/^Seasonal risk reference \(not a confirmed forecast\):\s*/i, '')}</p>
-        )}
       </section>
+
+      {forecastDays.length > 0 && (
+        <section className='admin-panel admin-forecast-strip' aria-label='7-day fire risk forecast'>
+          {forecastDays.map((dayItem) => {
+            const isActive = Number(dayItem.day_index) === Number(selectedDay);
+            const hasHigh = (dayItem.high_risk_count || 0) > 0;
+            return (
+              <button
+                type='button'
+                key={dayItem.day_index}
+                className={`admin-forecast-day${isActive ? ' active' : ''}`}
+                aria-pressed={isActive}
+                onClick={() => onDayChange?.(dayItem.day_index)}
+              >
+                <span className='admin-forecast-day-label'>{dayItem.label}</span>
+                <small className='admin-forecast-day-date'>{dayItem.date}</small>
+                <span className='admin-forecast-day-weather'>
+                  {dayItem.avg_temp_max != null ? `${dayItem.avg_temp_max}°C` : '—'}
+                  {dayItem.avg_precip_mm != null ? ` · ${dayItem.avg_precip_mm} mm` : ''}
+                </span>
+                <span className={`admin-forecast-badge ${hasHigh ? 'has-high' : 'is-clear'}`}>
+                  {dayItem.high_risk_count} High Risk
+                </span>
+              </button>
+            );
+          })}
+        </section>
+      )}
 
       <div className='admin-risk-grid'>
         <section className='admin-panel admin-risk-map-panel'>
           <div className='admin-panel-heading'>
-            <div><h2>Mansalay barangay risk map (reference points)</h2><p>Six supplied barangay coordinates. Markers show reference risk level; historical stats are shown per barangay.</p></div>
+            <div>
+              <h2>High-risk zones map — {selectedDayLabel}</h2>
+              <p>Only locations predicted as High Risk for this day are pinned on the map.</p>
+            </div>
+          </div>
+
+          {highRiskLocations.length === 0 && (
+            <div className='admin-risk-safe-banner' role='status'>
+              <strong>No high-risk fire zones predicted for {selectedDayLabel}</strong>
+              <span>Current and forecasted weather conditions keep all monitored areas below the High-Risk threshold.</span>
+            </div>
+          )}
+
+          <div className='admin-heatmap-toolbar'>
+            <div className='admin-heatmap-controls'>
+              <label className='admin-heatmap-toggle' htmlFor='toggleRiskHeatmap'>
+                <input
+                  id='toggleRiskHeatmap'
+                  type='checkbox'
+                  checked={showHeatmap}
+                  onChange={(event) => setShowHeatmap(event.target.checked)}
+                />
+                <span>Show Seasonal High-Risk Zones</span>
+              </label>
+
+              <select
+                id='seasonFilter'
+                aria-label='Seasonal heatmap filter'
+                className='admin-heatmap-select'
+                value={heatmapSeason}
+                disabled={!showHeatmap}
+                onChange={(event) => setHeatmapSeason(event.target.value)}
+              >
+                <option value='all'>All Seasons</option>
+                <option value='dry'>Dry Season (Mar–May)</option>
+                <option value='wet'>Wet Season (Jun–Nov)</option>
+              </select>
+            </div>
+
+            {showHeatmap && (
+              <div className='admin-heatmap-meta'>
+                <div className='admin-heatmap-legend' aria-label='Seasonal heatmap risk legend'>
+                  <span className='admin-heatmap-legend-title'>Risk Level:</span>
+                  <span><i className='admin-heatmap-dot low' /> Low</span>
+                  <span><i className='admin-heatmap-dot moderate' /> Moderate</span>
+                  <span><i className='admin-heatmap-dot high' /> High Risk</span>
+                </div>
+                <span className={`admin-heatmap-status${heatmapError ? ' is-error' : ''}`} role='status'>
+                  {heatmapLoading
+                    ? 'Loading seasonal heatmap…'
+                    : heatmapError
+                      ? heatmapError
+                      : heatmapCount === 0
+                        ? 'No historical coordinates recorded for this season'
+                        : `${heatmapCount} incident point${heatmapCount === 1 ? '' : 's'} plotted`}
+                </span>
+              </div>
+            )}
           </div>
           <GoogleMap
             markers={markers}
-            selected={selected && selected.latitude != null ? { latitude: Number(selected.latitude), longitude: Number(selected.longitude) } : null}
+            selected={mapSelected}
+            heatmapPoints={effectiveHeatPoints}
             height='360px'
             title='High-Risk Location Prediction Map'
           />
           <div className='admin-risk-legend' aria-label='Risk level legend'>
-            <span><i className='high' /> High risk (reference)</span>
-            <span><i className='moderate' /> Moderate risk (reference)</span>
+            <span><i className='high' /> Predicted High Risk (pinned)</span>
+            <span>{markers.length} high-risk pin{markers.length === 1 ? '' : 's'} shown on map</span>
           </div>
         </section>
 
         <section className='admin-panel admin-risk-list-panel'>
           <div className='admin-panel-heading'>
-            <div><h2>Barangay reference list</h2><p>Select a barangay to view details and focus the map</p></div>
+            <div>
+              <h2>Predicted risk areas</h2>
+              <p>Filter between High-Risk only or all monitored barangays</p>
+            </div>
+          </div>
+          <div className='admin-risk-list-tabs' role='tablist' aria-label='Prediction list filter'>
+            <button
+              type='button'
+              role='tab'
+              aria-selected={listFilter === 'high'}
+              className={listFilter === 'high' ? 'active' : ''}
+              onClick={() => setListFilter('high')}
+            >
+              High Risk ({highRiskLocations.length})
+            </button>
+            <button
+              type='button'
+              role='tab'
+              aria-selected={listFilter === 'all'}
+              className={listFilter === 'all' ? 'active' : ''}
+              onClick={() => setListFilter('all')}
+            >
+              All Monitored ({dailyPredictions.length})
+            </button>
           </div>
           <div className='admin-risk-list'>
-            {refBarangays.map((b) => {
+            {visibleList.length === 0 ? (
+              <div className='admin-risk-empty'>
+                <p>No barangays are predicted High Risk for {selectedDayLabel}.</p>
+                <button type='button' className='admin-refresh' onClick={() => setListFilter('all')}>
+                  View all monitored areas
+                </button>
+              </div>
+            ) : visibleList.map((b) => {
               const hist = b.historical || { available: false };
+              const level = b.predicted_risk_level || b.reference_risk_level || 'Low';
+              const tone = riskTone(level);
+              const weather = b.weather;
               return (
                 <button
                   type='button'
                   key={b.barangay_name}
-                  className={`admin-risk-item ${riskTone(b.reference_risk_level)}${selected?.barangay_name === b.barangay_name ? ' selected' : ''}`}
+                  className={`admin-risk-item ${tone}${selected?.barangay_name === b.barangay_name ? ' selected' : ''}`}
                   onClick={() => onSelectArea(b)}
                 >
                   <div className='admin-risk-item-head'>
                     <strong>{b.barangay_name}</strong>
-                    <span className={`admin-risk-badge ${riskTone(b.reference_risk_level)}`}>{b.reference_risk_level}</span>
+                    <span className={`admin-risk-badge ${tone}`}>
+                      {level}{b.predicted_risk_score != null ? ` · ${b.predicted_risk_score}/100` : ''}
+                    </span>
                   </div>
                   <div className='admin-risk-item-meta'>
-                    <span>Ref: {b.reference_risk_level}</span>
-                    {hist.available ? (
-                      <span>Historical: {hist.risk_level || 'Low'} ({hist.incident_count} incident{hist.incident_count === 1 ? '' : 's'})</span>
+                    {weather ? (
+                      <span>
+                        {weather.temp_max_c != null ? `${weather.temp_max_c}°C` : '—'}
+                        {' · '}
+                        {weather.humidity_min_pct != null ? `${weather.humidity_min_pct}% RH` : '—'}
+                        {' · '}
+                        {weather.wind_max_kmh != null ? `${weather.wind_max_kmh} km/h` : '—'}
+                        {' · '}
+                        {weather.precipitation_mm != null ? `${weather.precipitation_mm} mm` : '0 mm'}
+                      </span>
                     ) : (
-                      <span>Historical: unavailable</span>
+                      <span>Ref: {b.reference_risk_level}</span>
+                    )}
+                    {hist.available && (
+                      <span>{hist.incident_count} historical</span>
                     )}
                   </div>
-                  <small>{b.verification_status || 'Supplied initial reference'} · Last incident: {hist.available ? formatDate(hist.last_reported_at) : '—'}</small>
+                  <small>
+                    {Array.isArray(b.reasons) && b.reasons.length > 0
+                      ? b.reasons.slice(0, 2).join(' · ')
+                      : (b.verification_status || 'Monitored area')}
+                  </small>
                 </button>
               );
             })}
@@ -698,10 +962,35 @@ function HighRiskPredictionPanel({ analysis, loading, error, selectedArea, onSel
           <div className='admin-panel-heading'>
             <div>
               <h2>{selected.barangay_name}</h2>
-              <p>Reference + historical analysis (separate)</p>
+              <p>
+                {selectedDayLabel} · Predicted: {selected.predicted_risk_level || selected.reference_risk_level}
+                {selected.predicted_risk_score != null ? ` (${selected.predicted_risk_score}/100)` : ''}
+              </p>
             </div>
           </div>
-          <div style={{ display: 'grid', gap: '0.5rem', fontSize: '0.9rem' }}>
+
+          {selected.weather && (
+            <div className='admin-weather-grid'>
+              <div><span>Condition</span><strong>{selected.weather.condition_label}</strong></div>
+              <div><span>Max Temp</span><strong>{selected.weather.temp_max_c ?? '—'}°C</strong></div>
+              <div><span>Min Humidity</span><strong>{selected.weather.humidity_min_pct ?? '—'}%</strong></div>
+              <div><span>Max Wind</span><strong>{selected.weather.wind_max_kmh ?? '—'} km/h</strong></div>
+              <div><span>Rainfall</span><strong>{selected.weather.precipitation_mm ?? 0} mm</strong></div>
+            </div>
+          )}
+
+          {Array.isArray(selected.reasons) && selected.reasons.length > 0 && (
+            <div className='admin-risk-reasons'>
+              <strong>Risk factors:</strong>
+              <ul>
+                {selected.reasons.map((reason) => (
+                  <li key={reason}>{reason}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <div style={{ display: 'grid', gap: '0.5rem', fontSize: '0.9rem', marginTop: '0.75rem' }}>
             <div><strong>Coordinates:</strong> {selected.latitude}, {selected.longitude}</div>
             <div><strong>Reference risk level:</strong> {selected.reference_risk_level}</div>
             <div><strong>Verification status:</strong> {selected.verification_status || '—'}</div>
@@ -718,7 +1007,7 @@ function HighRiskPredictionPanel({ analysis, loading, error, selectedArea, onSel
                 <div>Last reported incident: {formatDate(selected.historical.last_reported_at)}</div>
               </>
             ) : (
-              <div>No historical incident records matched to this barangay for the selected period. Reference classification is shown above; historical analysis is unavailable.</div>
+              <div>No historical incident records matched to this barangay for the selected period.</div>
             )}
           </div>
         </section>

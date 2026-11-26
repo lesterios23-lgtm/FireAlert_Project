@@ -7,6 +7,16 @@ jest.mock('../../sharedApi', () => ({
   apiRequest: jest.fn(),
 }));
 
+jest.mock('../shared/GoogleMap', () => function MockGoogleMap({ markers = [], heatmapPoints = [] }) {
+  return (
+    <div
+      aria-label='Map'
+      data-marker-count={markers.length}
+      data-heatmap-count={heatmapPoints.length}
+    />
+  );
+});
+
 const dashboardData = {
   reports: [{
     id: 21,
@@ -150,4 +160,164 @@ test('creates firetrucks without asking the admin to choose the single station',
       status: 'Available',
     }),
   })));
+});
+
+test('toggles seasonal high-risk heatmap overlay and switches season filter', async () => {
+  apiRequest.mockImplementation((path) => {
+    if (path.startsWith('/admin/high-risk-areas')) {
+      return Promise.resolve({
+        data: {
+          model_available: true,
+          generated_at: '2026-11-27T00:00:00Z',
+          period: '365',
+          total_incidents_analyzed: 5,
+          methodology: 'Reference + historical analysis.',
+          high_risk_locations: [],
+          reference_barangays: [{
+            barangay_name: 'Panaytayan',
+            latitude: 12.52,
+            longitude: 121.43,
+            reference_risk_level: 'High',
+            historical: { available: false, incident_count: 0 },
+          }],
+        },
+      });
+    }
+    if (path === '/admin/risk-heatmap?season=dry') {
+      return Promise.resolve({
+        data: {
+          season: 'dry',
+          count: 2,
+          points: [
+            { latitude: 12.5205, longitude: 121.4385, barangay_name: 'Poblacion', severity: 'Large', intensity: 1.0 },
+            { latitude: 12.528, longitude: 121.442, barangay_name: 'B. del Mundo', severity: 'Medium', intensity: 0.7 },
+          ],
+        },
+      });
+    }
+    if (path === '/admin/risk-heatmap?season=wet') {
+      return Promise.resolve({
+        data: {
+          season: 'wet',
+          count: 1,
+          points: [
+            { latitude: 12.511, longitude: 121.431, barangay_name: 'Santa Teresita', severity: 'Small', intensity: 0.4 },
+          ],
+        },
+      });
+    }
+    return Promise.resolve({ data: dashboardData });
+  });
+
+  render(<AdminDashboard />);
+  await screen.findByText('Recent incidents');
+
+  fireEvent.click(screen.getByRole('button', { name: /high-risk predictions/i }));
+  const toggle = await screen.findByLabelText(/Show Seasonal High-Risk Zones/i);
+  const seasonSelect = screen.getByLabelText(/Seasonal heatmap filter/i);
+  expect(seasonSelect).toBeDisabled();
+
+  fireEvent.click(toggle);
+  expect(seasonSelect).not.toBeDisabled();
+
+  await waitFor(() => expect(apiRequest).toHaveBeenCalledWith('/admin/risk-heatmap?season=dry'));
+  expect(await screen.findByText('2 incident points plotted')).toBeInTheDocument();
+  expect(screen.getByLabelText('Seasonal heatmap risk legend')).toBeInTheDocument();
+  expect(screen.getByLabelText('Map')).toHaveAttribute('data-heatmap-count', '2');
+
+  fireEvent.change(seasonSelect, { target: { value: 'wet' } });
+  await waitFor(() => expect(apiRequest).toHaveBeenCalledWith('/admin/risk-heatmap?season=wet'));
+  expect(await screen.findByText('1 incident point plotted')).toBeInTheDocument();
+  expect(screen.getByLabelText('Map')).toHaveAttribute('data-heatmap-count', '1');
+
+  fireEvent.click(toggle);
+  expect(seasonSelect).toBeDisabled();
+  expect(screen.queryByLabelText('Seasonal heatmap risk legend')).not.toBeInTheDocument();
+  expect(screen.getByLabelText('Map')).toHaveAttribute('data-heatmap-count', '0');
+});
+
+test('pins only predicted high-risk locations on the map and updates when switching forecast day', async () => {
+  const forecastDays = [
+    { day_index: 0, date: '2026-11-27', label: 'Today', high_risk_count: 1, avg_temp_max: 34.5, avg_precip_mm: 0 },
+    { day_index: 1, date: '2026-11-28', label: 'Tomorrow', high_risk_count: 0, avg_temp_max: 27.0, avg_precip_mm: 18 },
+  ];
+  const day0Locations = [
+    {
+      barangay_name: 'Panaytayan',
+      latitude: 12.5427,
+      longitude: 121.3334,
+      reference_risk_level: 'High',
+      predicted_risk_level: 'High',
+      predicted_risk_score: 76,
+      weather: { condition_label: 'Clear sky', temp_max_c: 35.4, humidity_min_pct: 42, wind_max_kmh: 26, precipitation_mm: 0 },
+      reasons: ['Hot conditions (35.4°C max)'],
+      historical: { available: false, incident_count: 0 },
+    },
+    {
+      barangay_name: 'Don Pedro',
+      latitude: 12.4894,
+      longitude: 121.4241,
+      reference_risk_level: 'Moderate',
+      predicted_risk_level: 'Low',
+      predicted_risk_score: 24,
+      weather: { condition_label: 'Rain', temp_max_c: 27.0, humidity_min_pct: 84, wind_max_kmh: 8, precipitation_mm: 18 },
+      reasons: ['Heavy rainfall suppresses fire risk (18.0 mm)'],
+      historical: { available: false, incident_count: 0 },
+    },
+  ];
+  const day1Locations = day0Locations.map((loc) => ({
+    ...loc,
+    predicted_risk_level: 'Low',
+    predicted_risk_score: 18,
+  }));
+
+  apiRequest.mockImplementation((path) => {
+    if (path.startsWith('/admin/high-risk-areas') && path.includes('day=1')) {
+      return Promise.resolve({
+        data: {
+          model_available: true,
+          weather_available: true,
+          generated_at: '2026-11-27T01:00:00Z',
+          period: '365',
+          selected_day_index: 1,
+          forecast_days: forecastDays,
+          reference_barangays: day1Locations,
+          daily_predictions: day1Locations,
+          high_risk_locations: [],
+        },
+      });
+    }
+    if (path.startsWith('/admin/high-risk-areas')) {
+      return Promise.resolve({
+        data: {
+          model_available: true,
+          weather_available: true,
+          generated_at: '2026-11-27T01:00:00Z',
+          period: '365',
+          selected_day_index: 0,
+          forecast_days: forecastDays,
+          reference_barangays: day0Locations,
+          daily_predictions: day0Locations,
+          high_risk_locations: [day0Locations[0]],
+        },
+      });
+    }
+    return Promise.resolve({ data: dashboardData });
+  });
+
+  render(<AdminDashboard />);
+  await screen.findByText('Recent incidents');
+
+  fireEvent.click(screen.getByRole('button', { name: /high-risk predictions/i }));
+
+  // Today: 2 areas monitored, ONLY 1 High-Risk area pinned on the map
+  await screen.findByLabelText('7-day fire risk forecast');
+  expect(screen.getByLabelText('Map')).toHaveAttribute('data-marker-count', '1');
+  expect(screen.getByText('1 high-risk pin shown on map')).toBeInTheDocument();
+
+  // Switch to Tomorrow: 0 High-Risk areas -> 0 pins on map & safe banner shown
+  fireEvent.click(screen.getByRole('button', { name: /Tomorrow/i }));
+  await waitFor(() => expect(apiRequest).toHaveBeenCalledWith('/admin/high-risk-areas?period=365&day=1'));
+  expect(await screen.findByText(/No high-risk fire zones predicted for Tomorrow/i)).toBeInTheDocument();
+  expect(screen.getByLabelText('Map')).toHaveAttribute('data-marker-count', '0');
 });

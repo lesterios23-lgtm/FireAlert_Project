@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import mansalayBoundary from './mansalayBoundary.json';
+import { createHeatLayer } from './leafletHeatLayer';
 import { BFP_STATION_LOCATION } from './stationLocation';
 
 const MAP_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors · Mansalay boundary: <a href="https://whosonfirst.org/docs/licenses/">Who&#39;s On First</a>';
@@ -85,12 +86,15 @@ export default function LeafletMap({
   routeDashed = false,
   routeFitToken = null,
   responder = null,
+  heatmapPoints = [],
+  heatmapOptions = null,
 }) {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
   const boundaryBoundsRef = useRef(null);
   const markersLayerRef = useRef(null);
   const routeLayerRef = useRef(null);
+  const heatLayerRef = useRef(null);
   const responderMarkerRef = useRef(null);
   const lastRouteFitTokenRef = useRef(null);
   const onLocationSelectRef = useRef(onLocationSelect);
@@ -185,6 +189,10 @@ export default function LeafletMap({
 
     return () => {
       resizeObserver?.disconnect();
+      if (heatLayerRef.current && mapRef.current) {
+        mapRef.current.removeLayer(heatLayerRef.current);
+      }
+      heatLayerRef.current = null;
       map.remove();
       mapRef.current = null;
       boundaryBoundsRef.current = null;
@@ -259,6 +267,29 @@ export default function LeafletMap({
     L.polyline(points, { color: '#ffffff', weight: 9, opacity: 0.92, lineCap: 'round', lineJoin: 'round', interactive: false }).addTo(routeLayerRef.current);
     L.polyline(points, { color: routeColor, weight: 5, opacity: 0.95, lineCap: 'round', lineJoin: 'round', dashArray: routeDashed ? '9 10' : null, interactive: false }).addTo(routeLayerRef.current);
   }, [route, routeColor, routeDashed]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return undefined;
+
+    if (heatLayerRef.current) {
+      map.removeLayer(heatLayerRef.current);
+      heatLayerRef.current = null;
+    }
+
+    if (Array.isArray(heatmapPoints) && heatmapPoints.length > 0) {
+      const layer = createHeatLayer(L, heatmapPoints, heatmapOptions || {});
+      layer.addTo(map);
+      heatLayerRef.current = layer;
+    }
+
+    return () => {
+      if (heatLayerRef.current && mapRef.current) {
+        mapRef.current.removeLayer(heatLayerRef.current);
+        heatLayerRef.current = null;
+      }
+    };
+  }, [heatmapPoints, heatmapOptions]);
 
   useEffect(() => {
     if (!mapRef.current) return undefined;
