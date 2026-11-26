@@ -255,24 +255,24 @@ test('single modal transitions from Report Request (Receive) to Dispatch (En Rou
   }
 });
 
-test('groups supporting reports under one Main Incident with verify flags and receives whole incident', async () => {
+test('displays single primary report per Main Incident without duplicate or merge UI and updates status', async () => {
   let incidentStatus = 'pending';
-  const member = (id, flag) => ({
-    id,
+  const primaryReport = {
+    id: 42,
     attributes: {
-      incidentAddress: `Purok 3, Brgy. Poblacion (${id})`,
+      incidentAddress: 'Purok 3, Brgy. Poblacion',
       incidentDescription: 'House fire near the chapel.',
       status: incidentStatus,
       reportedAt: '2026-11-04T10:00:00Z',
       latitude: 12.4,
       longitude: 121.44,
-      duplicateFlag: flag,
+      duplicateFlag: 'anchor',
     },
-    includes: { resident: { attributes: { name: `Resident ${id}` } } },
-  });
+    includes: { resident: { attributes: { name: 'Resident 42' } } },
+  };
   const makeCommandCenter = () => ({
     data: {
-      reports: [member(42, 'anchor'), member(43, 'grouped'), member(44, 'possible')],
+      reports: [primaryReport],
       trucks: [{ truck_id: 3, unit_name: 'Engine 1', status: 'Available' }],
       personnel: [{ personnel_id: 4, user_id: 20, full_name: 'Duty Officer' }],
       statuses: [{ status_id: 1, status_name: 'Submitted' }],
@@ -288,10 +288,10 @@ test('groups supporting reports under one Main Incident with verify flags and re
           incidentDescription: 'House fire near the chapel.',
           status: incidentStatus,
           firstReportedAt: '2026-11-04T10:00:00Z',
-          lastReportedAt: '2026-11-04T10:05:00Z',
-          reportCount: 3,
-          possibleDuplicates: [44],
-          reports: [member(42, 'anchor'), member(43, 'grouped'), member(44, 'possible')],
+          lastReportedAt: '2026-11-04T10:00:00Z',
+          reportCount: 1,
+          possibleDuplicates: [],
+          reports: [primaryReport],
         },
       }],
     },
@@ -308,34 +308,21 @@ test('groups supporting reports under one Main Incident with verify flags and re
 
   render(<EmergencyCommandCenter />);
 
-  // Main Incidents tab in floating sidebar shows one consolidated card with the report count.
   expect(await screen.findByRole('tab', { name: /Main Incidents \(1\)/i })).toBeInTheDocument();
   expect(screen.getByText('INC-001')).toBeInTheDocument();
-  expect(screen.getByText(/3 reports/i)).toBeInTheDocument();
-  expect(screen.getByText(/1 possible duplicate.*need verification/i)).toBeInTheDocument();
+  expect(screen.queryByText(/possible duplicate/i)).not.toBeInTheDocument();
 
-  // Clicking the map pin opens the single modal with supporting reports and Receive button
   fireEvent.click(screen.getByTestId('map-pin-42'));
   const dialog = await screen.findByRole('dialog');
-  expect(within(dialog).getByText(/Supporting reports \(3\)/i)).toBeInTheDocument();
-  expect(within(dialog).getByText('First report')).toBeInTheDocument();
-  expect(within(dialog).getByText('Grouped report')).toBeInTheDocument();
-  expect(within(dialog).getByText('Possible duplicate — verify')).toBeInTheDocument();
+  expect(within(dialog).getByText('Resident 42')).toBeInTheDocument();
+  expect(within(dialog).queryByText(/Supporting reports/i)).not.toBeInTheDocument();
+  expect(within(dialog).queryByLabelText(/Merge this incident into/i)).not.toBeInTheDocument();
 
-  // Receiving updates the whole Main Incident status to accepted
   fireEvent.click(within(dialog).getByRole('button', { name: /Receive Report/i }));
   await waitFor(() => expect(apiRequest).toHaveBeenCalledWith('/incidents/7/status', expect.objectContaining({
     method: 'PATCH',
     body: JSON.stringify({ status: 'accepted' }),
   })));
-
-  // Switching to All Reports in the sidebar still shows every individual submission.
-  fireEvent.click(within(dialog).getByRole('button', { name: /Close modal/i }));
-  fireEvent.click(screen.getByRole('tab', { name: /All Reports \(3\)/i }));
-  const flatFeed = document.querySelector('.bfp-alert-list');
-  const flatFeedScope = within(flatFeed);
-  expect(flatFeedScope.getByText('Purok 3, Brgy. Poblacion (42)')).toBeInTheDocument();
-  expect(flatFeedScope.getByText('Purok 3, Brgy. Poblacion (44)')).toBeInTheDocument();
 });
 
 test('automatically loads and displays incident photo evidence when opening a report without clicking a toggle button', async () => {

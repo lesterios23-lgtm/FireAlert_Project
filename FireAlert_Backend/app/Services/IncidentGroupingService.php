@@ -26,6 +26,29 @@ class IncidentGroupingService
     }
 
     /**
+     * Checks whether a candidate submission matches an already-active incident.
+     *
+     * @param  array<string, mixed>  $attributes
+     * @return array{verdict: string, incident: FireIncident, distance_meters: ?float, minutes_apart: ?float, description_score: float, reasons: list<string>, candidate_id: ?int}|null
+     */
+    public function findDuplicateIncident(array $attributes): ?array
+    {
+        $match = $this->matcher->matchSubmission($attributes);
+
+        if ($match['verdict'] === DuplicateReportMatcher::STRONG && $match['incident'] !== null) {
+            return $match;
+        }
+
+        return null;
+    }
+
+    /** Create a dedicated official incident for the first valid report. */
+    public function createIncidentForReport(FireReport $report, ?int $actorId = null): FireIncident
+    {
+        return $this->createStandaloneIncident($report, $actorId, 'new_incident');
+    }
+
+    /**
      * Attach a freshly stored report to an incident group.
      *
      * @return array{incident: FireIncident, verdict: string, meta: array}

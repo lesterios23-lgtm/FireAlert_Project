@@ -35,9 +35,6 @@ Route::middleware('auth:api')->group(function () {
     Route::get('command-center', [BfpCommandCenterController::class, 'index']);
     Route::get('incidents', [FireIncidentController::class, 'index']);
     Route::get('incidents/{incident}', [FireIncidentController::class, 'show']);
-    Route::post('incidents/{incident}/reports/{report}/attach', [FireIncidentController::class, 'attach']);
-    Route::post('incidents/{incident}/merge', [FireIncidentController::class, 'merge']);
-    Route::post('reports/{report}/detach', [FireIncidentController::class, 'detach']);
     Route::patch('incidents/{incident}/status', [FireIncidentController::class, 'updateStatus']);
     Route::post('reports/{report}/dispatch', [BfpCommandCenterController::class, 'dispatch']);
     Route::post('reports/{report}/dispatch-location', [BfpCommandCenterController::class, 'updateDispatchLocation']);

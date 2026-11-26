@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Services\IncidentGroupingService;
 use App\Services\DispatchLocationService;
 use App\Models\ReportEvidence;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\JsonResponse;
@@ -43,16 +44,41 @@ class FireReportController extends APIController
         if ($this->isAble('store', FireReport::class)) {
             $mapped = $request->mappedAttributes();
             $storedPath = null;
-            $groupingVerdict = null;
-            $groupingMeta = [];
+            $duplicateIncident = null;
+
+            $lock = Cache::lock('fire-incident-submission', 10);
+            try {
+                $lock->block(8);
+            } catch (\Throwable) {
+                // Fallback to DB row lock below when cache lock is unavailable.
+            }
 
             try {
-                $report = DB::transaction(function () use ($mapped, $request, &$storedPath, &$groupingVerdict, &$groupingMeta): FireReport {
+                $report = DB::transaction(function () use ($mapped, $request, &$storedPath, &$duplicateIncident): ?FireReport {
+                    $activeStatuses = (array) config('firealert.duplicate_detection.active_statuses', ['pending', 'accepted', 'responding', 'arrived']);
+                    FireIncident::query()
+                        ->whereIn('status', $activeStatuses)
+                        ->lockForUpdate()
+                        ->get(['id']);
+
+                    $reportedAt = now();
+                    $candidateAttributes = [
+                        ...$mapped,
+                        'reported_at' => $reportedAt,
+                    ];
+
+                    $duplicate = IncidentGroupingService::fromConfig()->findDuplicateIncident($candidateAttributes);
+                    if ($duplicate !== null && $duplicate['incident'] instanceof FireIncident) {
+                        $duplicateIncident = $duplicate['incident'];
+
+                        return null;
+                    }
+
                     $report = FireReport::createFromApi([
                         ...$mapped,
                         'resident_id' => $mapped['resident_id'] ?? $request->user()->getAuthIdentifier(),
                         'status' => 'pending',
-                        'reported_at' => now(),
+                        'reported_at' => $reportedAt,
                     ]);
 
                     if ($request->hasFile('evidencePhoto')) {
@@ -72,22 +98,11 @@ class FireReportController extends APIController
                         ]);
                     }
 
-                    // Duplicate detection + incident grouping. Kept inside the
-                    // request flow so reporting stays fast; grouping failures
-                    // must never lose the resident's submission.
-                    try {
-                        $grouping = IncidentGroupingService::fromConfig()->groupNewReport(
-                            $report,
-                            $request->user()?->getAuthIdentifier(),
-                        );
-                        $report->refresh();
-                        $groupingVerdict = $grouping['verdict'] ?? null;
-                        $groupingMeta = $grouping['meta'] ?? [];
-                    } catch (\Throwable $groupingError) {
-                        report($groupingError);
-                        $groupingVerdict = null;
-                        $groupingMeta = [];
-                    }
+                    IncidentGroupingService::fromConfig()->createIncidentForReport(
+                        $report,
+                        $request->user()?->getAuthIdentifier(),
+                    );
+                    $report->refresh();
 
                     return $report;
                 });
@@ -97,6 +112,26 @@ class FireReportController extends APIController
                 }
 
                 throw $exception;
+            } finally {
+                try {
+                    $lock->release();
+                } catch (\Throwable) {
+                    // Best effort lock release.
+                }
+            }
+
+            if ($report === null && $duplicateIncident !== null) {
+                return response()->json([
+                    'status' => 409,
+                    'message' => 'This incident is already reported. BFP Mansalay has already received the first report for this location and is already responding.',
+                    'data' => [
+                        'alreadyReported' => true,
+                        'incidentCode' => $duplicateIncident->code,
+                        'incidentAddress' => $duplicateIncident->incident_address,
+                        'incidentStatus' => $duplicateIncident->status,
+                        'firstReportedAt' => optional($duplicateIncident->first_reported_at)->toISOString(),
+                    ],
+                ], 409);
             }
 
             $report->loadMissing('incident');
@@ -104,11 +139,11 @@ class FireReportController extends APIController
             return (new FireReportResource($report))->additional([
                 'meta' => [
                     'grouping' => [
-                        'verdict' => $groupingVerdict ?? null,
+                        'verdict' => 'none',
                         'fireIncidentId' => $report->fire_incident_id,
                         'fireIncidentCode' => $report->incident?->code,
                         'duplicateFlag' => $report->duplicate_flag,
-                        'details' => $groupingMeta ?? [],
+                        'details' => [],
                     ],
                 ],
             ]);

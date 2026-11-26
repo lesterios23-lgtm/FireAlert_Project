@@ -7,7 +7,6 @@ use App\Http\Resources\V1\FireReportResource;
 use App\Models\FireIncident;
 use App\Models\FireReport;
 use App\Services\DispatchLocationService;
-use App\Services\IncidentGroupingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -80,68 +79,6 @@ class FireIncidentController extends APIController
             ->all();
 
         return $this->ok('Incident group retrieved', ['incident' => $data]);
-    }
-
-    public function attach(Request $request, FireIncident $incident, FireReport $report): JsonResponse
-    {
-        $this->authorizeBfp($request);
-
-        $attributes = $request->validate([
-            'reason' => ['nullable', 'string', 'max:1000'],
-        ]);
-
-        $grouped = IncidentGroupingService::fromConfig()->attachToIncident(
-            $report,
-            $incident,
-            $request->user()?->getAuthIdentifier(),
-            $attributes['reason'] ?? null,
-        );
-
-        return $this->ok('Report attached to the incident', [
-            'incident' => (new FireIncidentResource($grouped->load('reports')))->resolve($request),
-        ]);
-    }
-
-    public function detach(Request $request, FireReport $report): JsonResponse
-    {
-        $this->authorizeBfp($request);
-
-        $attributes = $request->validate([
-            'reason' => ['nullable', 'string', 'max:1000'],
-        ]);
-
-        $split = IncidentGroupingService::fromConfig()->detachReport(
-            $report,
-            $request->user()?->getAuthIdentifier(),
-            $attributes['reason'] ?? null,
-        );
-
-        return $this->ok('Report separated into its own incident', [
-            'incident' => (new FireIncidentResource($split->load('reports')))->resolve($request),
-        ]);
-    }
-
-    public function merge(Request $request, FireIncident $incident): JsonResponse
-    {
-        $this->authorizeBfp($request);
-
-        $attributes = $request->validate([
-            'into_incident_id' => ['required', 'integer', 'exists:fire_incidents,id', 'different:incident'],
-            'reason' => ['nullable', 'string', 'max:1000'],
-        ]);
-        // Route-model binding already resolved $incident as the source.
-
-        $target = FireIncident::query()->findOrFail($attributes['into_incident_id']);
-        $merged = IncidentGroupingService::fromConfig()->mergeIncidents(
-            $incident,
-            $target,
-            $request->user()?->getAuthIdentifier(),
-            $attributes['reason'] ?? null,
-        );
-
-        return $this->ok('Incidents merged', [
-            'incident' => (new FireIncidentResource($merged->load('reports')))->resolve($request),
-        ]);
     }
 
     public function updateStatus(Request $request, FireIncident $incident): JsonResponse

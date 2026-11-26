@@ -685,6 +685,27 @@
   font-size: 0.55rem;
 }
 
+.resident-already-reported {
+  padding: 0.7rem 0.8rem;
+  border: 1px solid #f2cf8d;
+  border-left: 4px solid #d97706;
+  border-radius: 6px;
+  background: #fff8eb;
+  color: #7c4a03;
+  font-size: 0.56rem;
+}
+
+.resident-already-reported strong {
+  display: block;
+  margin-bottom: 0.2rem;
+  font-size: 0.64rem;
+}
+
+.resident-already-reported p {
+  margin: 0;
+  line-height: 1.45;
+}
+
 /* ===== Resident Skeleton Loading Styles (for Slow Connections) ===== */
 @keyframes residentShimmer {
   0% {

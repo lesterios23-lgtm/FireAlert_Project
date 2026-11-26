@@ -203,6 +203,40 @@ test('rejects barangays outside Mansalay', () => {
   expect(screen.getByRole('alert')).toHaveTextContent(/Mansalay list/i);
 });
 
+test('shows already-reported alert and blocks duplicate submission when incident is active', async () => {
+  const onReportSubmitted = jest.fn();
+  mockCreateReport({
+    ok: false,
+    status: 409,
+    json: async () => ({
+      message: 'This incident is already reported. BFP Mansalay has already received the first report for this location and is already responding.',
+      data: { alreadyReported: true, incidentCode: 'INC-001' },
+    }),
+  });
+
+  render(<EmergencyReportScreen onReportSubmitted={onReportSubmitted} />);
+  fireEvent.change(screen.getByLabelText(/Incident barangay/i), {
+    target: { value: 'Poblacion' },
+  });
+  fireEvent.click(screen.getByRole('option', { name: /Brgy\. Poblacion/i }));
+  fireEvent.change(screen.getByLabelText(/Street \/ sitio \/ landmark detail/i), {
+    target: { value: 'Public Market' },
+  });
+  fireEvent.change(screen.getByLabelText(/Incident description/i), {
+    target: { value: 'Fire near the market.' },
+  });
+
+  await act(async () => {
+    fireEvent.click(screen.getByRole('button', { name: /Submit emergency report/i }));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
+
+  const alert = screen.getByRole('alert');
+  expect(alert).toHaveTextContent('This incident is already reported');
+  expect(alert).toHaveTextContent(/BFP Mansalay has already received the first report/i);
+  expect(onReportSubmitted).not.toHaveBeenCalled();
+});
+
 test('does not submit without the required incident description', () => {
   render(<EmergencyReportScreen onReportSubmitted={jest.fn()} />);
 

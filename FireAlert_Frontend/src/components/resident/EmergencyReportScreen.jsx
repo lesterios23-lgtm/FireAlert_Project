@@ -20,6 +20,7 @@ export default function EmergencyReportScreen({ onReportSubmitted }) {
   const [loading, setLoading] = useState(false);
   const [geolocationLoading, setGeolocationLoading] = useState(false);
   const [error, setError] = useState('');
+  const [alreadyReportedNotice, setAlreadyReportedNotice] = useState('');
   const [evidencePhoto, setEvidencePhoto] = useState(null);
   const [evidencePreview, setEvidencePreview] = useState('');
 
@@ -36,10 +37,12 @@ export default function EmergencyReportScreen({ onReportSubmitted }) {
 
   const updateForm = (event) => {
     const { name, value } = event.target;
+    setAlreadyReportedNotice('');
     setForm((current) => ({ ...current, [name]: value }));
   };
 
   const selectMapLocation = ({ latitude, longitude }) => {
+    setAlreadyReportedNotice('');
     setForm((current) => ({
       ...current,
       latitude: String(latitude),
@@ -49,6 +52,7 @@ export default function EmergencyReportScreen({ onReportSubmitted }) {
   };
 
   const selectBarangay = (value) => {
+    setAlreadyReportedNotice('');
     setForm((current) => ({ ...current, incidentBarangay: value }));
   };
 
@@ -145,6 +149,7 @@ export default function EmergencyReportScreen({ onReportSubmitted }) {
 
     setLoading(true);
     setError('');
+    setAlreadyReportedNotice('');
 
     try {
       const additionalDetails = [
@@ -182,7 +187,14 @@ export default function EmergencyReportScreen({ onReportSubmitted }) {
       setEvidencePhoto(null);
       onReportSubmitted(submittedReport);
     } catch (requestError) {
-      setError(requestError.message || 'Unable to submit the emergency report.');
+      const message = requestError.message || 'Unable to submit the emergency report.';
+      if (/already\s+(been\s+)?reported/i.test(message)) {
+        setAlreadyReportedNotice(message);
+        setError('');
+      } else {
+        setAlreadyReportedNotice('');
+        setError(message);
+      }
     } finally {
       setLoading(false);
     }
@@ -350,6 +362,12 @@ export default function EmergencyReportScreen({ onReportSubmitted }) {
           </label>
         </section>
 
+        {alreadyReportedNotice && (
+          <div className='resident-already-reported' role='alert'>
+            <strong>This incident is already reported</strong>
+            <p>{alreadyReportedNotice}</p>
+          </div>
+        )}
         {error && <div className='resident-form-error' role='alert'>{error}</div>}
         <button type='submit' className='resident-submit-button' disabled={loading}>
           {loading ? 'Submitting report…' : 'Submit emergency report'}

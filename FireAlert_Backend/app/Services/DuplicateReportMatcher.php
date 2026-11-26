@@ -53,6 +53,23 @@ class DuplicateReportMatcher
     }
 
     /**
+     * @param  array<string, mixed>  $attributes
+     * @return array{verdict: string, incident: ?FireIncident, distance_meters: ?float, minutes_apart: ?float, description_score: float, reasons: list<string>, candidate_id: ?int}
+     */
+    public function matchSubmission(array $attributes): array
+    {
+        $candidate = new FireReport([
+            'incident_description' => $attributes['incident_description'] ?? null,
+            'incident_address' => $attributes['incident_address'] ?? null,
+            'latitude' => $attributes['latitude'] ?? null,
+            'longitude' => $attributes['longitude'] ?? null,
+            'reported_at' => $attributes['reported_at'] ?? now(),
+        ]);
+
+        return $this->matchFor($candidate);
+    }
+
+    /**
      * @return array{verdict: string, incident: ?FireIncident, distance_meters: ?float, minutes_apart: ?float, description_score: float, reasons: list<string>, candidate_id: ?int}
      */
     public function matchFor(FireReport $report): array
@@ -205,55 +222,63 @@ class DuplicateReportMatcher
         }
 
         // ---- Verdict ----
-        // A. STRONG: geo + time + (description signal OR same barangay OR tight pin).
+        // Block as already reported when location + time match an active incident.
         if ($withinRadius && $withinWindow) {
-            $supporting = $descriptionScore >= $this->descriptionThreshold || $sameBarangay;
-            if ($supporting) {
+            if ($withinTightRadius || $sameBarangay || $descriptionScore >= $this->descriptionThreshold) {
                 return [
                     'verdict' => self::STRONG,
                     'incident' => $incident,
                     'distance_meters' => $distance,
                     'minutes_apart' => $minutesApart,
                     'description_score' => $descriptionScore,
-                    'reasons' => [...$reasons, 'Strong match: auto-attached as supporting report.'],
+                    'reasons' => [...$reasons, 'Duplicate incident detected within location radius and time window.'],
                     'rank' => $rank + 5,
                 ];
             }
-            // Tight GPS pins (same building) attach even with thin text.
-            if ($withinTightRadius && $descriptionScore > 0) {
-                return [
-                    'verdict' => self::STRONG,
-                    'incident' => $incident,
-                    'distance_meters' => $distance,
-                    'minutes_apart' => $minutesApart,
-                    'description_score' => $descriptionScore,
-                    'reasons' => [...$reasons, 'Strong match: very close pin with similar description.'],
-                    'rank' => $rank + 5,
-                ];
-            }
-
-            // B. POSSIBLE: geo + time line up but the system is uncertain.
-            return [
-                'verdict' => self::POSSIBLE,
-                'incident' => $incident,
-                'distance_meters' => $distance,
-                'minutes_apart' => $minutesApart,
-                'description_score' => $descriptionScore,
-                'reasons' => [...$reasons, 'Possible duplicate: needs BFP verification.'],
-                'rank' => $rank + 2,
-            ];
         }
 
-        // No-GPS fallback: same barangay + similar description + close in time.
-        if ($distance === null && $sameBarangay && $withinWindow && $descriptionScore >= $this->descriptionThreshold) {
+        // No-GPS fallback: exact normalized address match OR same barangay with
+        // overlapping landmark/description within the active time window.
+        $reportNormalizedAddress = self::normalizedAddress($report->incident_address);
+        $incidentAddresses = collect([$incident->incident_address])
+            ->merge($incident->reports->map(fn (FireReport $row) => $row->incident_address))
+            ->map(fn ($addr) => self::normalizedAddress($addr))
+            ->filter();
+        $exactAddressMatch = $reportNormalizedAddress !== ''
+            && $incidentAddresses->contains($reportNormalizedAddress);
+
+        if ($distance === null && $withinWindow && $exactAddressMatch) {
             return [
-                'verdict' => self::POSSIBLE,
+                'verdict' => self::STRONG,
                 'incident' => $incident,
                 'distance_meters' => null,
                 'minutes_apart' => $minutesApart,
                 'description_score' => $descriptionScore,
-                'reasons' => [...$reasons, 'Possible duplicate (no GPS): needs BFP verification.'],
-                'rank' => $rank + 1,
+                'reasons' => [...$reasons, 'Same incident address reported within the active time window.'],
+                'rank' => $rank + 4,
+            ];
+        }
+
+        $reportLandmarkTokens = self::addressLandmarkTokens($report->incident_address);
+        $landmarkMatch = false;
+        if ($reportLandmarkTokens !== []) {
+            $incidentLandmarkTokens = collect([$incident->incident_address])
+                ->merge($incident->reports->map(fn (FireReport $row) => $row->incident_address))
+                ->flatMap(fn ($addr) => self::addressLandmarkTokens($addr))
+                ->unique()
+                ->all();
+            $landmarkMatch = count(array_intersect($reportLandmarkTokens, $incidentLandmarkTokens)) > 0;
+        }
+
+        if ($distance === null && $sameBarangay && $withinWindow && ($descriptionScore >= $this->descriptionThreshold || $landmarkMatch)) {
+            return [
+                'verdict' => self::STRONG,
+                'incident' => $incident,
+                'distance_meters' => null,
+                'minutes_apart' => $minutesApart,
+                'description_score' => $descriptionScore,
+                'reasons' => [...$reasons, 'Same barangay and landmark/description within the active time window.'],
+                'rank' => $rank + 3,
             ];
         }
 
@@ -367,17 +392,43 @@ class DuplicateReportMatcher
         return null;
     }
 
-    /** Extracts "Brgy. <Name>" from the Mansalay-scoped address format. */
+    /** Extracts "Brgy. <Name>" or "Barangay <Name>" from the Mansalay-scoped address format. */
     public static function barangayOf(?string $address): ?string
     {
         if (! is_string($address)) {
             return null;
         }
-        if (preg_match('/brgy\.\s*([^,]+)/i', $address, $matches)) {
+        if (preg_match('/(?:brgy\.?|barangay)\s*([^,]+)/i', $address, $matches)) {
             return mb_strtolower(trim($matches[1]));
         }
 
         return null;
+    }
+
+    public static function normalizedAddress(?string $address): string
+    {
+        if (! is_string($address)) {
+            return '';
+        }
+
+        return mb_strtolower(trim(preg_replace('/\s+/', ' ', $address) ?? $address));
+    }
+
+    /** @return list<string> */
+    public static function addressLandmarkTokens(?string $address): array
+    {
+        if (! is_string($address)) {
+            return [];
+        }
+        $beforeBrgy = preg_split('/(?:brgy\.?|barangay)\s*/i', $address)[0] ?? '';
+        $clean = preg_replace('/[^a-z0-9\s]/i', ' ', mb_strtolower($beforeBrgy)) ?? '';
+        $stopwords = ['near', 'the', 'and', 'for', 'with', 'sitio', 'purok', 'zone', 'street', 'mansalay', 'oriental', 'mindoro'];
+        $words = array_unique(array_filter(
+            preg_split('/\s+/', $clean) ?: [],
+            fn ($word) => mb_strlen($word) >= 3 && ! in_array($word, $stopwords, true),
+        ));
+
+        return array_values($words);
     }
 
     public static function haversineMeters(float $lat1, float $lon1, float $lat2, float $lon2): float
