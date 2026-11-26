@@ -1,12 +1,18 @@
 .admin-dashboard {
   display: grid;
   grid-template-columns: 230px minmax(0, 1fr);
-  min-height: calc(100vh - 106px);
+  min-height: calc(100vh - 62px);
   margin: -1.35rem calc((100vw - min(100vw - 2rem, 1600px)) / -2) 0;
   background: #f3f5f8;
 }
 
 .admin-sidebar {
+  position: sticky;
+  top: 62px;
+  height: calc(100vh - 62px);
+  align-self: start;
+  overflow-y: auto;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   padding: 1.4rem 0.8rem;
@@ -448,7 +454,13 @@
     grid-template-columns: 1fr;
     margin: -1.35rem -1rem 0;
   }
-  .admin-sidebar { padding: 0.7rem; }
+  .admin-sidebar {
+    position: static;
+    top: auto;
+    height: auto;
+    overflow-y: visible;
+    padding: 0.7rem;
+  }
   .admin-sidebar-title,
   .admin-sidebar-note { display: none; }
   .admin-sidebar nav {
