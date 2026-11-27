@@ -109,13 +109,15 @@ if ($SkipBuild) {
         Write-Host 'Building the React app...' -ForegroundColor Cyan
 
         # Burn the API URL into the bundle. The value set here wins over
-        # FireAlert_Frontend/.env, so use -ApiUrl for the subdomain layout
-        # instead of editing a tracked file.
+        # FireAlert_Frontend/.env so a local dev REACT_APP_API_URL never leaks
+        # into a production release bundle.
         if ($ApiUrl) {
             $env:REACT_APP_API_URL = $ApiUrl.TrimEnd('/')
+        } else {
+            $env:REACT_APP_API_URL = '/api/v1'
         }
 
-        $apiLabel = if ($env:REACT_APP_API_URL) { $env:REACT_APP_API_URL } else { '/api/v1 (same domain)' }
+        $apiLabel = $env:REACT_APP_API_URL
         Write-Host "  API base : $apiLabel"
 
         npm run build
