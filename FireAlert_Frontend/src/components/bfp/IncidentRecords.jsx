@@ -141,6 +141,14 @@ export default function IncidentRecords({ user = null, onOpenCommand }) {
     casualties_count: '0',
     resolution_summary: '',
   });
+  const [editingTableReport, setEditingTableReport] = useState(null);
+  const [tableEditForm, setTableEditForm] = useState({
+    damage_assessment: '',
+    casualties_count: '0',
+    resolution_summary: '',
+  });
+  const [savingTableRecord, setSavingTableRecord] = useState(false);
+  const [tableSaveSuccess, setTableSaveSuccess] = useState('');
   const [error, setError] = useState('');
 
   const loadReports = useCallback(async () => {
@@ -198,6 +206,9 @@ export default function IncidentRecords({ user = null, onOpenCommand }) {
 
   useEffect(() => {
     setSaveSuccess('');
+  }, [selectedReport?.id]);
+
+  useEffect(() => {
     setRecordForm({
       damage_assessment: selectedReport?.incidentRecord?.damage_assessment || '',
       casualties_count: String(selectedReport?.incidentRecord?.casualties_count ?? 0),
@@ -209,6 +220,15 @@ export default function IncidentRecords({ user = null, onOpenCommand }) {
     selectedReport?.incidentRecord?.casualties_count,
     selectedReport?.incidentRecord?.resolution_summary,
   ]);
+
+  useEffect(() => {
+    if (!editingTableReport) return undefined;
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') setEditingTableReport(null);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [editingTableReport]);
 
   const analytics = useMemo(() => {
     const total = reports.length;
@@ -536,7 +556,7 @@ export default function IncidentRecords({ user = null, onOpenCommand }) {
 
   const saveIncidentRecord = async (event) => {
     event.preventDefault();
-    if (!selectedReport) return;
+    if (!selectedReport || hasIncidentDocumentation(selectedReport)) return;
 
     setSavingRecord(true);
     setSaveSuccess('');
@@ -559,6 +579,45 @@ export default function IncidentRecords({ user = null, onOpenCommand }) {
     }
   };
 
+  const openTableRecordEditor = (report) => {
+    if (!report) return;
+    setError('');
+    setTableSaveSuccess('');
+    setEditingTableReport(report);
+    setTableEditForm({
+      damage_assessment: report.incidentRecord?.damage_assessment || '',
+      casualties_count: String(report.incidentRecord?.casualties_count ?? 0),
+      resolution_summary: report.incidentRecord?.resolution_summary || '',
+    });
+  };
+
+  const saveTableIncidentRecord = async (event) => {
+    event.preventDefault();
+    if (!editingTableReport) return;
+
+    setSavingTableRecord(true);
+    setTableSaveSuccess('');
+    setError('');
+    const targetId = editingTableReport.id;
+    try {
+      await apiRequest(`/reports/${targetId}/incident-record`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          damage_assessment: tableEditForm.damage_assessment,
+          casualties_count: Number(tableEditForm.casualties_count),
+          resolution_summary: tableEditForm.resolution_summary,
+        }),
+      });
+      await loadReports();
+      setEditingTableReport(null);
+      setTableSaveSuccess(`Updated record for ${formatRef(targetId)}.`);
+    } catch (requestError) {
+      setError(requestError.message || 'Unable to update the incident record.');
+    } finally {
+      setSavingTableRecord(false);
+    }
+  };
+
   const inspectReportInRecords = (reportId) => {
     setSelectedId(reportId);
     setSearch('');
@@ -576,6 +635,7 @@ export default function IncidentRecords({ user = null, onOpenCommand }) {
     ? [{ id: selectedReport.id, lat: selectedReport.latitude, lng: selectedReport.longitude }]
     : [];
   const selectedSeverity = selectedReport ? extractFireSeverity(selectedReport) : 'unspecified';
+  const selectedIsRecorded = Boolean(selectedReport && hasIncidentDocumentation(selectedReport));
   const isAdminSection = isAdmin && (
     activeSection === 'predictions'
     || activeSection === 'users'
@@ -913,41 +973,76 @@ export default function IncidentRecords({ user = null, onOpenCommand }) {
                       )}
                     </section>
 
-                    <form className='bfp-incident-record-form' onSubmit={saveIncidentRecord}>
-                      <h3>Incident record</h3>
-                      <label htmlFor='record-damage'>Damage assessment</label>
-                      <textarea
-                        id='record-damage'
-                        rows='3'
-                        maxLength='5000'
-                        value={recordForm.damage_assessment}
-                        onChange={(event) => setRecordForm((current) => ({ ...current, damage_assessment: event.target.value }))}
-                      />
-                      <label htmlFor='record-casualties'>Casualties count</label>
-                      <input
-                        id='record-casualties'
-                        type='number'
-                        min='0'
-                        value={recordForm.casualties_count}
-                        onChange={(event) => setRecordForm((current) => ({ ...current, casualties_count: event.target.value }))}
-                        required
-                      />
-                      <label htmlFor='record-resolution'>Resolution summary</label>
-                      <textarea
-                        id='record-resolution'
-                        rows='3'
-                        maxLength='5000'
-                        value={recordForm.resolution_summary}
-                        onChange={(event) => setRecordForm((current) => ({ ...current, resolution_summary: event.target.value }))}
-                      />
-                      {selectedReport.incidentRecord?.archived_at && (
-                        <p className='bfp-record-archived'>Archived {formatDate(selectedReport.incidentRecord.archived_at)}</p>
-                      )}
-                      {saveSuccess && <p className='bfp-save-success' role='status'>{saveSuccess}</p>}
-                      <button className='bfp-primary-button' type='submit' disabled={savingRecord}>
-                        {savingRecord ? 'Saving record…' : 'Save incident record'}
-                      </button>
-                    </form>
+                    {selectedIsRecorded ? (
+                      <section className='bfp-saved-record-card' aria-label='Saved incident record'>
+                        <div className='bfp-saved-record-head'>
+                          <h3>Incident record</h3>
+                          <span className='bfp-doc-badge documented'>Saved · Read-only</span>
+                        </div>
+                        <div className='bfp-saved-record-field'>
+                          <span>Damage assessment</span>
+                          <p>{selectedReport.incidentRecord?.damage_assessment || 'None recorded'}</p>
+                        </div>
+                        <div className='bfp-saved-record-field'>
+                          <span>Casualties count</span>
+                          <strong>{String(selectedReport.incidentRecord?.casualties_count ?? 0)}</strong>
+                        </div>
+                        <div className='bfp-saved-record-field'>
+                          <span>Resolution summary</span>
+                          <p>{selectedReport.incidentRecord?.resolution_summary || 'None recorded'}</p>
+                        </div>
+                        {selectedReport.incidentRecord?.archived_at && (
+                          <p className='bfp-record-archived'>Archived {formatDate(selectedReport.incidentRecord.archived_at)}</p>
+                        )}
+                        {saveSuccess && <p className='bfp-save-success' role='status'>{saveSuccess}</p>}
+                        <div className='bfp-saved-record-lock-note'>
+                          <span>Saved records are locked here. Update this record from the Incident Data Table.</span>
+                          <button
+                            type='button'
+                            className='bfp-table-action-btn'
+                            onClick={() => setActiveSection('documentation')}
+                          >
+                            Open Incident Data Table
+                          </button>
+                        </div>
+                      </section>
+                    ) : (
+                      <form className='bfp-incident-record-form' onSubmit={saveIncidentRecord}>
+                        <h3>Incident record</h3>
+                        <label htmlFor='record-damage'>Damage assessment</label>
+                        <textarea
+                          id='record-damage'
+                          rows='3'
+                          maxLength='5000'
+                          value={recordForm.damage_assessment}
+                          onChange={(event) => setRecordForm((current) => ({ ...current, damage_assessment: event.target.value }))}
+                        />
+                        <label htmlFor='record-casualties'>Casualties count</label>
+                        <input
+                          id='record-casualties'
+                          type='number'
+                          min='0'
+                          value={recordForm.casualties_count}
+                          onChange={(event) => setRecordForm((current) => ({ ...current, casualties_count: event.target.value }))}
+                          required
+                        />
+                        <label htmlFor='record-resolution'>Resolution summary</label>
+                        <textarea
+                          id='record-resolution'
+                          rows='3'
+                          maxLength='5000'
+                          value={recordForm.resolution_summary}
+                          onChange={(event) => setRecordForm((current) => ({ ...current, resolution_summary: event.target.value }))}
+                        />
+                        {selectedReport.incidentRecord?.archived_at && (
+                          <p className='bfp-record-archived'>Archived {formatDate(selectedReport.incidentRecord.archived_at)}</p>
+                        )}
+                        {saveSuccess && <p className='bfp-save-success' role='status'>{saveSuccess}</p>}
+                        <button className='bfp-primary-button' type='submit' disabled={savingRecord}>
+                          {savingRecord ? 'Saving record…' : 'Save incident record'}
+                        </button>
+                      </form>
+                    )}
 
                     {onOpenCommand && (
                       <button type='button' className='bfp-primary-button' onClick={onOpenCommand}>
@@ -1179,6 +1274,10 @@ export default function IncidentRecords({ user = null, onOpenCommand }) {
               </div>
             </section>
 
+            {tableSaveSuccess && (
+              <p className='bfp-save-success bfp-datatable-save-banner' role='status'>{tableSaveSuccess}</p>
+            )}
+
             <section className='bfp-panel bfp-datatable-panel'>
               <div className='bfp-datatable-toolbar'>
                 <div className='bfp-datatable-filter-row'>
@@ -1373,7 +1472,7 @@ export default function IncidentRecords({ user = null, onOpenCommand }) {
                             <button
                               type='button'
                               className='bfp-table-action-btn'
-                              onClick={() => inspectReportInRecords(report.id)}
+                              onClick={() => openTableRecordEditor(report)}
                             >
                               Edit record
                             </button>
@@ -1429,6 +1528,74 @@ export default function IncidentRecords({ user = null, onOpenCommand }) {
                 </div>
               </div>
             </section>
+
+            {editingTableReport && (
+              <div
+                className='bfp-record-modal-overlay'
+                role='dialog'
+                aria-modal='true'
+                aria-labelledby='table-edit-record-title'
+              >
+                <div className='bfp-record-modal'>
+                  <div className='bfp-record-modal-head'>
+                    <div>
+                      <p className='bfp-eyebrow'>Incident Data Table</p>
+                      <h2 id='table-edit-record-title'>Edit Incident Record · {formatRef(editingTableReport.id)}</h2>
+                      <p>{editingTableReport.incidentAddress || 'Location unavailable'}</p>
+                    </div>
+                    <button
+                      type='button'
+                      className='bfp-icon-button'
+                      onClick={() => setEditingTableReport(null)}
+                      aria-label='Close edit incident record modal'
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  <form className='bfp-incident-record-form' onSubmit={saveTableIncidentRecord}>
+                    <label htmlFor='table-record-damage'>Damage assessment</label>
+                    <textarea
+                      id='table-record-damage'
+                      rows='3'
+                      maxLength='5000'
+                      value={tableEditForm.damage_assessment}
+                      onChange={(event) => setTableEditForm((current) => ({ ...current, damage_assessment: event.target.value }))}
+                    />
+                    <label htmlFor='table-record-casualties'>Casualties count</label>
+                    <input
+                      id='table-record-casualties'
+                      type='number'
+                      min='0'
+                      value={tableEditForm.casualties_count}
+                      onChange={(event) => setTableEditForm((current) => ({ ...current, casualties_count: event.target.value }))}
+                      required
+                    />
+                    <label htmlFor='table-record-resolution'>Resolution summary</label>
+                    <textarea
+                      id='table-record-resolution'
+                      rows='3'
+                      maxLength='5000'
+                      value={tableEditForm.resolution_summary}
+                      onChange={(event) => setTableEditForm((current) => ({ ...current, resolution_summary: event.target.value }))}
+                    />
+                    <div className='bfp-record-modal-actions'>
+                      <button
+                        type='button'
+                        className='bfp-secondary-button'
+                        onClick={() => setEditingTableReport(null)}
+                        disabled={savingTableRecord}
+                      >
+                        Cancel
+                      </button>
+                      <button className='bfp-primary-button' type='submit' disabled={savingTableRecord}>
+                        {savingTableRecord ? 'Saving…' : 'Save changes'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
           </>
         )}
 

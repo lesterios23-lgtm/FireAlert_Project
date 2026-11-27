@@ -94,11 +94,27 @@ const analyticsCommandCenter = {
 
 afterEach(() => jest.clearAllMocks());
 
-test('loads incident records from command center data and saves the selected report record', async () => {
+test('loads incident records from command center data, saves once, and locks as read-only', async () => {
+  const savedCommandCenter = {
+    data: {
+      ...commandCenter.data,
+      reports: [{
+        ...commandCenter.data.reports[0],
+        incidentRecord: {
+          record_id: 9,
+          damage_assessment: 'Kitchen cabinets damaged.',
+          casualties_count: 1,
+          resolution_summary: 'Fire extinguished.',
+          archived_at: '2026-11-04T11:00:00Z',
+        },
+      }],
+    },
+  };
+
   apiRequest
     .mockResolvedValueOnce(commandCenter)
     .mockResolvedValueOnce({ data: null, message: 'Incident record saved' })
-    .mockResolvedValueOnce(commandCenter);
+    .mockResolvedValueOnce(savedCommandCenter);
   render(<IncidentRecords />);
 
   await screen.findByRole('heading', { name: 'FA-000007' });
@@ -123,6 +139,12 @@ test('loads incident records from command center data and saves the selected rep
     }),
   })));
   expect(apiRequest).toHaveBeenNthCalledWith(3, '/command-center');
+
+  expect(await screen.findByText('Saved · Read-only')).toBeInTheDocument();
+  expect(screen.getByText('Kitchen cabinets damaged.')).toBeInTheDocument();
+  expect(screen.getByText('Fire extinguished.')).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Save incident record' })).not.toBeInTheDocument();
+  expect(screen.queryByLabelText('Damage assessment')).not.toBeInTheDocument();
 });
 
 test('navigates to the analytics dashboard and filters back to matching records', async () => {
@@ -147,11 +169,33 @@ test('navigates to the analytics dashboard and filters back to matching records'
   expect(screen.getByRole('heading', { name: 'FA-000012' })).toBeInTheDocument();
 });
 
-test('filters the incident data table by location and date range and inspects dispatch logs', async () => {
-  apiRequest.mockResolvedValueOnce(analyticsCommandCenter);
+test('filters the incident data table by location and date range, edits via modal, and inspects dispatch logs', async () => {
+  apiRequest
+    .mockResolvedValueOnce(analyticsCommandCenter)
+    .mockResolvedValueOnce({ data: null, message: 'Incident record updated' })
+    .mockResolvedValueOnce({
+      data: {
+        ...analyticsCommandCenter.data,
+        reports: analyticsCommandCenter.data.reports.map((r) => (
+          r.id === 12
+            ? {
+              ...r,
+              incidentRecord: {
+                ...r.incidentRecord,
+                damage_assessment: 'Updated roof and kitchen damage.',
+              },
+            }
+            : r
+        )),
+      },
+    });
   render(<IncidentRecords />);
 
   await screen.findByRole('heading', { name: 'FA-000012' });
+
+  // Already-saved FA-000012 is read-only inside Incident Records view
+  expect(screen.getByText('Saved · Read-only')).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Save incident record' })).not.toBeInTheDocument();
 
   const sidebarNav = screen.getByRole('navigation', { name: 'Incident records sections' });
   fireEvent.click(within(sidebarNav).getByRole('button', { name: /Incident Data Table/i }));
@@ -183,9 +227,25 @@ test('filters the incident data table by location and date range and inspects di
 
   fireEvent.click(screen.getByRole('button', { name: 'Reset filters' }));
 
-  // Jump from table row to Incident Records editor for FA-000011
-  fireEvent.click(screen.getAllByRole('button', { name: 'Edit record' })[1]);
-  expect(screen.getByRole('heading', { name: 'FA-000011' })).toBeInTheDocument();
+  // Edit record inside Data Table via modal (first row = FA-000012)
+  fireEvent.click(screen.getAllByRole('button', { name: 'Edit record' })[0]);
+  const modal = await screen.findByRole('dialog');
+  expect(within(modal).getByRole('heading', { name: /Edit Incident Record · FA-000012/i })).toBeInTheDocument();
+  fireEvent.change(within(modal).getByLabelText('Damage assessment'), {
+    target: { value: 'Updated roof and kitchen damage.' },
+  });
+  fireEvent.click(within(modal).getByRole('button', { name: 'Save changes' }));
+
+  await waitFor(() => expect(apiRequest).toHaveBeenCalledWith('/reports/12/incident-record', expect.objectContaining({
+    method: 'PUT',
+    body: JSON.stringify({
+      damage_assessment: 'Updated roof and kitchen damage.',
+      casualties_count: 2,
+      resolution_summary: 'Fire contained and overhauled.',
+    }),
+  })));
+  await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  expect(await screen.findByText('Updated roof and kitchen damage.')).toBeInTheDocument();
 
   fireEvent.click(within(sidebarNav).getByRole('button', { name: /Dispatches & Units/i }));
   expect(screen.getByRole('heading', { name: 'Dispatches & Response Units' })).toBeInTheDocument();
