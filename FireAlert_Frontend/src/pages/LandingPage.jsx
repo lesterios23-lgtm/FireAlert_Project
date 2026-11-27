@@ -156,10 +156,15 @@ export default function LandingPage() {
               ))}
             </nav>
             <div className='landing-header-actions'>
-              <a className='landing-button landing-button-outline' href={signInHref}>SignIn</a>
+              <a className='landing-button landing-button-outline' href={signInHref}>Sign In</a>
               {!isInstalled ? (
-                <button type='button' className='landing-button landing-button-outline' onClick={handleInstall}>
-                  Install app
+                <button type='button' className='landing-button landing-button-install' onClick={handleInstall}>
+                  <svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2.2' strokeLinecap='round' strokeLinejoin='round' aria-hidden='true'>
+                    <path d='M12 3v12' />
+                    <path d='m7 10 5 5 5-5' />
+                    <path d='M5 21h14' />
+                  </svg>
+                  <span>Install app</span>
                 </button>
               ) : (
                 <span className='landing-button landing-button-outline landing-header-installed' aria-label='App installed'>Installed</span>

@@ -58,10 +58,14 @@
   border-radius: 22px;
   font-weight: 600;
   font-size: 14px;
+  font-family: inherit;
   text-decoration: none;
   box-sizing: border-box;
   justify-content: center;
   text-align: center;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.16s ease, border-color 0.16s ease, color 0.16s ease;
 }
 
 .landing-button-red {
@@ -75,6 +79,7 @@
 }
 
 .landing-button-outline {
+  background: transparent;
   border: 1.5px solid #14283f;
   color: #14283f;
 }
@@ -82,6 +87,19 @@
 .landing-button-outline:hover {
   color: #c92a2a;
   border-color: #c92a2a;
+}
+
+.landing-button-install {
+  background: #ffffff;
+  color: #14283f;
+  border: 1.5px solid #ffffff;
+  box-shadow: 0 4px 14px rgb(0 0 0 / 22%);
+}
+
+.landing-button-install:hover {
+  background: #f1f5f9;
+  border-color: #f1f5f9;
+  color: #c92a2a;
 }
 
 .landing-button-white {
@@ -263,9 +281,8 @@
   inset: 0;
   z-index: -2;
   background-image: url('../assets/login-bg.jpg');
-  background-position: center;
-  /* show the whole photo, stretched to fill (no side gaps) */
-  background-size: 100% 100%;
+  background-position: center center;
+  background-size: cover;
   background-repeat: no-repeat;
 }
 
@@ -385,14 +402,15 @@
 
 /* outline buttons on dark top background */
 .landing-top .landing-button-outline {
-  border-color: #e9eff6;
-  color: #e9eff6;
+  background: rgb(255 255 255 / 6%);
+  border-color: rgb(255 255 255 / 55%);
+  color: #ffffff;
 }
 
 .landing-top .landing-button-outline:hover {
   color: #ffffff;
   border-color: #ffffff;
-  background: rgb(255 255 255 / 10%);
+  background: rgb(255 255 255 / 16%);
 }
 
 .landing-hero .landing-phone-caption {
@@ -874,6 +892,10 @@
 
 /* ===== responsive: stacks at 390px (and small tablets) ===== */
 @media (max-width: 900px) {
+  .landing-top::before {
+    background-position: center 22%;
+  }
+
   .landing-hero {
     padding: 40px 20px 48px;
   }
@@ -907,6 +929,17 @@
   /* the emergency strip is hidden on small screens */
   .landing-strip {
     display: none;
+  }
+
+  .landing-top::before {
+    background-size: cover;
+    background-position: center top;
+  }
+
+  .landing-top::after {
+    background:
+      linear-gradient(180deg, rgb(4 12 24 / 68%) 0%, rgb(4 12 24 / 78%) 55%, rgb(2 8 18 / 90%) 100%),
+      radial-gradient(125% 100% at 50% 35%, rgb(2 8 18 / 12%) 15%, rgb(0 3 8 / 72%) 100%);
   }
 
   .landing-header-inner {
@@ -945,19 +978,21 @@
     flex-wrap: nowrap;
   }
 
-  /* compact inline buttons so SignIn fits beside the menu toggle */
+  /* compact inline buttons so Sign In and Install app stay crisp side by side */
   .landing-header-actions .landing-button {
-    min-height: 44px;
-    padding: 0 14px;
-    font-size: 14px;
+    min-height: 38px;
+    padding: 0 12px;
+    font-size: 13px;
+    gap: 6px;
   }
 
   .landing-nav {
     order: 3;
     width: 100%;
     justify-content: center;
-    flex-wrap: nowrap;
-    gap: 12px;
+    flex-wrap: wrap;
+    row-gap: 2px;
+    column-gap: 14px;
     font-size: 12px;
   }
 
@@ -1003,7 +1038,7 @@
   }
 }
 
-@media (max-width: 390px) {
+@media (max-width: 420px) {
   .landing-hero,
   .landing-how,
   .landing-audiences,
@@ -1013,7 +1048,27 @@
   }
 
   .landing-header-inner {
-    padding: 12px 16px;
+    padding: 10px 14px;
+    gap: 8px;
+  }
+
+  .landing-brand-name {
+    font-size: 15px;
+  }
+
+  .landing-brand-sub {
+    font-size: 10px;
+  }
+
+  .landing-header-actions {
+    gap: 6px;
+  }
+
+  .landing-header-actions .landing-button {
+    min-height: 36px;
+    padding: 0 10px;
+    font-size: 12px;
+    gap: 5px;
   }
 
   .landing-hero-copy > p {
