@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AnnouncementController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\AdminDashboardController;
 use App\Http\Controllers\Api\V1\BfpCommandCenterController;
@@ -20,6 +21,7 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/auth/me', [AuthController::class, 'me']);
     Route::post('/auth/refresh', [AuthController::class, 'refresh']);
     Route::match(['patch', 'post'], '/auth/profile', [AuthController::class, 'updateProfile']);
+    Route::get('/announcements', [AnnouncementController::class, 'index']);
     Route::get('admin/dashboard', [AdminDashboardController::class, 'index']);
     Route::get('admin/high-risk-areas', [AdminDashboardController::class, 'highRiskAreas']);
     Route::get('admin/risk-heatmap', [AdminDashboardController::class, 'riskHeatmap']);

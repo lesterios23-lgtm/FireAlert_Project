@@ -56,6 +56,15 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    const onAuthExpired = () => {
+      setUser(null);
+      setUserRole(null);
+    };
+    window.addEventListener('firealert:auth-expired', onAuthExpired);
+    return () => window.removeEventListener('firealert:auth-expired', onAuthExpired);
+  }, []);
+
+  useEffect(() => {
     const storedUser = localStorage.getItem('firealert_user');
     const token = localStorage.getItem('firealert_token');
     const storedId = localStorage.getItem('firealert_user_id');
@@ -72,6 +81,46 @@ export default function App() {
       }
     }
     setInitialized(true);
+  }, []);
+
+  // Revalidate stored sessions so role/account changes take effect without
+  // requiring users to manually clear browser storage.
+  useEffect(() => {
+    const token = localStorage.getItem('firealert_token');
+    if (!token) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const payload = await apiRequest('/auth/me');
+        const me = payload?.data;
+        if (cancelled || !me?.id || !me?.role) return;
+        const nextUser = {
+          id: me.id,
+          name: me.name || me.email || 'User',
+          email: me.email || '',
+          contact_number: me.contact_number || me.contactNumber || '',
+          address: me.address || '',
+          role: me.role,
+          is_manager: Boolean(me.is_manager),
+          profile_photo_url: me.profile_photo_url || me.profilePhotoUrl || null,
+        };
+        setUser(nextUser);
+        setUserRole(nextUser.role || 'resident');
+        localStorage.setItem('firealert_user', JSON.stringify(nextUser));
+        localStorage.setItem('firealert_user_id', String(nextUser.id));
+      } catch (err) {
+        if (cancelled) return;
+        const msg = String(err?.message || '').toLowerCase();
+        if (msg.includes('401') || msg.includes('unauthenticated')) {
+          localStorage.removeItem('firealert_token');
+          localStorage.removeItem('firealert_user');
+          localStorage.removeItem('firealert_user_id');
+          setUser(null);
+          setUserRole(null);
+        }
+      }
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   const handleLogin = (userData, id) => {

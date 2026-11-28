@@ -16,6 +16,52 @@ function resolveApiBaseUrl() {
 
 const API_BASE_URL = resolveApiBaseUrl();
 
+let refreshPromise = null;
+
+function clearStoredAuthSession() {
+  localStorage.removeItem('firealert_token');
+  localStorage.removeItem('firealert_user');
+  localStorage.removeItem('firealert_user_id');
+  if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+    window.dispatchEvent(new Event('firealert:auth-expired'));
+  }
+}
+
+/**
+ * Exchange an existing JWT for a fresh token once across concurrent 401s.
+ */
+async function refreshAccessToken() {
+  const token = localStorage.getItem('firealert_token');
+  if (!token) return null;
+
+  if (!refreshPromise) {
+    refreshPromise = (async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+          method: 'POST',
+          headers: {
+            Accept: 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const data = await response.json().catch(() => ({}));
+        const nextToken = data?.data?.access_token;
+        if (response.ok && nextToken) {
+          localStorage.setItem('firealert_token', nextToken);
+          return nextToken;
+        }
+        return null;
+      } catch {
+        return null;
+      } finally {
+        refreshPromise = null;
+      }
+    })();
+  }
+
+  return refreshPromise;
+}
+
 export async function apiRequest(path, options = {}) {
   const token = localStorage.getItem('firealert_token');
   const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
@@ -25,17 +71,31 @@ export async function apiRequest(path, options = {}) {
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...options.headers,
   };
+  const { _retried = false, ...fetchOptions } = options;
   const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
+    ...fetchOptions,
     headers,
   });
+
+  if (response.status === 401 && token && !_retried && !String(path).startsWith('/auth/')) {
+    const nextToken = await refreshAccessToken();
+    if (nextToken) {
+      return apiRequest(path, { ...options, _retried: true });
+    }
+    clearStoredAuthSession();
+  }
+
   const payload = await response.json().catch(() => ({}));
 
   if (!response.ok) {
     const validationErrors = payload.errors
       ? Object.values(payload.errors).flat().join(' ')
       : '';
-    throw new Error(validationErrors || payload.message || `Request failed: ${response.status}`);
+    const contentType = response.headers?.get?.('content-type') || '';
+    const fallbackMessage = contentType && !contentType.toLowerCase().includes('json')
+      ? `Server returned HTTP ${response.status}. Please refresh or try again.`
+      : `Request failed: ${response.status}`;
+    throw new Error(validationErrors || payload.message || fallbackMessage);
   }
 
   return payload;

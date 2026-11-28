@@ -20,6 +20,31 @@ define('LARAVEL_START', microtime(true));
 
 // Default: the "firealert" folder next to public_html.
 $appPath = __DIR__.'/../firealert';
+$storageLink = __DIR__.'/storage';
+$storageTarget = $appPath.'/storage/app/public';
+if (! file_exists($storageLink) && ! is_link($storageLink) && is_dir($storageTarget)) {
+    @symlink('../firealert/storage/app/public', $storageLink);
+}
+// Shared hosting can inject stale server-level env vars (e.g. old DB_* / APP_*)
+// that override .env. Make this app's .env authoritative for web requests.
+$envFile = $appPath.'/.env';
+if (is_readable($envFile)) {
+    $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
+    foreach ($lines as $line) {
+        $line = trim($line);
+        if ($line === '' || str_starts_with($line, '#') || !str_contains($line, '=')) {
+            continue;
+        }
+        [$key] = explode('=', $line, 2);
+        $key = trim($key);
+        if ($key === '') {
+            continue;
+        }
+        putenv($key);
+        unset($_ENV[$key], $_SERVER[$key]);
+    }
+}
+
 
 if (! is_file($appPath.'/vendor/autoload.php')) {
     http_response_code(500);
