@@ -1,7 +1,7 @@
 /* Minimal service worker to enable PWA installability.
    Uses a network-first pass-through strategy (no aggressive app-shell caching)
    so deployed updates are picked up without stale-cache issues. */
-const CACHE_NAME = 'firealert-v3';
+const CACHE_NAME = 'firealert-v4';
 
 self.addEventListener('install', () => {
   self.skipWaiting();

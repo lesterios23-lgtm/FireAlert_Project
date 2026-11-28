@@ -20,10 +20,22 @@ define('LARAVEL_START', microtime(true));
 
 // Default: the "firealert" folder next to public_html.
 $appPath = __DIR__.'/../firealert';
-$storageLink = __DIR__.'/storage';
-$storageTarget = $appPath.'/storage/app/public';
-if (! file_exists($storageLink) && ! is_link($storageLink) && is_dir($storageTarget)) {
-    @symlink('../firealert/storage/app/public', $storageLink);
+// Serve public storage files safely if Hostinger's hbuilds removes the storage symlink.
+$requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+if (str_starts_with($requestPath, '/storage/')) {
+    $relativePath = ltrim(substr($requestPath, strlen('/storage/')), '/');
+    $storageRoot = realpath($appPath.'/storage/app/public');
+    $targetFile = $storageRoot ? realpath($storageRoot.'/'.$relativePath) : false;
+    if ($storageRoot && $targetFile && str_starts_with($targetFile, $storageRoot.DIRECTORY_SEPARATOR) && is_file($targetFile)) {
+        $mime = function_exists('mime_content_type') ? (mime_content_type($targetFile) ?: 'application/octet-stream') : 'application/octet-stream';
+        header('Content-Type: '.$mime);
+        header('Content-Length: '.filesize($targetFile));
+        header('Cache-Control: public, max-age=31536000');
+        readfile($targetFile);
+        exit;
+    }
+    http_response_code(404);
+    exit;
 }
 // Shared hosting can inject stale server-level env vars (e.g. old DB_* / APP_*)
 // that override .env. Make this app's .env authoritative for web requests.

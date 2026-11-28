@@ -59,7 +59,7 @@ export default function LoginPage({ onLogin }) {
     try {
       const response = await fetch(`${API_BASE_URL}/auth/register`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: registrationForm.name.trim(),
           contact_number: registrationForm.contact_number.trim(),
@@ -111,8 +111,8 @@ export default function LoginPage({ onLogin }) {
     try {
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: form.email, password: form.password }),
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: form.email.trim(), password: form.password }),
       });
 
       if (!response.ok) {
@@ -120,10 +120,10 @@ export default function LoginPage({ onLogin }) {
         const validationErrors = data?.errors
           ? Object.values(data.errors).flat().join(' ')
           : '';
-        throw new Error(validationErrors || data.message || 'Request failed. Please try again.');
+        throw new Error(validationErrors || data.message || `Request failed (HTTP ${response.status}). Please try again.`);
       }
-      const contentType = response.headers.get('content-type') || '';
-      if (!contentType.includes('application/json')) {
+      const contentType = response.headers?.get?.('content-type') || '';
+      if (contentType && !contentType.includes('application/json')) {
         throw new Error('Server returned an unexpected response (not JSON). The API may not be routed correctly on this site. Check deployment/server configuration.');
       }
       const data = await response.json();
@@ -136,6 +136,7 @@ export default function LoginPage({ onLogin }) {
 
       const meResponse = await fetch(`${API_BASE_URL}/auth/me`, {
         headers: {
+          Accept: 'application/json',
           'Content-Type': 'application/json',
           Authorization: `Bearer ${accessToken}`,
         },
@@ -201,15 +202,15 @@ export default function LoginPage({ onLogin }) {
     try {
       const googleResponse = await fetch(`${API_BASE_URL}/auth/google`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
         body: JSON.stringify({ credential: response.credential }),
       });
       const data = await googleResponse.json().catch(() => ({}));
       if (!googleResponse.ok) {
         throw new Error(data?.message || 'Google sign-in failed. Please try again.');
       }
-      const contentType = googleResponse.headers.get('content-type') || '';
-      if (!contentType.includes('application/json')) {
+      const contentType = googleResponse.headers?.get?.('content-type') || '';
+      if (contentType && !contentType.includes('application/json')) {
         throw new Error('Server returned an unexpected response (not JSON). The API may not be routed correctly on this site. Check deployment/server configuration.');
       }
       const accessToken = data?.data?.access_token;
@@ -219,6 +220,7 @@ export default function LoginPage({ onLogin }) {
 
       const meResponse = await fetch(`${API_BASE_URL}/auth/me`, {
         headers: {
+          Accept: 'application/json',
           'Content-Type': 'application/json',
           Authorization: `Bearer ${accessToken}`,
         },
